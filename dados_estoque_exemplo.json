@@ -1,0 +1,102 @@
+{
+    "PROD001": {
+        "id_produto": "PROD001",
+        "nome": "Notebook Dell Inspiron 15",
+        "categoria": "Informática",
+        "preco": 3499.90,
+        "quantidade": 15,
+        "minimo": 5,
+        "localizacao": "Prateleira A1",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD002": {
+        "id_produto": "PROD002",
+        "nome": "Monitor LG 24 polegadas",
+        "categoria": "Informática",
+        "preco": 899.00,
+        "quantidade": 8,
+        "minimo": 3,
+        "localizacao": "Prateleira A2",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD003": {
+        "id_produto": "PROD003",
+        "nome": "Teclado Mecânico RGB",
+        "categoria": "Periféricos",
+        "preco": 249.90,
+        "quantidade": 32,
+        "minimo": 10,
+        "localizacao": "Prateleira B1",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD004": {
+        "id_produto": "PROD004",
+        "nome": "Mouse Gamer Óptico",
+        "categoria": "Periféricos",
+        "preco": 129.90,
+        "quantidade": 45,
+        "minimo": 15,
+        "localizacao": "Prateleira B2",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD005": {
+        "id_produto": "PROD005",
+        "nome": "Webcam Full HD 1080p",
+        "categoria": "Periféricos",
+        "preco": 199.00,
+        "quantidade": 5,
+        "minimo": 8,
+        "localizacao": "Prateleira B3",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD006": {
+        "id_produto": "PROD006",
+        "nome": "Headset Wireless Bluetooth",
+        "categoria": "Áudio",
+        "preco": 349.90,
+        "quantidade": 20,
+        "minimo": 5,
+        "localizacao": "Prateleira C1",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD007": {
+        "id_produto": "PROD007",
+        "nome": "Cabo USB-C 2m",
+        "categoria": "Cabos",
+        "preco": 49.90,
+        "quantidade": 120,
+        "minimo": 50,
+        "localizacao": "Prateleira D1",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD008": {
+        "id_produto": "PROD008",
+        "nome": "Pen Drive 64GB",
+        "categoria": "Armazenamento",
+        "preco": 89.90,
+        "quantidade": 30,
+        "minimo": 10,
+        "localizacao": "Prateleira E1",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD009": {
+        "id_produto": "PROD009",
+        "nome": "SSD 1TB NVMe",
+        "categoria": "Armazenamento",
+        "preco": 599.00,
+        "quantidade": 12,
+        "minimo": 5,
+        "localizacao": "Prateleira E2",
+        "data_criacao": "01/01/2026 08:00:00"
+    },
+    "PROD010": {
+        "id_produto": "PROD010",
+        "nome": "Roteador WiFi 6",
+        "categoria": "Redes",
+        "preco": 429.90,
+        "quantidade": 7,
+        "minimo": 3,
+        "localizacao": "Prateleira F1",
+        "data_criacao": "01/01/2026 08:00:00"
+    }
+}

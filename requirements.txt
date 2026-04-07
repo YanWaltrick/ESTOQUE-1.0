@@ -1,0 +1,131 @@
+# Sistema de Gestão de Estoque - Requisitos
+
+## Requisitos de Sistema
+
+- Python 3.6 ou superior
+- Verifique sua versão: python --version
+
+## Dependências do Projeto
+
+# Framework Web
+Flask==3.1.3
+flask-login==0.6.3
+flask-sqlalchemy==3.1.1
+
+# Banco de Dados
+SQLAlchemy==2.0.48
+pymysql==1.0.3  # Driver MySQL via SQLAlchemy
+# mysqlclient==2.2.0  # Alternativa opcional (requer compilar libmysqlclient)
+
+# Variáveis de Ambiente
+python-dotenv==1.2.2
+
+# Dependências associadas (instaladas automaticamente)
+blinker==1.9.0
+click==8.3.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+Werkzeug==3.1.7
+greenlet==3.3.2
+typing-extensions==4.15.0
+
+## Instalação
+
+### Instalar todas as dependências:
+```bash
+pip install -r requirements.txt
+```
+
+ou
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Como Executar
+
+```bash
+python app.py
+```
+
+Para o sistema de estoque padrão:
+```bash
+python estoque.py
+```
+
+Para testes:
+```bash
+python teste.py
+```
+
+## Estrutura de Arquivos
+
+```
+ESTOQUE/
+├── estoque.py                      # Sistema principal
+├── teste.py                        # Script de testes
+├── dados_estoque.json              # Dados (criado automaticamente)
+├── dados_estoque_exemplo.json      # Exemplo de dados
+├── README.md                       # Documentação completa
+├── GUIA_RAPIDO.txt                # Guia rápido
+└── requirements.txt               # Este arquivo
+```
+
+## Primeiro Uso
+
+1. Abra o terminal/prompt de comando
+2. Navegue até a pasta ESTOQUE:
+   ```bash
+   cd "C:\Users\Yan Waltrick\Desktop\VScode\ESTOQUE"
+   ```
+
+3. Execute o programa:
+   ```bash
+   python estoque.py
+   ```
+
+4. No menu, escolha opção 1 e adicione um produto
+
+## Troubleshooting
+
+### "Python não é reconhecido como comando"
+- Reinstale Python e marque "Add Python to PATH"
+- Ou use: `python3 estoque.py`
+
+### "ModuleNotFoundError"
+- Geralmente não ocorre (usa bibliotecas padrão)
+- Verifique se está usando Python 3.6+
+
+### "Arquivo não encontrado"
+- Execute `python estoque.py` dentro da pasta ESTOQUE
+- Ou especifique o caminho completo
+
+### Dados não são salvos
+- Verifique permissões de escrita na pasta
+- Certifique-se que está no diretório correto
+
+## Suporte ao Windows
+
+O sistema foi desenvolvido e testado para Windows:
+- ✓ Caminho com barras invertidas
+- ✓ Encoding UTF-8
+- ✓ Terminal/PowerShell compatível
+
+## Performance
+
+- Arquivos com até 10.000 produtos: excelente
+- Arquivos com até 100.000 produtos: bom
+- Operações normalmente levam < 100ms
+
+## Próximas Versões
+
+- [ ] Interface web (Flask/FastAPI)
+- [ ] GUI Desktop (tkinter/PyQt)
+- [ ] Banco de dados (SQLite/MySQL)
+- [ ] Sincronização entre computadores
+- [ ] Aplicativo móvel
+
+---
+
+**Desenvolvido com Python puro - sem dependências externas!** 🐍

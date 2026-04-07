@@ -1,0 +1,12 @@
+{
+    "MOUSE": {
+        "id_produto": "MOUSE",
+        "nome": "MOUSE WIRELESS",
+        "categoria": "ELETRONICO",
+        "preco": 300.0,
+        "quantidade": 13,
+        "minimo": 2,
+        "localizacao": "N/",
+        "data_criacao": "20/03/2026 14:27:01"
+    }
+}
