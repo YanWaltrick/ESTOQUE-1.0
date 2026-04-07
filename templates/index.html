@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTOQUE</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <img src="{{ url_for('static', filename='img/SomaAssetLogoDark.svg') }}" alt="SOMA Asset Logo" style="height:32px; width:auto;" />
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('dashboard')">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('produtos')">
+                            <i class="fas fa-cube"></i> Produtos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('relatorios')">
+                            <i class="fas fa-file-pdf"></i> Relatórios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin') }}">
+                            <i class="fas fa-shield-alt"></i> Admin
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('chamadas')">
+                            <i class="fas fa-bell"></i> Chamadas
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('perfil') }}">
+                            <i class="fas fa-user-circle"></i> Perfil
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-lg-12">
+            {% if current_user.is_admin %}
+            <div id="dashboard-section" class="section">
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="kpi-label text-muted">Total de Produtos</p>
+                                    <p class="kpi-value" id="kpi-total-produtos">0</p>
+                                </div>
+                                <i class="fas fa-cube kpi-icon text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="kpi-label text-muted">Quantidade Total</p>
+                                    <p class="kpi-value" id="kpi-quantidade">0</p>
+                                </div>
+                                <i class="fas fa-boxes kpi-icon text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="kpi-label text-muted">Valor Total</p>
+                                    <p class="kpi-value" id="kpi-valor">R$ 0</p>
+                                </div>
+                                <i class="fas fa-money-bill-wave kpi-icon text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="kpi-label text-muted">Estoque Baixo</p>
+                                    <p class="kpi-value text-danger" id="kpi-baixo">0</p>
+                                </div>
+                                <i class="fas fa-exclamation-triangle kpi-icon text-danger"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0"><i class="fas fa-pie-chart"></i> Distribuição por Categoria</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="categoriasChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Top 10 Produtos por Valor</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="topProdutosChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-exclamation-circle"></i> Produtos com Estoque Baixo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nome</th>
+                                            <th>Categoria</th>
+                                            <th>Quantidade</th>
+                                            <th>Mínimo</th>
+                                            <th>Faltam</th>
+                                            <th>Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="estoque-baixo-table">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">Carregando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+            <div id="produtos-section" class="section" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3><i class="fas fa-cube"></i> Gerenciar Produtos</h3>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduto" onclick="novoFormulario()">
+                            <i class="fas fa-plus"></i> Novo Produto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchProduto" placeholder="Buscar produto...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nome</th>
+                                            <th>Categoria</th>
+                                            <th>Preço</th>
+                                            <th>Quantidade</th>
+                                            <th>Valor Total</th>
+                                            <th>Data Atualização</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="produtos-table">
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted">Carregando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="relatorios-section" class="section" style="display: none;">
+            <h3 class="mb-4"><i class="fas fa-file-pdf"></i> Relatórios</h3>
+
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-categoria" data-bs-toggle="tab" data-bs-target="#categoria-tab">
+                        <i class="fas fa-tags"></i> Por Categoria
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-valor" data-bs-toggle="tab" data-bs-target="#valor-tab">
+                        <i class="fas fa-sort-amount-down"></i> Top Produtos por Quantidade
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="categoria-tab">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Categoria</th>
+                                                    <th>Produtos</th>
+                                                    <th>Quantidade</th>
+                                                    <th>Valor Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="relatorio-categoria-table">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">Carregando...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="valor-tab">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Nome</th>
+                                                    <th>Quantidade</th>
+                                                    <th>Preço</th>
+                                                    <th>Valor Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="relatorio-top-table">
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted">Carregando...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="chamadas-section" class="section" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h3><i class="fas fa-bell"></i> Chamadas para Admin</h3>
+                    <p class="text-muted">Envie uma mensagem para os administradores online solicitando ajuda ou informações. Abaixo você verá o histórico de chamadas enviadas por você.</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 mx-auto">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <form id="formChamada">
+                                <div class="mb-3">
+                                    <label for="chamadaTipo" class="form-label">Tipo de chamada *</label>
+                                    <select class="form-select" id="chamadaTipo" required>
+                                        <option value="" disabled selected>Selecione o tipo de chamada</option>
+                                        <option value="Equipamento defeituoso">Equipamento defeituoso</option>
+                                        <option value="Computador com erro">Computador com erro</option>
+                                        <option value="Conexão com a internet">Conexão com a internet</option>
+                                        <option value="Impressora">Impressora</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3" id="subtipoContainer" style="display: none;">
+                                    <label for="chamadaSubtipo" class="form-label">Especifique o problema *</label>
+                                    <select class="form-select" id="chamadaSubtipo" required>
+                                        <option value="" disabled selected>Selecione o problema específico</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="chamadaMensagem" class="form-label">Mensagem *</label>
+                                    <textarea class="form-control" id="chamadaMensagem" rows="4" placeholder="Descreva do que você precisa..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Enviar Chamada
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0"><i class="fas fa-history"></i> Histórico de Chamadas</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="lista-chamadas-usuario">Carregando chamadas...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="modalProduto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalProdutoTitle">Novo Produto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formProduto">
+                        <div class="mb-3">
+                            <label for="prodId" class="form-label">ID do Produto *</label>
+                            <input type="text" class="form-control" id="prodId" required>
+                            <small class="text-muted">Identificador único</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodNome" class="form-label">Nome *</label>
+                            <input type="text" class="form-control" id="prodNome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodCategoria" class="form-label">Categoria *</label>
+                            <input type="text" class="form-control" id="prodCategoria" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodPreco" class="form-label">Preço (R$) *</label>
+                            <input type="number" class="form-control" id="prodPreco" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodQuantidade" class="form-label">Quantidade *</label>
+                            <input type="number" class="form-control" id="prodQuantidade" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodMinimo" class="form-label">Estoque Mínimo *</label>
+                            <input type="number" class="form-control" id="prodMinimo" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prodLocalizacao" class="form-label">Localização</label>
+                            <input type="text" class="form-control" id="prodLocalizacao">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarProduto()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalMovimentacao" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalMovimentacaoTitle">Movimentação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formMovimentacao">
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Movimentação</label>
+                            <select class="form-select" id="tipoMovimentacao" onchange="atualizarLabelMovimentacao()">
+                                <option value="entrada">Entrada (Compra)</option>
+                                <option value="saida">Saída (Venda)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="movQuantidade" class="form-label">Quantidade *</label>
+                            <input type="number" class="form-control" id="movQuantidade" min="1" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarMovimentacao()">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.USUARIO_IS_ADMIN = {{ 'true' if current_user.is_admin else 'false' }};
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

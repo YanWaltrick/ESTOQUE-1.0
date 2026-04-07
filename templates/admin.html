@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - ESTOQUE</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='img/SomaAssetLogoDark.svg') }}" alt="SOMA Asset Logo" style="height:32px; width:auto;" />
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-shield-alt text-primary"></i> Administração de Usuários
+                </h1>
+                <p class="text-muted">Gerencie usuários e permissões do sistema</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-usuarios-tab" data-bs-toggle="tab" data-bs-target="#tab-usuarios" type="button" role="tab" aria-controls="tab-usuarios" aria-selected="true">
+                            <i class="fas fa-users"></i> Usuários
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-senha-tab" data-bs-toggle="tab" data-bs-target="#tab-senha" type="button" role="tab" aria-controls="tab-senha" aria-selected="false">
+                            <i class="fas fa-key"></i> Senhas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-chamadas-tab" data-bs-toggle="tab" data-bs-target="#tab-chamadas" type="button" role="tab" aria-controls="tab-chamadas" aria-selected="false">
+                            <i class="fas fa-bell"></i> Chamadas <span class="badge bg-danger" id="badge-chamadas-nao-lidas">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-historico-tab" data-bs-toggle="tab" data-bs-target="#tab-historico" type="button" role="tab" aria-controls="tab-historico" aria-selected="false">
+                            <i class="fas fa-history"></i> Histórico
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="adminTabsContent">
+                    <div class="tab-pane fade show active" id="tab-usuarios" role="tabpanel" aria-labelledby="tab-usuarios-tab">
+                        <div class="row">
+                            <!-- Formulário para adicionar usuário -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-user-plus"></i> Adicionar Novo Usuário
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="form-adicionar-usuario">
+                                            <div class="mb-3">
+                                                <label for="username" class="form-label">Nome de Usuário</label>
+                                                <input type="text" class="form-control" id="username" name="username" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="password" class="form-label">Senha</label>
+                                                <input type="password" class="form-control" id="password" name="password" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="role" class="form-label">Tipo de Conta</label>
+                                                <select class="form-select" id="role" name="role" required>
+                                                    <option value="user">Usuário Normal</option>
+                                                    <option value="admin">Administrador</option>
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-plus"></i> Adicionar Usuário
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lista de usuários -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-users"></i> Usuários Cadastrados
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="lista-usuarios">
+                                            <!-- Usuários serão carregados aqui -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-senha" role="tabpanel" aria-labelledby="tab-senha-tab">
+                        <div class="row">
+                            <div class="col-lg-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-key"></i> Mudar minha senha
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="form-mudar-senha">
+                                            <div class="mb-3">
+                                                <label for="senhaAtual" class="form-label">Senha atual</label>
+                                                <input type="password" class="form-control" id="senhaAtual" name="senha_atual" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="senhaAtualRep" class="form-label">Repetir senha atual</label>
+                                                <input type="password" class="form-control" id="senhaAtualRep" name="senha_atual_rep" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="novaSenha" class="form-label">Nova senha</label>
+                                                <input type="password" class="form-control" id="novaSenha" name="nova_senha" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="confirmNovaSenha" class="form-label">Confirmar nova senha</label>
+                                                <input type="password" class="form-control" id="confirmNovaSenha" name="confirm_nova_senha" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-sync-alt"></i> Atualizar minha senha
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 mb-4">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-user-lock"></i> Redefinir senha de usuário
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="form-resetar-usuario-senha">
+                                            <div class="mb-3">
+                                                <label for="selectUsuarioReset" class="form-label">Usuário</label>
+                                                <select class="form-select" id="selectUsuarioReset" name="usuario_id" required>
+                                                    <option value="">Selecione um usuário</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="novaSenhaUsuario" class="form-label">Nova senha</label>
+                                                <input type="password" class="form-control" id="novaSenhaUsuario" name="nova_senha" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="confirmNovaSenhaUsuario" class="form-label">Confirmar nova senha</label>
+                                                <input type="password" class="form-control" id="confirmNovaSenhaUsuario" name="confirm_nova_senha" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-unlock-alt"></i> Redefinir senha
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-chamadas" role="tabpanel" aria-labelledby="tab-chamadas-tab">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-bell"></i> Chamadas dos Usuários (Mais recentes)
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <input type="text" id="filtro-chamadas" class="form-control" placeholder="Pesquisar por usuário ou mensagem...">
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <small class="text-muted" id="texto-atualiza-chamadas">Atualiza a cada 30s</small>
+                                    </div>
+                                </div>
+                                <div id="lista-chamadas">
+                                    <!-- Chamadas serão carregadas aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-historico" role="tabpanel" aria-labelledby="tab-historico-tab">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-history"></i> Histórico de Mudanças no Sistema
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <select class="form-select" id="filtro-tipo-historico">
+                                            <option value="">Todos os tipos de evento</option>
+                                            <option value="usuario_criado">Usuário Criado</option>
+                                            <option value="usuario_deletado">Usuário Deletado</option>
+                                            <option value="produto_criado">Produto Criado</option>
+                                            <option value="produto_deletado">Produto Deletado</option>
+                                            <option value="entrada_estoque">Entrada de Estoque</option>
+                                            <option value="saida_estoque">Saída de Estoque</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="lista-historico">
+                                    <!-- Histórico será carregado aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação para deletar -->
+    <div class="modal fade" id="modal-confirmar-delete" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja remover o usuário <strong id="usuario-nome"></strong>?</p>
+                    <p class="text-danger small">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirmar-delete">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let usuarios = [];
+        let usuarioParaDeletar = null;
+
+        // Carregar usuários
+        async function carregarUsuarios() {
+            try {
+                const response = await fetch('/api/users');
+                if (response.ok) {
+                    usuarios = await response.json();
+                    exibirUsuarios();
+                    popularSelectUsuarios();
+                } else {
+                    alert('Erro ao carregar usuários');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar usuários');
+            }
+        }
+
+        // Exibir usuários na lista
+        function exibirUsuarios() {
+            const lista = document.getElementById('lista-usuarios');
+            lista.innerHTML = '';
+
+            if (usuarios.length === 0) {
+                lista.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
+                return;
+            }
+
+            usuarios.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.innerHTML = `
+                    <strong>${escapeHtml(user.username)}</strong>
+                    <br>
+                    <small class="text-muted">
+                        ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
+                        | Criado em: ${user.data_criacao}
+                    </small>
+                `;
+                
+                const btnDiv = document.createElement('div');
+                if (user.username !== 'admin') { // Não permitir deletar o admin principal
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-sm btn-outline-danger';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => confirmarDelete(user);
+                    btnDiv.appendChild(btnDelete);
+                }
+                
+                userDiv.appendChild(infoDiv);
+                userDiv.appendChild(btnDiv);
+                lista.appendChild(userDiv);
+            });
+        }
+
+        function popularSelectUsuarios() {
+            const resetSelect = document.getElementById('selectUsuarioReset');
+            if (!resetSelect) return;
+
+            resetSelect.innerHTML = '<option value="">Selecione um usuário</option>';
+
+            usuarios.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.username} (${user.role})`;
+                resetSelect.appendChild(option);
+            });
+        }
+
+        // Função para escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Adicionar usuário
+        document.getElementById('form-adicionar-usuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const dados = {
+                username: formData.get('username'),
+                password: formData.get('password'),
+                role: formData.get('role')
+            };
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Usuário criado com sucesso!');
+                    e.target.reset();
+                    carregarUsuarios();
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao criar usuário');
+            }
+        });
+
+        // Confirmar delete
+        function confirmarDelete(user) {
+            usuarioParaDeletar = user;
+            document.getElementById('usuario-nome').textContent = user.username;
+            new bootstrap.Modal(document.getElementById('modal-confirmar-delete')).show();
+        }
+
+        // Deletar usuário
+        document.getElementById('btn-confirmar-delete').addEventListener('click', async () => {
+            if (!usuarioParaDeletar) return;
+
+            try {
+                const response = await fetch(`/api/users/${usuarioParaDeletar.id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Usuário removido com sucesso!');
+                    bootstrap.Modal.getInstance(document.getElementById('modal-confirmar-delete')).hide();
+                    carregarUsuarios();
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao remover usuário');
+            }
+        });
+
+        document.getElementById('form-mudar-senha').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const body = {
+                senha_atual: formData.get('senha_atual'),
+                senha_atual_rep: formData.get('senha_atual_rep'),
+                nova_senha: formData.get('nova_senha'),
+                confirm_nova_senha: formData.get('confirm_nova_senha')
+            };
+
+            try {
+                const response = await fetch('/api/users/me/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.mensagem || 'Senha atualizada com sucesso');
+                    e.target.reset();
+                } else {
+                    alert('Erro: ' + (result.erro || 'Falha ao atualizar senha'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao atualizar senha');
+            }
+        });
+
+        document.getElementById('form-resetar-usuario-senha').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const userId = formData.get('usuario_id');
+            const body = {
+                nova_senha: formData.get('nova_senha'),
+                confirm_nova_senha: formData.get('confirm_nova_senha')
+            };
+
+            if (!userId) {
+                alert('Selecione um usuário para redefinir a senha');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/users/${userId}/reset-password`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.mensagem || 'Senha do usuário redefinida com sucesso');
+                    e.target.reset();
+                } else {
+                    alert('Erro: ' + (result.erro || 'Falha ao redefinir senha'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao redefinir senha do usuário');
+            }
+        });
+
+        let chamadasCache = [];
+
+        // Carregar badge de chamadas não lidas
+        async function atualizarBadgeNaoLidas() {
+            try {
+                const response = await fetch('/api/chamadas/nao-lidas');
+                if (!response.ok) {
+                    console.error('Falha ao obter contagem de chamadas não lidas');
+                    return;
+                }
+                const { nao_lidas } = await response.json();
+                const badge = document.getElementById('badge-chamadas-nao-lidas');
+                badge.textContent = nao_lidas;
+                badge.className = nao_lidas > 0 ? 'badge bg-danger' : 'badge bg-secondary';
+            } catch (error) {
+                console.error('Erro ao obter badge de chamadas:', error);
+            }
+        }
+
+        function aplicarFiltroChamadas(chamadas, texto) {
+            if (!texto) return chamadas;
+            const termo = texto.trim().toLowerCase();
+            return chamadas.filter(chamada => {
+                return chamada.usuario.toLowerCase().includes(termo) || chamada.mensagem.toLowerCase().includes(termo);
+            });
+        }
+
+        // Atualizar status da chamada (admin)
+        async function trocarStatus(chamadaId, status) {
+            try {
+                const response = await fetch(`/api/chamadas/${chamadaId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    carregarChamadas();
+                } else {
+                    const err = await response.json();
+                    alert('Erro: ' + (err.erro || 'Falha ao atualizar status'));
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+                alert('Erro ao atualizar status');
+            }
+        }
+
+        // Carregar chamadas (mais recentes)
+        async function carregarChamadas() {
+            try {
+                const response = await fetch('/api/chamadas?limit=20');
+                chamadasCache = await response.json();
+
+                const filtro = document.getElementById('filtro-chamadas').value;
+                const chamadasFiltradas = aplicarFiltroChamadas(chamadasCache, filtro);
+
+                const lista = document.getElementById('lista-chamadas');
+                lista.innerHTML = '';
+
+                if (chamadasFiltradas.length === 0) {
+                    lista.innerHTML = '<p class="text-muted">Nenhuma chamada encontrada.</p>';
+                    atualizarBadgeNaoLidas();
+                    return;
+                }
+
+                chamadasFiltradas.forEach(chamada => {
+                    const chamadaDiv = document.createElement('div');
+                    chamadaDiv.className = `border rounded p-3 mb-3 ${chamada.lida ? 'bg-light' : 'bg-warning-subtle'}`;
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        <strong>${escapeHtml(chamada.usuario)}</strong>
+                        <small class="text-muted d-block">${chamada.data_criacao}</small>
+                    `;
+                    
+                    const statusDiv = document.createElement('div');
+                    const statusMap = {
+                        'nova': {label: 'Nova', class: 'bg-warning'},
+                        'lida': {label: 'Lida', class: 'bg-secondary'},
+                        'analise': {label: 'Em Análise', class: 'bg-info text-dark'},
+                        'execucao': {label: 'Em Execução', class: 'bg-primary'},
+                        'concluida': {label: 'Concluída', class: 'bg-success'}
+                    };
+                    const statusInfo = statusMap[chamada.status] || statusMap['nova'];
+                    statusDiv.innerHTML = `<span class="badge ${statusInfo.class}">${statusInfo.label}</span>`;
+                    
+                    headerDiv.appendChild(infoDiv);
+                    headerDiv.appendChild(statusDiv);
+                    
+                    const mensagemDiv = document.createElement('div');
+                    mensagemDiv.className = 'mb-2';
+                    mensagemDiv.textContent = chamada.mensagem;
+                    
+                    const acoesDiv = document.createElement('div');
+                    const btnAcao = (label, classe, status) =>
+                        `<button class="btn btn-sm ${classe} me-1" onclick="trocarStatus(${chamada.id}, '${status}')">` +
+                            `<i class="fas fa-sync-alt"></i> ${label}` +
+                        `</button>`;
+
+                    switch (chamada.status) {
+                        case 'nova':
+                            acoesDiv.innerHTML = btnAcao('Marcar como Lida', 'btn-success', 'lida');
+                            break;
+                        case 'lida':
+                            acoesDiv.innerHTML = btnAcao('Colocar em Análise', 'btn-info', 'analise');
+                            break;
+                        case 'analise':
+                            acoesDiv.innerHTML = btnAcao('Colocar em Execução', 'btn-primary', 'execucao');
+                            break;
+                        case 'execucao':
+                            acoesDiv.innerHTML = btnAcao('Marcar como Concluída', 'btn-success', 'concluida');
+                            break;
+                        case 'concluida':
+                            acoesDiv.innerHTML = '<small class="text-success">Finalizada</small>';
+                            break;
+                        default:
+                            acoesDiv.innerHTML = '';
+                    }
+                    
+                    chamadaDiv.appendChild(headerDiv);
+                    chamadaDiv.appendChild(mensagemDiv);
+                    chamadaDiv.appendChild(acoesDiv);
+                    
+                    lista.appendChild(chamadaDiv);
+                });
+
+                atualizarBadgeNaoLidas();
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('lista-chamadas').innerHTML = '<p class="text-danger">Erro ao carregar chamadas.</p>';
+            }
+        }
+
+        // Marcar chamada como lida
+        async function marcarComoLida(chamadaId) {
+            try {
+                const response = await fetch(`/api/chamadas/${chamadaId}/ler`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    carregarChamadas(); // Recarregar lista
+                } else {
+                    alert('Erro ao marcar chamada como lida');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao marcar chamada como lida');
+            }
+        }
+
+        // Atualizar badge e chamadas periodicamente
+        let timerAtualizacao = null;
+        function iniciarAutoRefresh() {
+            if (timerAtualizacao) clearInterval(timerAtualizacao);
+            timerAtualizacao = setInterval(async () => {
+                const tabChamadas = document.getElementById('tab-chamadas-tab');
+                if (tabChamadas && tabChamadas.classList.contains('active')) {
+                    await carregarChamadas();
+                } else {
+                    await atualizarBadgeNaoLidas();
+                }
+            }, 30000);
+        }
+
+        // Carregar histórico de eventos
+        async function carregarHistorico() {
+            try {
+                const tipo = document.getElementById('filtro-tipo-historico').value;
+                const url = tipo ? `/api/historico?tipo=${tipo}&limit=100` : '/api/historico?limit=100';
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('Erro ao obter histórico');
+                    return;
+                }
+                
+                const eventos = await response.json();
+                const lista = document.getElementById('lista-historico');
+                lista.innerHTML = '';
+
+                if (eventos.length === 0) {
+                    lista.innerHTML = '<p class="text-muted">Nenhum evento no histórico.</p>';
+                    return;
+                }
+
+                const tiposInternet = {
+                    'usuario_criado': '<span class="badge bg-success"><i class="fas fa-plus"></i> Usuário Criado</span>',
+                    'usuario_deletado': '<span class="badge bg-danger"><i class="fas fa-trash"></i> Usuário Deletado</span>',
+                    'produto_criado': '<span class="badge bg-success"><i class="fas fa-plus"></i> Produto Criado</span>',
+                    'produto_deletado': '<span class="badge bg-danger"><i class="fas fa-trash"></i> Produto Deletado</span>',
+                    'entrada_estoque': '<span class="badge bg-info"><i class="fas fa-arrow-down"></i> Entrada de Estoque</span>',
+                    'saida_estoque': '<span class="badge bg-warning"><i class="fas fa-arrow-up"></i> Saída de Estoque</span>'
+                };
+
+                eventos.forEach(evento => {
+                    const eventoDiv = document.createElement('div');
+                    eventoDiv.className = 'border rounded p-3 mb-3 bg-light';
+                    
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        ${tiposInternet[evento.tipo_evento] || '<span class="badge bg-secondary">' + evento.tipo_evento + '</span>'}
+                        <br>
+                        <small class="text-muted d-block">${evento.data_evento}</small>
+                        <small class="text-muted d-block">Por: <strong>${evento.usuario_responsavel || 'Sistema'}</strong></small>
+                    `;
+                    
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'mb-2';
+                    descDiv.innerHTML = `<p class="mb-0">${escapeHtml(evento.descricao)}</p>`;
+                    
+                    headerDiv.appendChild(infoDiv);
+                    eventoDiv.appendChild(headerDiv);
+                    eventoDiv.appendChild(descDiv);
+                    
+                    lista.appendChild(eventoDiv);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('lista-historico').innerHTML = '<p class="text-danger">Erro ao carregar histórico.</p>';
+            }
+        }
+
+        // Carregar usuários ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarUsuarios();
+            carregarChamadas();
+            carregarHistorico();
+            iniciarAutoRefresh();
+
+            const tabChamadas = document.getElementById('tab-chamadas-tab');
+            if (tabChamadas) {
+                tabChamadas.addEventListener('shown.bs.tab', () => {
+                    carregarChamadas();
+                });
+            }
+
+            const filtroInput = document.getElementById('filtro-chamadas');
+            if (filtroInput) {
+                filtroInput.addEventListener('input', () => {
+                    const chamadasFiltradas = aplicarFiltroChamadas(chamadasCache, filtroInput.value);
+                    const lista = document.getElementById('lista-chamadas');
+                    if (chamadasFiltradas.length === 0) {
+                        lista.innerHTML = '<p class="text-muted">Nenhuma chamada encontrada.</p>';
+                        return;
+                    }
+                    carregarChamadas();
+                });
+            }
+
+            const tabHistorico = document.getElementById('tab-historico-tab');
+            if (tabHistorico) {
+                tabHistorico.addEventListener('shown.bs.tab', () => {
+                    carregarHistorico();
+                });
+            }
+
+            const filtroTipo = document.getElementById('filtro-tipo-historico');
+            if (filtroTipo) {
+                filtroTipo.addEventListener('change', () => {
+                    carregarHistorico();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
