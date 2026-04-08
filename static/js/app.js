@@ -601,7 +601,7 @@ function configurarEventos() {
 
                 const opcoes = {
                     'Equipamento defeituoso': ['Mouse', 'Teclado', 'Fone de ouvido', 'Webcam', 'Monitor'],
-                    'Computador com erro': ['Computador travado', 'Tela azul', 'aplicativo não abre'],
+                    'Computador com erro': ['Computador travado', 'Tela azul', 'Aplicativo não abre'],
                     'Conexão com a internet': ['Carregamento lento', 'Desconexão', 'VPN'],
                     'Impressora': ['Obstrução de papel', 'Desligada', 'Falta de tinta', 'Não conecta', 'Imprime com falhas']
                 };
