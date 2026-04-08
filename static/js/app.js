@@ -228,14 +228,17 @@ function atualizarGraficoCategorias() {
             
             const ctx = document.getElementById('categoriasChart').getContext('2d');
             categoriasChart = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
+                        label: 'Valor total por categoria',
                         data: valores,
                         backgroundColor: cores,
-                        borderColor: '#fff',
-                        borderWidth: 2
+                        borderColor: cores,
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        maxBarThickness: 48
                     }]
                 },
                 options: {
@@ -243,10 +246,24 @@ function atualizarGraficoCategorias() {
                     maintainAspectRatio: true,
                     plugins: {
                         legend: {
-                            position: 'bottom',
-                            labels: {
-                                font: { size: 12 },
-                                padding: 15
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.08)',
+                                lineWidth: 1,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                precision: 0
                             }
                         }
                     }
