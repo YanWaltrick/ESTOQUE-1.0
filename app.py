@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from database import create_app, db, DATABASE_URL
 from estoque_db import EstoqueDB
 from models import Produto, Movimentacao, User, Chamada, Historico
+from datetime import datetime, timedelta, timezone
 import os
 
 # Criar aplicacao Flask
@@ -29,14 +30,44 @@ if db_type == "SQLite":
     )
 print("="*60 + "\n")
 
-# Garantir que a coluna de status exista (compatibilidade com banco já em uso)
+# Garantir que as colunas adicionais existam (compatibilidade com banco já em uso)
 with app.app_context():
+    inspector = inspect(db.engine)
+
+    if 'chamadas' in inspector.get_table_names():
+        columns = [col['name'] for col in inspector.get_columns('chamadas')]
+        if 'status' not in columns:
+            try:
+                db.session.execute(text("ALTER TABLE chamadas ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'nova'"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Falha ao criar coluna status em chamadas: {e}")
+
+    if 'users' in inspector.get_table_names():
+        columns = [col['name'] for col in inspector.get_columns('users')]
+        if 'localizacao' not in columns:
+            try:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN localizacao VARCHAR(255) NOT NULL DEFAULT ''"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Falha ao criar coluna localizacao em users: {e}")
+
+    # Garantir que todos os chamados têm um status válido (não NULL)
     try:
-        db.session.execute(text("ALTER TABLE chamadas ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'nova'"))
-        db.session.commit()
-    except Exception:
-        # Coluna provavelmente já existe, continuar normalmente
+        chamadas_com_status_vazio = Chamada.query.filter(
+            (Chamada.status == None) | (Chamada.status == '')
+        ).all()
+        
+        if chamadas_com_status_vazio:
+            for chamada in chamadas_com_status_vazio:
+                chamada.status = 'nova'
+            db.session.commit()
+            print(f"Atualizados {len(chamadas_com_status_vazio)} chamados com status vazio para 'nova'")
+    except Exception as e:
         db.session.rollback()
+        print(f"Erro ao limpar status de chamadas: {e}")
 
 # Configurar Flask-Login
 login_manager = LoginManager()
@@ -80,7 +111,7 @@ def registrar_evento(tipo_evento, descricao, usuario_responsavel=None, detalhes=
 def login():
     """Página de login"""
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('admin') if current_user.is_admin else url_for('index'))
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -90,7 +121,9 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
+            if next_page:
+                return redirect(next_page)
+            return redirect(url_for('admin', tab='chamadas') if user.is_admin else url_for('index'))
         else:
             flash('Nome de usuário ou senha incorretos.', 'error')
 
@@ -237,6 +270,8 @@ def get_users():
             'id': user.id,
             'username': user.username,
             'role': user.role,
+            'area': user.area or '',
+            'localizacao': user.localizacao or '',
             'data_criacao': user.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if user.data_criacao else None
         })
     return jsonify(resultado)
@@ -252,24 +287,28 @@ def criar_user():
     username = dados.get('username')
     password = dados.get('password')
     role = dados.get('role', 'user')
-    
-    if not username or not password:
-        return jsonify({'erro': 'Username e password são obrigatórios'}), 400
-    
+    area = dados.get('area', '').strip()
+    localizacao = dados.get('localizacao', '').strip()
     if role not in ['user', 'admin']:
         return jsonify({'erro': 'Role deve ser "user" ou "admin"'}), 400
     
     # Verificar se username já existe
     if User.query.filter_by(username=username).first():
         return jsonify({'erro': 'Username já existe'}), 400
-    
-    novo_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'), role=role)
+
+    novo_user = User(
+        username=username,
+        password=generate_password_hash(password, method='pbkdf2:sha256'),
+        role=role,
+        area=area,
+        localizacao=localizacao
+    )
     db.session.add(novo_user)
     db.session.commit()
     
     registrar_evento(
         tipo_evento='usuario_criado',
-        descricao=f'Usuário "{username}" criado com papel: {role}'
+        descricao=f'Usuário "{username}" criado com papel: {role} e área: {area or "Sem área"}'
     )
     
     return jsonify({'mensagem': 'Usuário criado com sucesso'}), 201
@@ -290,8 +329,12 @@ def deletar_user(user_id):
         return jsonify({'erro': 'Não é possível deletar o próprio usuário'}), 400
     
     username_deletado = user.username
-    db.session.delete(user)
-    db.session.commit()
+    try:
+        db.session.delete(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': 'Falha ao remover usuário. Verifique dependências e tente novamente.', 'detalhes': str(e)}), 500
     
     registrar_evento(
         tipo_evento='usuario_deletado',
@@ -439,11 +482,40 @@ def criar_chamada():
 def get_chamadas():
     """Retorna lista de chamadas."""
     limit = request.args.get('limit', type=int)
-    if current_user.is_admin:
-        query = Chamada.query.order_by(Chamada.data_criacao.desc())
-    else:
-        query = Chamada.query.filter_by(id_usuario=current_user.id).order_by(Chamada.data_criacao.desc())
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
 
+    if current_user.is_admin:
+        query = Chamada.query
+    else:
+        query = Chamada.query.filter_by(id_usuario=current_user.id)
+
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Chamada.data_criacao >= start)
+        except ValueError:
+            return jsonify({'erro': 'Data inicial inválida'}), 400
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Chamada.data_criacao < end)
+        except ValueError:
+            return jsonify({'erro': 'Data final inválida'}), 400
+
+    if start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            end = datetime.strptime(end_date, '%Y-%m-%d')
+            if end < start:
+                return jsonify({'erro': 'A data final deve ser igual ou posterior à data inicial'}), 400
+            if (end - start).days > 30:
+                return jsonify({'erro': 'O período não pode exceder 30 dias'}), 400
+        except ValueError:
+            pass
+
+    query = query.order_by(Chamada.data_criacao.desc())
     if limit and limit > 0:
         query = query.limit(limit)
 
@@ -494,20 +566,8 @@ def atualizar_status_chamada(chamada_id):
     if novo_status not in estagios_validos:
         return jsonify({'erro': 'Status inválido'}), 400
 
-    # Validação de transições permitidas
-    transicoes = {
-        'nova': ['lida'],
-        'lida': ['analise'],
-        'analise': ['execucao'],
-        'execucao': ['concluida'],
-        'concluida': []
-    }
-
     if novo_status == chamada.status:
         return jsonify({'mensagem': 'Status já está definido'}), 200
-
-    if novo_status not in transicoes.get(chamada.status, []):
-        return jsonify({'erro': f'Transição de status não permitida: {chamada.status} -> {novo_status}'}), 400
 
     chamada.status = novo_status
     chamada.lida = novo_status != 'nova'
@@ -824,18 +884,84 @@ def relatorio_resumo():
         estatisticas = estoque.relatorio_valor_total()
         produtos_baixo = len(estoque.relatorio_estoque_baixo())
 
+        # Contar chamadas por status - garantir que não há NULL
+        chamadas_analise = Chamada.query.filter(Chamada.status == 'analise').count()
+        chamadas_execucao = Chamada.query.filter(Chamada.status == 'execucao').count()
+        chamadas_abertas = Chamada.query.filter(
+            Chamada.status.in_(['nova', 'analise', 'execucao', 'lida'])
+        ).count()
+        chamadas_novas = Chamada.query.filter(Chamada.status == 'nova').count()
+        
+        # Chamadas finalizadas nos últimos 7 dias (criadas nos últimos 7 dias)
+        data_limite = datetime.now(timezone(timedelta(hours=-3))) - timedelta(days=7)
+        chamadas_finalizadas_7dias = Chamada.query.filter(
+            Chamada.status == 'concluida',
+            Chamada.data_criacao >= data_limite
+        ).count()
+
         # Contar categorias únicas
         produtos = estoque.listar_produtos()
         total_categorias = len(set(p.categoria for p in produtos))
 
         return jsonify({
+            'chamadas_analise': chamadas_analise,
+            'chamadas_execucao': chamadas_execucao,
+            'chamadas_abertas': chamadas_abertas,
+            'chamadas_novas': chamadas_novas,
+            'chamadas_finalizadas_7dias': chamadas_finalizadas_7dias,
+            'produtos_estoque_baixo': produtos_baixo,
+            'total_categorias': total_categorias,
             'total_produtos': estatisticas['total_produtos'],
             'total_quantidades': estatisticas['total_unidades'],
-            'valor_total': estatisticas['valor_total'],
-            'produtos_estoque_baixo': produtos_baixo,
-            'total_categorias': total_categorias
+            'valor_total': estatisticas['valor_total']
         })
     except Exception as e:
+        print(f"Erro ao gerar resumo: {e}")
+        return jsonify({'erro': str(e)}), 500
+
+
+@app.route('/api/debug/chamadas-count', methods=['GET'])
+@login_required
+def debug_chamadas_count():
+    """Endpoint de debug - mostra contagem real de chamados por status"""
+    try:
+        # Contar por cada status
+        todos_status = Chamada.query.all()
+        status_count = {}
+        
+        for chamada in todos_status:
+            status = chamada.status if chamada.status else 'NULL'
+            status_count[status] = status_count.get(status, 0) + 1
+        
+        # Também contar com queries explícitas
+        contagens_explicitas = {
+            'nova': Chamada.query.filter(Chamada.status == 'nova').count(),
+            'lida': Chamada.query.filter(Chamada.status == 'lida').count(),
+            'analise': Chamada.query.filter(Chamada.status == 'analise').count(),
+            'execucao': Chamada.query.filter(Chamada.status == 'execucao').count(),
+            'concluida': Chamada.query.filter(Chamada.status == 'concluida').count(),
+        }
+        
+        abertas = Chamada.query.filter(
+            Chamada.status.in_(['nova', 'lida', 'analise', 'execucao'])
+        ).count()
+        
+        data_limite = datetime.now(timezone(timedelta(hours=-3))) - timedelta(days=7)
+        finalizadas_7dias = Chamada.query.filter(
+            Chamada.status == 'concluida',
+            Chamada.data_criacao >= data_limite
+        ).count()
+        
+        return jsonify({
+            'status_count_raw': status_count,
+            'contagens_explicitas': contagens_explicitas,
+            'abertas_total': abertas,
+            'finalizadas_7dias': finalizadas_7dias,
+            'total_chamados': len(todos_status),
+            'timestamp': datetime.now(timezone(timedelta(hours=-3))).isoformat()
+        })
+    except Exception as e:
+        print(f"Erro ao gerar debug: {e}")
         return jsonify({'erro': str(e)}), 500
 
 
@@ -934,14 +1060,25 @@ def init_db():
             db.create_all()
             print("Tabelas do banco criadas/verificadas")
 
-            # Verificar coluna role apenas para SQLite
+            # Verificar colunas role e area e adicionar se estiverem ausentes
             if db.engine.dialect.name == 'sqlite':
                 try:
                     with db.engine.connect() as conn:
                         coluna_role = conn.execute(text("PRAGMA table_info(users)"))
-                        coluna_role = coluna_role.fetchall()
-                        if coluna_role and 'role' not in [c[1] for c in coluna_role]:
+                        colunas = [c[1] for c in coluna_role.fetchall()]
+                        if 'role' not in colunas:
                             conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user'"))
+                        if 'area' not in colunas:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN area VARCHAR(255) DEFAULT ''"))
+                        conn.commit()
+                except:
+                    pass
+            else:
+                try:
+                    with db.engine.connect() as conn:
+                        coluna_area = conn.execute(text("SHOW COLUMNS FROM users LIKE 'area'"))
+                        if coluna_area.fetchone() is None:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN area VARCHAR(255) DEFAULT ''"))
                             conn.commit()
                 except:
                     pass
@@ -981,4 +1118,4 @@ init_db()
 # ============================================================================
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)

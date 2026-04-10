@@ -30,6 +30,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Recarregar dados a cada 1 minuto e 30 segundos
     setInterval(carregarDados, 90000);
 
+    // Para administradores, atualizar badge de chamadas não lidas
+    if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
+        carregarBadgeAdminChamadas();
+        setInterval(carregarBadgeAdminChamadas, 30000);
+    }
+
     // Para usuários, atualizar chamadas frequentemente (quase em tempo real)
     if (window.USUARIO_IS_ADMIN !== 'true' && window.USUARIO_IS_ADMIN !== true) {
         setInterval(carregarChamadasUsuario, 10000);
@@ -50,16 +56,32 @@ function escapeHtml(text) {
         .replace(/\'/g, '&#39;');
 }
 
+function updateDashboardSubtabActive(section) {
+    const buttons = document.querySelectorAll('.dashboard-subtab');
+    buttons.forEach(button => {
+        button.classList.toggle('active', button.dataset.section === section);
+    });
+}
+
 function showSection(section) {
     // Ocultar todas as seções
     document.querySelectorAll('.section').forEach(el => {
         el.style.display = 'none';
     });
+
+    // Mostrar subtabs do dashboard quando apropriado
+    const dashboardSubtabs = document.getElementById('dashboard-subtabs');
+    if (dashboardSubtabs) {
+        dashboardSubtabs.style.display = ['dashboard', 'produtos', 'relatorios'].includes(section) ? 'block' : 'none';
+    }
     
     // Mostrar seção selecionada
     const sectionId = section + '-section';
     document.getElementById(sectionId).style.display = 'block';
     
+    // Atualizar subtab ativa
+    updateDashboardSubtabActive(section);
+
     // Carregar dados específicos
     if (section === 'dashboard') {
         atualizarDashboard();
@@ -70,6 +92,23 @@ function showSection(section) {
     } else if (section === 'chamadas') {
         carregarChamadasUsuario();
     }
+}
+
+function carregarBadgeAdminChamadas() {
+    const badge = document.getElementById('badge-admin-chamadas');
+    if (!badge) return;
+
+    fetch(`${API_BASE}/chamadas/nao-lidas`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && typeof data.nao_lidas === 'number') {
+                badge.textContent = data.nao_lidas;
+                badge.classList.toggle('d-none', data.nao_lidas <= 0);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar badge de chamadas:', error);
+        });
 }
 
 // =============================================================================
@@ -106,13 +145,26 @@ function carregarDados() {
 }
 
 function atualizarKPIs(resumo) {
-    const totalProdutosEl = document.getElementById('kpi-total-produtos');
-    if (!totalProdutosEl) return;
+    try {
+        // Verificar se os elementos existem antes de tentar atualizar
+        const elementos = {
+            'kpi-chamadas-analise': resumo.chamadas_analise,
+            'kpi-chamadas-execucao': resumo.chamadas_execucao,
+            'kpi-chamadas-abertas': resumo.chamadas_abertas,
+            'kpi-chamadas-novas': resumo.chamadas_novas,
+            'kpi-chamadas-finalizadas-7dias': resumo.chamadas_finalizadas_7dias,
+            'kpi-baixo': resumo.produtos_estoque_baixo
+        };
 
-    document.getElementById('kpi-total-produtos').textContent = resumo.total_produtos;
-    document.getElementById('kpi-quantidade').textContent = resumo.total_quantidades;
-    document.getElementById('kpi-valor').textContent = 'R$ ' + formatarMoeda(resumo.valor_total);
-    document.getElementById('kpi-baixo').textContent = resumo.produtos_estoque_baixo;
+        for (const [elementId, valor] of Object.entries(elementos)) {
+            const elemento = document.getElementById(elementId);
+            if (elemento && valor !== undefined && valor !== null) {
+                elemento.textContent = valor;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar KPIs:', error);
+    }
 }
 
 function atualizarEstoqueBaixo() {

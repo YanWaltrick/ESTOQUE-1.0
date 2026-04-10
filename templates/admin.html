@@ -100,6 +100,16 @@
                                                     <option value="admin">Administrador</option>
                                                 </select>
                                             </div>
+                                            <div class="mb-3">
+                                                <label for="area" class="form-label">Área da Empresa</label>
+                                                <input type="text" class="form-control" id="area" name="area" placeholder="Ex.: Financeiro, TI, Compras">
+                                                <div class="form-text">Informe a área do usuário para organização.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="localizacao" class="form-label">Cidade</label>
+                                                <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Ex.: São Paulo">
+                                                <div class="form-text">Informe a cidade do usuário.</div>
+                                            </div>
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="fas fa-plus"></i> Adicionar Usuário
                                             </button>
@@ -117,6 +127,13 @@
                                         </h5>
                                     </div>
                                     <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <select class="form-select" id="select-filtro-cidade">
+                                                    <option value="">Todas as cidades</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                         <div id="lista-usuarios">
                                             <!-- Usuários serão carregados aqui -->
                                         </div>
@@ -196,7 +213,7 @@
 
                     <div class="tab-pane fade" id="tab-chamadas" role="tabpanel" aria-labelledby="tab-chamadas-tab">
                         <div class="card">
-                            <div class="card-header bg-warning text-dark">
+                            <div class="card-header bg-scheme-dark">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-bell"></i> Chamadas dos Usuários (Mais recentes)
                                 </h5>
@@ -210,8 +227,20 @@
                                         <small class="text-muted" id="texto-atualiza-chamadas">Atualiza a cada 30s</small>
                                     </div>
                                 </div>
+                                <div class="row mb-3 align-items-end">
+                                    <div class="col-md-12 text-end mb-2">
+                                        <button id="btn-gerar-relatorio" class="btn btn-dark btn-sm" type="button">
+                                            <i class="fas fa-file-pdf"></i> Gerar Relatório PDF
+                                        </button>
+                                        <small class="text-muted d-block mt-1">Máximo de 30 dias.</small>
+                                    </div>
+                                </div>
                                 <div id="lista-chamadas">
                                     <!-- Chamadas serão carregadas aqui -->
+                                </div>
+                                <div class="d-none">
+                                    <canvas id="relatorio-area-chart" width="600" height="400"></canvas>
+                                    <canvas id="relatorio-principais-chamados-chart" width="600" height="400"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -219,7 +248,7 @@
 
                     <div class="tab-pane fade" id="tab-historico" role="tabpanel" aria-labelledby="tab-historico-tab">
                         <div class="card">
-                            <div class="card-header bg-info text-white">
+                            <div class="card-header bg-scheme-primary">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-history"></i> Histórico de Mudanças no Sistema
                                 </h5>
@@ -274,9 +303,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script>
         let usuarios = [];
+        let filtroCidade = '';
         let usuarioParaDeletar = null;
+        let modalConfirmarDelete = null;
 
         // Carregar usuários
         async function carregarUsuarios() {
@@ -300,38 +334,86 @@
             const lista = document.getElementById('lista-usuarios');
             lista.innerHTML = '';
 
-            if (usuarios.length === 0) {
+            const usuariosFiltrados = filtroCidade
+                ? usuarios.filter(user => (user.localizacao || '').trim().toLowerCase() === filtroCidade.toLowerCase())
+                : usuarios;
+
+            if (usuariosFiltrados.length === 0) {
                 lista.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
                 return;
             }
 
-            usuarios.forEach(user => {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.innerHTML = `
-                    <strong>${escapeHtml(user.username)}</strong>
-                    <br>
-                    <small class="text-muted">
-                        ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
-                        | Criado em: ${user.data_criacao}
-                    </small>
-                `;
-                
-                const btnDiv = document.createElement('div');
-                if (user.username !== 'admin') { // Não permitir deletar o admin principal
-                    const btnDelete = document.createElement('button');
-                    btnDelete.className = 'btn btn-sm btn-outline-danger';
-                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-                    btnDelete.onclick = () => confirmarDelete(user);
-                    btnDiv.appendChild(btnDelete);
-                }
-                
-                userDiv.appendChild(infoDiv);
-                userDiv.appendChild(btnDiv);
-                lista.appendChild(userDiv);
-            });
+            const admins = usuariosFiltrados
+                .filter(user => user.role === 'admin')
+                .sort((a, b) => a.username.localeCompare(b.username, 'pt-BR', { sensitivity: 'base' }));
+
+            const colaboradores = usuariosFiltrados
+                .filter(user => user.role !== 'admin')
+                .sort((a, b) => {
+                    const areaA = (a.area || '').trim().toLowerCase() || 'sem área';
+                    const areaB = (b.area || '').trim().toLowerCase() || 'sem área';
+                    if (areaA === areaB) {
+                        return a.username.localeCompare(b.username, 'pt-BR', { sensitivity: 'base' });
+                    }
+                    return areaA.localeCompare(areaB, 'pt-BR', { sensitivity: 'base' });
+                });
+
+            if (admins.length > 0) {
+                const header = document.createElement('div');
+                header.className = 'mb-3';
+                header.innerHTML = '<h6 class="text-uppercase text-secondary">Administradores</h6>';
+                lista.appendChild(header);
+                admins.forEach(user => lista.appendChild(renderUsuarioItem(user)));
+            }
+
+            if (colaboradores.length > 0) {
+                const grupos = {};
+                colaboradores.forEach(user => {
+                    const area = (user.area || '').trim() || 'Sem área';
+                    if (!grupos[area]) {
+                        grupos[area] = [];
+                    }
+                    grupos[area].push(user);
+                });
+
+                Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })).forEach(area => {
+                    const areaHeader = document.createElement('div');
+                    areaHeader.className = 'mb-2 mt-4';
+                    areaHeader.innerHTML = `<h6 class="text-uppercase text-secondary">Área: ${escapeHtml(area)}</h6>`;
+                    lista.appendChild(areaHeader);
+
+                    grupos[area].forEach(user => lista.appendChild(renderUsuarioItem(user)));
+                });
+            }
+        }
+
+        function renderUsuarioItem(user) {
+            const userDiv = document.createElement('div');
+            userDiv.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+
+            const infoDiv = document.createElement('div');
+            infoDiv.innerHTML = `
+                <strong>${escapeHtml(user.username)}</strong>
+                <br>
+                <small class="text-muted">
+                    ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
+                    ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.area || 'Sem área') : ''}
+                    ${user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : ''}
+                    | Criado em: ${escapeHtml(user.data_criacao)}
+                </small>`;
+
+            const btnDiv = document.createElement('div');
+            if (user.username !== 'admin') {
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.onclick = () => confirmarDelete(user);
+                btnDiv.appendChild(btnDelete);
+            }
+
+            userDiv.appendChild(infoDiv);
+            userDiv.appendChild(btnDiv);
+            return userDiv;
         }
 
         function popularSelectUsuarios() {
@@ -343,9 +425,27 @@
             usuarios.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.username} (${user.role})`;
+                option.textContent = `${user.username} (${user.role}${user.area ? ' - ' + user.area : ''}${user.localizacao ? ' - ' + user.localizacao : ''})`;
                 resetSelect.appendChild(option);
             });
+
+            const filtroCidades = document.getElementById('select-filtro-cidade');
+            if (filtroCidades) {
+                const cidades = Array.from(new Set(usuarios
+                    .map(u => (u.localizacao || '').trim())
+                    .filter(Boolean)
+                )).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+                filtroCidades.innerHTML = '<option value="">Todas as cidades</option>' + cidades
+                    .map(cidade => `<option value="${escapeHtml(cidade)}">${escapeHtml(cidade)}</option>`)
+                    .join('');
+
+                filtroCidades.value = filtroCidade;
+                filtroCidades.onchange = () => {
+                    filtroCidade = filtroCidades.value;
+                    exibirUsuarios();
+                };
+            }
         }
 
         // Função para escapar HTML
@@ -363,7 +463,9 @@
             const dados = {
                 username: formData.get('username'),
                 password: formData.get('password'),
-                role: formData.get('role')
+                role: formData.get('role'),
+                area: formData.get('area') || '',
+                localizacao: formData.get('localizacao') || ''
             };
 
             try {
@@ -394,7 +496,10 @@
         function confirmarDelete(user) {
             usuarioParaDeletar = user;
             document.getElementById('usuario-nome').textContent = user.username;
-            new bootstrap.Modal(document.getElementById('modal-confirmar-delete')).show();
+            if (!modalConfirmarDelete) {
+                modalConfirmarDelete = new bootstrap.Modal(document.getElementById('modal-confirmar-delete'));
+            }
+            modalConfirmarDelete.show();
         }
 
         // Deletar usuário
@@ -406,18 +511,35 @@
                     method: 'DELETE'
                 });
 
-                const result = await response.json();
-                
+                let result = {};
+                try {
+                    result = await response.json();
+                } catch (jsonError) {
+                    console.warn('Resposta DELETE sem JSON:', jsonError);
+                }
+
+                const mensagem = result.erro || response.statusText || 'Falha ao remover usuário';
                 if (response.ok) {
                     alert('Usuário removido com sucesso!');
-                    bootstrap.Modal.getInstance(document.getElementById('modal-confirmar-delete')).hide();
-                    carregarUsuarios();
+                } else if (response.status === 404) {
+                    alert('O usuário já não existe. A lista será atualizada.');
                 } else {
-                    alert('Erro: ' + result.erro);
+                    alert('Erro: ' + mensagem);
                 }
+
+                if (modalConfirmarDelete) {
+                    modalConfirmarDelete.hide();
+                }
+                usuarioParaDeletar = null;
+                await carregarUsuarios();
             } catch (error) {
                 console.error('Erro:', error);
                 alert('Erro ao remover usuário');
+                if (modalConfirmarDelete) {
+                    modalConfirmarDelete.hide();
+                }
+                usuarioParaDeletar = null;
+                await carregarUsuarios();
             }
         });
 
@@ -553,7 +675,7 @@
 
                 chamadasFiltradas.forEach(chamada => {
                     const chamadaDiv = document.createElement('div');
-                    chamadaDiv.className = `border rounded p-3 mb-3 ${chamada.lida ? 'bg-light' : 'bg-warning-subtle'}`;
+                    chamadaDiv.className = 'border rounded p-3 mb-3 chamada-card';
                     
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
@@ -561,16 +683,18 @@
                     const infoDiv = document.createElement('div');
                     infoDiv.innerHTML = `
                         <strong>${escapeHtml(chamada.usuario)}</strong>
-                        <small class="text-muted d-block">${chamada.data_criacao}</small>
+                        <small class="text-muted d-block">
+                            ${escapeHtml(chamada.data_criacao)}${chamada.usuario_area ? ' • Área: ' + escapeHtml(chamada.usuario_area) : ''}${chamada.usuario_localizacao ? ' • Cidade: ' + escapeHtml(chamada.usuario_localizacao) : ''}
+                        </small>
                     `;
                     
                     const statusDiv = document.createElement('div');
                     const statusMap = {
-                        'nova': {label: 'Nova', class: 'bg-warning'},
-                        'lida': {label: 'Lida', class: 'bg-secondary'},
-                        'analise': {label: 'Em Análise', class: 'bg-info text-dark'},
-                        'execucao': {label: 'Em Execução', class: 'bg-primary'},
-                        'concluida': {label: 'Concluída', class: 'bg-success'}
+                        'nova': {label: 'Nova', class: 'status-badge-dark'},
+                        'lida': {label: 'Lida', class: 'status-badge-muted'},
+                        'analise': {label: 'Em Análise', class: 'status-badge-dark'},
+                        'execucao': {label: 'Em Execução', class: 'status-badge-dark'},
+                        'concluida': {label: 'Concluída', class: 'status-badge-muted'}
                     };
                     const statusInfo = statusMap[chamada.status] || statusMap['nova'];
                     statusDiv.innerHTML = `<span class="badge ${statusInfo.class}">${statusInfo.label}</span>`;
@@ -583,29 +707,30 @@
                     mensagemDiv.textContent = chamada.mensagem;
                     
                     const acoesDiv = document.createElement('div');
-                    const btnAcao = (label, classe, status) =>
-                        `<button class="btn btn-sm ${classe} me-1" onclick="trocarStatus(${chamada.id}, '${status}')">` +
-                            `<i class="fas fa-sync-alt"></i> ${label}` +
-                        `</button>`;
+                    acoesDiv.className = 'd-flex flex-wrap gap-2';
+                    const statusActions = [
+                        { status: 'lida', label: 'Marcar como Lida', classe: 'btn-dark' },
+                        { status: 'analise', label: 'Colocar em Análise', classe: 'btn-dark' },
+                        { status: 'execucao', label: 'Colocar em Execução', classe: 'btn-dark' },
+                        { status: 'concluida', label: 'Marcar como Concluída', classe: 'btn-dark' }
+                    ];
 
-                    switch (chamada.status) {
-                        case 'nova':
-                            acoesDiv.innerHTML = btnAcao('Marcar como Lida', 'btn-success', 'lida');
-                            break;
-                        case 'lida':
-                            acoesDiv.innerHTML = btnAcao('Colocar em Análise', 'btn-info', 'analise');
-                            break;
-                        case 'analise':
-                            acoesDiv.innerHTML = btnAcao('Colocar em Execução', 'btn-primary', 'execucao');
-                            break;
-                        case 'execucao':
-                            acoesDiv.innerHTML = btnAcao('Marcar como Concluída', 'btn-success', 'concluida');
-                            break;
-                        case 'concluida':
-                            acoesDiv.innerHTML = '<small class="text-success">Finalizada</small>';
-                            break;
-                        default:
-                            acoesDiv.innerHTML = '';
+                    if (chamada.status === 'concluida') {
+                        acoesDiv.innerHTML = `
+                            <small class="text-secondary">Finalizada</small>
+                            <button class="btn btn-sm btn-secondary" onclick="trocarStatus(${chamada.id}, 'nova')">
+                                <i class="fas fa-redo-alt"></i> Reabrir Chamado
+                            </button>
+                        `;
+                    } else {
+                        acoesDiv.innerHTML = statusActions.map(action => {
+                            const disabled = chamada.status === action.status ? ' disabled' : '';
+                            return `
+                                <button class="btn btn-sm ${action.classe}" onclick="trocarStatus(${chamada.id}, '${action.status}')"${disabled}>
+                                    <i class="fas fa-sync-alt"></i> ${action.label}
+                                </button>
+                            `;
+                        }).join('');
                     }
                     
                     chamadaDiv.appendChild(headerDiv);
@@ -619,6 +744,276 @@
             } catch (error) {
                 console.error('Erro:', error);
                 document.getElementById('lista-chamadas').innerHTML = '<p class="text-danger">Erro ao carregar chamadas.</p>';
+            }
+        }
+
+        function validarPeriodoRelatorio(start, end) {
+            if (!start || !end) {
+                alert('Informe início e fim para o relatório.');
+                return false;
+            }
+            const dataInicio = new Date(start);
+            const dataFim = new Date(end);
+            if (dataFim < dataInicio) {
+                alert('A data final deve ser igual ou posterior à data inicial.');
+                return false;
+            }
+            const diff = Math.round((dataFim - dataInicio) / (1000 * 60 * 60 * 24));
+            if (diff > 30) {
+                alert('O período não pode ultrapassar 30 dias.');
+                return false;
+            }
+            return true;
+        }
+
+        function parseTipoChamada(mensagem) {
+            const regex = /^\[([^\]]+)\]/;
+            const match = mensagem.match(regex);
+            if (!match) {
+                return 'Outros';
+            }
+            const tipoRaw = match[1];
+            const tipoPrincipal = tipoRaw.split(' - ')[0].trim();
+            return tipoPrincipal || 'Outros';
+        }
+
+        async function gerarRelatorioPdf(inicio, fim) {
+            if (!validarPeriodoRelatorio(inicio, fim)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/chamadas?start_date=${inicio}&end_date=${fim}`);
+                let chamadas = [];
+                let responseBody = null;
+                let responseText = null;
+
+                try {
+                    responseBody = await response.json();
+                } catch (jsonError) {
+                    console.warn('Não foi possível ler o JSON da resposta do relatório:', jsonError);
+                    try {
+                        responseText = await response.text();
+                    } catch (textError) {
+                        console.warn('Não foi possível ler o texto da resposta do relatório:', textError);
+                    }
+                }
+
+                if (!response.ok) {
+                    const msg = responseBody && (responseBody.erro || responseBody.message)
+                        ? (responseBody.erro || responseBody.message)
+                        : responseText || response.statusText;
+                    alert('Falha ao gerar relatório: ' + msg);
+                    return;
+                }
+
+                chamadas = Array.isArray(responseBody) ? responseBody : [];
+
+                if (!chamadas.length) {
+                    alert('Nenhuma chamada encontrada para o período selecionado.');
+                    return;
+                }
+
+                const dadosArea = {};
+                const dadosTipo = {};
+                const corpoTabela = chamadas.map(chamada => {
+                    const tipo = parseTipoChamada(chamada.mensagem);
+                    const area = chamada.usuario_area || 'Sem área';
+                    dadosArea[area] = (dadosArea[area] || 0) + 1;
+                    dadosTipo[tipo] = (dadosTipo[tipo] || 0) + 1;
+                    return [
+                        chamada.data_criacao,
+                        chamada.usuario,
+                        area,
+                        chamada.status,
+                        chamada.mensagem
+                    ];
+                });
+
+                const areaLabels = Object.keys(dadosArea).sort((a, b) => dadosArea[b] - dadosArea[a]);
+                const areaValues = areaLabels.map(label => dadosArea[label]);
+                const tipoLabels = Object.keys(dadosTipo).sort((a, b) => dadosTipo[b] - dadosTipo[a]);
+                const tipoValues = tipoLabels.map(label => dadosTipo[label]);
+
+                console.log('Area data:', { labels: areaLabels, values: areaValues });
+                console.log('Tipo data:', { labels: tipoLabels, values: tipoValues });
+
+                const areaCanvas = document.getElementById('relatorio-area-chart');
+                const tipoCanvas = document.getElementById('relatorio-principais-chamados-chart');
+                
+                if (!areaCanvas || !tipoCanvas) {
+                    console.error('Canvases não encontrados');
+                    alert('Erro: Elementos do gráfico não encontrados.');
+                    return;
+                }
+                
+                // Tornar os canvases temporariamente visíveis para renderização
+                const canvasContainer = areaCanvas.parentElement;
+                const originalClass = canvasContainer.className;
+                canvasContainer.classList.remove('d-none');
+                canvasContainer.style.display = 'block';
+                
+                // Garantir que os canvases tenham tamanho definido
+                areaCanvas.width = 600;
+                areaCanvas.height = 400;
+                tipoCanvas.width = 600;
+                tipoCanvas.height = 400;
+                
+                const areaCtx = areaCanvas.getContext('2d');
+                const tipoCtx = tipoCanvas.getContext('2d');
+
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js não carregado');
+                    alert('Erro: Biblioteca de gráficos não carregada.');
+                    return;
+                }
+
+                const existingAreaChart = Chart.getChart(areaCanvas);
+                if (existingAreaChart) {
+                    existingAreaChart.destroy();
+                }
+
+                const existingTipoChart = Chart.getChart(tipoCanvas);
+                if (existingTipoChart) {
+                    existingTipoChart.destroy();
+                }
+
+                const areaChart = new Chart(areaCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: areaLabels,
+                        datasets: [{
+                            label: 'Número de Chamados',
+                            data: areaValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { 
+                                display: true, 
+                                text: 'Distribuição por Área',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                precision: 0,
+                                ticks: { precision: 0 }
+                            },
+                            x: {
+                                ticks: { maxRotation: 45, minRotation: 45 }
+                            }
+                        }
+                    }
+                });
+                console.log('Area chart created:', areaChart);
+
+                const tipoChart = new Chart(tipoCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: tipoLabels,
+                        datasets: [{
+                            label: 'Número de Ocorrências',
+                            data: tipoValues,
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { 
+                                display: true, 
+                                text: 'Principais Tipos de Chamados',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                precision: 0,
+                                ticks: { precision: 0 }
+                            },
+                            x: {
+                                ticks: { maxRotation: 45, minRotation: 45 }
+                            }
+                        }
+                    }
+                });
+                console.log('Tipo chart created:', tipoChart);
+
+                // Garantir que o Chart.js tenha finalizado a renderização
+                areaChart.update();
+                tipoChart.update();
+
+                // Aguardar um momento para os gráficos serem renderizados completamente
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const jsPDFConstructor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+                const doc = new jsPDFConstructor('p', 'mm', 'a4');
+                
+                // Título e informações
+                doc.setFontSize(18);
+                doc.text('Relatório de Chamadas', 14, 20);
+                doc.setFontSize(11);
+                doc.text(`Período: ${inicio} até ${fim}`, 14, 30);
+                doc.text(`Total de chamadas: ${chamadas.length}`, 14, 38);
+                doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 46);
+                
+                // Primeiro gráfico: Número de chamados por área
+                const areaDataUrl = areaChart.toBase64Image();
+                doc.setFontSize(12);
+                doc.text('Número de Chamados por Área', 14, 56);
+                doc.addImage(areaDataUrl, 'PNG', 14, 60, 180, 50);
+                
+                // Segundo gráfico: Principais chamados
+                const tipoDataUrl = tipoChart.toBase64Image();
+                doc.setFontSize(12);
+                doc.text('Principais Chamados', 14, 118);
+                doc.addImage(tipoDataUrl, 'PNG', 14, 122, 180, 50);
+                
+                // Tabela de chamados detalhados
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.text('Chamados Detalhados', 14, 20);
+                doc.autoTable({
+                    startY: 25,
+                    head: [['Data', 'Usuário', 'Área', 'Status', 'Mensagem']],
+                    body: corpoTabela,
+                    styles: { fontSize: 7, cellPadding: 1.5 },
+                    headStyles: { fillColor: [40, 167, 69], fontSize: 8 },
+                    columnStyles: { 
+                        0: { cellWidth: 25 }, // Data
+                        1: { cellWidth: 30 }, // Usuário
+                        2: { cellWidth: 25 }, // Área
+                        3: { cellWidth: 20 }, // Status
+                        4: { cellWidth: 'auto' } // Mensagem
+                    },
+                    theme: 'striped',
+                    margin: { left: 14, right: 14 },
+                    alternateRowStyles: { fillColor: [245, 245, 245] }
+                });
+
+                doc.save(`relatorio_chamadas_${inicio}_a_${fim}.pdf`);
+
+                // Restaurar visibilidade original e destruir os gráficos
+                canvasContainer.className = originalClass;
+                canvasContainer.style.display = '';
+                areaChart.destroy();
+                tipoChart.destroy();
+            } catch (error) {
+                console.error('Erro ao gerar relatório:', error);
+                alert('Falha ao gerar relatório: ' + (error.message || error));
             }
         }
 
@@ -755,7 +1150,72 @@
                     carregarHistorico();
                 });
             }
+
+            // Event listener para o botão de gerar relatório
+            const btnGerarRelatorio = document.getElementById('btn-gerar-relatorio');
+            if (btnGerarRelatorio) {
+                btnGerarRelatorio.addEventListener('click', () => {
+                    const modal = new bootstrap.Modal(document.getElementById('modal-relatorio-datas'));
+                    modal.show();
+                });
+            }
+
+            // Event listener para o botão confirmar no modal
+            const btnConfirmarRelatorio = document.getElementById('btn-confirmar-relatorio');
+            if (btnConfirmarRelatorio) {
+                btnConfirmarRelatorio.addEventListener('click', async () => {
+                    const inicio = document.getElementById('modal-data-inicio').value;
+                    const fim = document.getElementById('modal-data-fim').value;
+                    if (!validarPeriodoRelatorio(inicio, fim)) {
+                        return;
+                    }
+                    // Fechar o modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modal-relatorio-datas'));
+                    modal.hide();
+                    // Chamar a função com as datas
+                    await gerarRelatorioPdf(inicio, fim);
+                });
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const initialAdminTab = params.get('tab') || window.location.hash.replace('#', '');
+            if (initialAdminTab) {
+                const tabButton = document.getElementById(`tab-${initialAdminTab}-tab`);
+                if (tabButton) {
+                    const tabInstance = new bootstrap.Tab(tabButton);
+                    tabInstance.show();
+                }
+            }
         });
     </script>
+
+    <!-- Modal para seleção de datas do relatório -->
+    <div class="modal fade" id="modal-relatorio-datas" tabindex="-1" aria-labelledby="modalRelatorioDatasLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalRelatorioDatasLabel">Selecionar Período do Relatório</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-data-inicio" class="form-label">Data de Início</label>
+                            <input type="date" class="form-control" id="modal-data-inicio">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-data-fim" class="form-label">Data de Fim</label>
+                            <input type="date" class="form-control" id="modal-data-fim">
+                        </div>
+                    </div>
+                    <small class="text-muted">Máximo de 30 dias.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-relatorio">Gerar PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

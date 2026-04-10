@@ -16,12 +16,16 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     role = db.Column(db.String(50), nullable=False, default='user')  # 'user' ou 'admin'
+    area = db.Column(db.String(255), nullable=False, default='')
+    localizacao = db.Column(db.String(255), nullable=False, default='')
     data_criacao = db.Column(db.DateTime, default=now_gmt3)
 
-    def __init__(self, username, password, role='user'):
+    def __init__(self, username, password, role='user', area='', localizacao=''):
         self.username = username
         self.password = password
         self.role = role
+        self.area = area.strip() if area else ''
+        self.localizacao = localizacao.strip() if localizacao else ''
 
     @property
     def is_admin(self):
@@ -125,7 +129,7 @@ class Chamada(db.Model):
     status = db.Column(db.String(50), default='nova', nullable=False)
 
     # Relacionamento com usuário
-    usuario = db.relationship('User', backref='chamadas')
+    usuario = db.relationship('User', backref=db.backref('chamadas', lazy=True, cascade='all, delete-orphan'))
 
     def __init__(self, id_usuario, mensagem):
         self.id_usuario = id_usuario
@@ -138,6 +142,8 @@ class Chamada(db.Model):
             'id': self.id_chamada,
             'id_usuario': self.id_usuario,
             'usuario': self.usuario.username if self.usuario else 'Desconhecido',
+            'usuario_area': self.usuario.area if self.usuario else '',
+            'usuario_localizacao': self.usuario.localizacao if self.usuario else '',
             'mensagem': self.mensagem,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'lida': self.lida,

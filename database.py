@@ -25,7 +25,7 @@ def get_database_url():
 
     if db_url.startswith('sqlite'):
         raise RuntimeError(
-            "SQLite não está habilitado.\n"
+            "SQLite não está habilitado neste modo.\n"
             "Altere DATABASE_URL para MySQL no .env:\n"
             "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
         )
