@@ -6,6 +6,7 @@ let productsData = [];
 let currentProdutoId = null;
 let categoriasChart = null;
 let topProdutosChart = null;
+let tipoChamadoSelecionado = 'Todos';
 
 let chamadasUsuarioStatus = {};
 let chamadasUsuarioPrimeiroLoad = true;
@@ -54,6 +55,109 @@ function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/\'/g, '&#39;');
+}
+
+function parseDataChamada(dataTexto) {
+    if (!dataTexto) return null;
+    const partes = dataTexto.split(' ');
+    if (partes.length < 2) return null;
+    const [dia, mes, ano] = partes[0].split('/').map(Number);
+    const [hora, minuto, segundo] = partes[1].split(':').map(Number);
+    return new Date(ano, mes - 1, dia, hora || 0, minuto || 0, segundo || 0);
+}
+
+function obterStatusLabel(status) {
+    const mapa = {
+        nova: 'Nova',
+        lida: 'Lida',
+        analise: 'Em Análise',
+        execucao: 'Em Execução',
+        concluida: 'Concluída'
+    };
+    return mapa[status] || 'Desconhecido';
+}
+
+function abrirDetalhesChamadas(tipo) {
+    const titulos = {
+        analise: 'Chamados em Análise',
+        execucao: 'Chamados em Execução',
+        abertas: 'Chamados em Aberto',
+        novas: 'Chamados Novos',
+        finalizadas: 'Finalizados (7 dias)'
+    };
+    const titulo = titulos[tipo] || 'Detalhes das Chamadas';
+    document.getElementById('modalDetalhesChamadasLabel').textContent = titulo;
+    document.getElementById('modalDetalhesChamadasContainer').innerHTML = '<p class="text-muted">Carregando...</p>';
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalhesChamadas'));
+    modal.show();
+    carregarDetalhesChamadas(tipo);
+}
+
+function filtrarChamadasPorTipo(tipo, chamadas) {
+    const seteDiasAtras = new Date();
+    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+
+    return chamadas.filter(chamada => {
+        if (!chamada || !chamada.status) return false;
+
+        if (tipo === 'analise') {
+            return chamada.status === 'analise';
+        }
+        if (tipo === 'execucao') {
+            return chamada.status === 'execucao';
+        }
+        if (tipo === 'abertas') {
+            return ['nova', 'analise', 'execucao', 'lida'].includes(chamada.status);
+        }
+        if (tipo === 'novas') {
+            return chamada.status === 'nova';
+        }
+        if (tipo === 'finalizadas') {
+            if (chamada.status !== 'concluida') return false;
+            const data = parseDataChamada(chamada.data_criacao);
+            return data ? data >= seteDiasAtras : false;
+        }
+        return false;
+    });
+}
+
+function carregarDetalhesChamadas(tipo) {
+    fetch(`${API_BASE}/chamadas?limit=200`)
+        .then(r => r.json())
+        .then(chamadas => {
+            const detalhes = filtrarChamadasPorTipo(tipo, chamadas);
+            const container = document.getElementById('modalDetalhesChamadasContainer');
+
+            if (!Array.isArray(detalhes) || detalhes.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhum chamado encontrado para esta categoria.</p>';
+                return;
+            }
+
+            container.innerHTML = detalhes.map(chamada => {
+                const statusLabel = obterStatusLabel(chamada.status);
+                return `
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">${escapeHtml(chamada.usuario || 'Usuário desconhecido')}</h6>
+                                    <small class="text-muted">${escapeHtml(chamada.usuario_area || '')}${chamada.usuario_localizacao ? ' • ' + escapeHtml(chamada.usuario_localizacao) : ''}</small>
+                                </div>
+                                <span class="badge bg-secondary">${escapeHtml(statusLabel)}</span>
+                            </div>
+                            <p class="mb-1"><strong>Data:</strong> ${escapeHtml(chamada.data_criacao || '')}</p>
+                            <p class="mb-1"><strong>Mensagem:</strong> ${escapeHtml(chamada.mensagem)}</p>
+                            <p class="mb-0"><strong>ID da chamada:</strong> ${escapeHtml(chamada.id)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(error => {
+            console.error('Erro ao carregar detalhes das chamadas:', error);
+            document.getElementById('modalDetalhesChamadasContainer').innerHTML = '<p class="text-danger">Erro ao carregar detalhes das chamadas.</p>';
+        });
 }
 
 function updateDashboardSubtabActive(section) {
@@ -262,29 +366,100 @@ async function carregarChamadasUsuario() {
 // =============================================================================
 
 function atualizarDashboard() {
-    atualizarGraficoCategorias();
+    atualizarGraficoTiposChamadas();
     atualizarGraficoTopProdutos();
 }
 
-function atualizarGraficoCategorias() {
-    fetch(`${API_BASE}/relatorios/por-categoria`)
+function extrairTipoChamado(mensagem) {
+    const match = mensagem.match(/^\[(.*?)\]/);
+    if (!match) return 'Outros';
+    const conteudo = match[1].trim();
+    return conteudo.split(' - ')[0].trim() || 'Outros';
+}
+
+function extrairSubtipoChamado(mensagem) {
+    const match = mensagem.match(/^\[(.*?)\]/);
+    if (!match) return 'Outros';
+    const conteudo = match[1].trim();
+    const partes = conteudo.split(' - ');
+    return partes[1] ? partes[1].trim() : 'Outros';
+}
+
+function obterOpcoesDeTipos(chamadas) {
+    const tipos = new Set();
+    chamadas.forEach(chamada => {
+        if (chamada && chamada.mensagem) {
+            tipos.add(extrairTipoChamado(chamada.mensagem));
+        }
+    });
+    return Array.from(tipos).sort();
+}
+
+function atualizarFiltroTiposChamados(chamadas) {
+    const select = document.getElementById('tipoChamadoFiltro');
+    if (!select) return;
+
+    const tipos = obterOpcoesDeTipos(chamadas);
+    const valorAtual = select.value || 'Todos';
+
+    select.innerHTML = '<option value="Todos">Todos os tipos</option>' + tipos.map(tipo => `\n        <option value="${escapeHtml(tipo)}">${escapeHtml(tipo)}</option>`).join('');
+
+    if (tipos.includes(valorAtual) || valorAtual === 'Todos') {
+        select.value = valorAtual;
+        tipoChamadoSelecionado = valorAtual;
+    } else {
+        select.value = 'Todos';
+        tipoChamadoSelecionado = 'Todos';
+    }
+}
+
+function agruparTiposChamadas(chamadas, tipoFiltro) {
+    const contagem = {};
+    chamadas.forEach(chamada => {
+        if (!chamada || !chamada.mensagem) return;
+        const tipoPrincipal = extrairTipoChamado(chamada.mensagem);
+        const subtipo = extrairSubtipoChamado(chamada.mensagem);
+
+        if (tipoFiltro && tipoFiltro !== 'Todos') {
+            if (tipoPrincipal !== tipoFiltro) return;
+            contagem[subtipo] = (contagem[subtipo] || 0) + 1;
+        } else {
+            contagem[tipoPrincipal] = (contagem[tipoPrincipal] || 0) + 1;
+        }
+    });
+
+    return Object.entries(contagem)
+        .sort((a, b) => b[1] - a[1])
+        .map(([tipo, total]) => ({ tipo, total }));
+}
+
+function atualizarGraficoTiposChamadas() {
+    fetch(`${API_BASE}/chamadas?limit=200`)
         .then(r => r.json())
-        .then(categorias => {
-            const labels = categorias.map(c => c.categoria);
-            const valores = categorias.map(c => c.valor_total);
-            const cores = gerarCores(categorias.length);
-            
+        .then(chamadas => {
+            atualizarFiltroTiposChamados(chamadas);
+            const select = document.getElementById('tipoChamadoFiltro');
+            if (select) {
+                tipoChamadoSelecionado = select.value || 'Todos';
+            }
+
+            const tipoLabel = tipoChamadoSelecionado === 'Todos' ? 'Chamadas recentes por tipo' : `Chamadas recentes: ${tipoChamadoSelecionado}`;
+            const tipos = agruparTiposChamadas(chamadas, tipoChamadoSelecionado);
+            const labels = tipos.map(t => t.tipo);
+            const valores = tipos.map(t => t.total);
+            const cores = gerarCores(labels.length);
+
             if (categoriasChart) {
                 categoriasChart.destroy();
             }
-            
+
             const ctx = document.getElementById('categoriasChart').getContext('2d');
             categoriasChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Valor total por categoria',
+                        label: tipoLabel,
                         data: valores,
                         backgroundColor: cores,
                         borderColor: cores,
@@ -299,6 +474,11 @@ function atualizarGraficoCategorias() {
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.parsed.y} chamada(s)`
+                            }
                         }
                     },
                     scales: {
@@ -322,7 +502,7 @@ function atualizarGraficoCategorias() {
                 }
             });
         })
-        .catch(error => console.error('Erro ao carregar categorias:', error));
+        .catch(error => console.error('Erro ao carregar tipos de chamadas:', error));
 }
 
 function atualizarGraficoTopProdutos() {
@@ -647,6 +827,15 @@ function configurarEventos() {
         formChamada.addEventListener('submit', function (e) {
             e.preventDefault();
             enviarChamada();
+        });
+    }
+
+    // Filtro de tipo de chamado no dashboard
+    const tipoChamadoFiltro = document.getElementById('tipoChamadoFiltro');
+    if (tipoChamadoFiltro) {
+        tipoChamadoFiltro.addEventListener('change', function () {
+            tipoChamadoSelecionado = this.value || 'Todos';
+            atualizarGraficoTiposChamadas();
         });
     }
 

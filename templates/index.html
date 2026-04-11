@@ -87,7 +87,7 @@
             <div id="dashboard-section" class="section">
                 <div class="row mb-4">
                     <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card kpi-card">
+                    <div class="card kpi-card" role="button" onclick="abrirDetalhesChamadas('analise')" style="cursor:pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -101,7 +101,7 @@
                 </div>
 
                 <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card kpi-card">
+                    <div class="card kpi-card" role="button" onclick="abrirDetalhesChamadas('execucao')" style="cursor:pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card kpi-card">
+                    <div class="card kpi-card" role="button" onclick="abrirDetalhesChamadas('abertas')" style="cursor:pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -131,7 +131,7 @@
 
                 <div class="row mb-4">
                 <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card kpi-card">
+                    <div class="card kpi-card" role="button" onclick="abrirDetalhesChamadas('novas')" style="cursor:pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -145,7 +145,7 @@
                 </div>
 
                 <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card kpi-card">
+                    <div class="card kpi-card" role="button" onclick="abrirDetalhesChamadas('finalizadas')" style="cursor:pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -176,8 +176,11 @@
             <div class="row mb-4">
                 <div class="col-lg-6 mb-3">
                     <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="card-title mb-0"><i class="fas fa-pie-chart"></i> Distribuição por Categoria</h5>
+                        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between gap-2">
+                            <h5 class="card-title mb-0"><i class="fas fa-pie-chart"></i> Últimos Tipos de Chamados</h5>
+                            <select id="tipoChamadoFiltro" class="form-select form-select-sm w-auto bg-white text-dark" aria-label="Filtrar tipo de chamado">
+                                <option value="Todos">Todos os tipos</option>
+                            </select>
                         </div>
                         <div class="card-body">
                             <canvas id="categoriasChart" height="300"></canvas>
@@ -495,6 +498,23 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="salvarMovimentacao()">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDetalhesChamadas" tabindex="-1" aria-labelledby="modalDetalhesChamadasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalDetalhesChamadasLabel">Detalhes das Chamadas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalDetalhesChamadasContainer">Carregando...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
