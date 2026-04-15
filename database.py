@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail
 from dotenv import load_dotenv
 
 # Carregar variaveis de ambiente
@@ -11,32 +12,25 @@ load_dotenv()
 def get_database_url():
     """Obtem URL do banco.
 
-    MySQL é obrigatório neste modo. Se DATABASE_URL não estiver definida,
-    a aplicação sai com mensagem de orientação.
+    Suporta MySQL e SQLite. Se DATABASE_URL não estiver definida,
+    usa SQLite por padrão.
     """
     db_url = os.getenv('DATABASE_URL')
 
     if not db_url:
-        raise RuntimeError(
-            "NENHUM DATABASE_URL configurado.\n"
-            "Defina no .env (ou variável de ambiente) a URL MySQL, ex:\n"
-            "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
-        )
+        # Usar SQLite por padrão se não houver configuração
+        db_url = 'sqlite:///estoque.db'
 
-    if db_url.startswith('sqlite'):
-        raise RuntimeError(
-            "SQLite não está habilitado neste modo.\n"
-            "Altere DATABASE_URL para MySQL no .env:\n"
-            "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
-        )
-
-    # Aceita MySQL ou outros drivers explícitos se o usuário quiser.
+    # Aceita MySQL, SQLite ou outros drivers explícitos.
     return db_url
 
 DATABASE_URL = get_database_url()
 
 # Instancia do SQLAlchemy
 db = SQLAlchemy()
+
+# Instancia do Flask-Mail
+mail = Mail()
 
 def create_app():
     """Factory function para criar a aplicacao Flask"""
@@ -53,7 +47,16 @@ def create_app():
         'connect_args': {'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
     }
 
-    # Inicializar banco de dados
-    db.init_app(app)
+    # Configuracoes de Email
+    app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
 
-    return app, db
+    # Inicializar banco de dados e email
+    db.init_app(app)
+    mail.init_app(app)
+
+    return app, db, mail

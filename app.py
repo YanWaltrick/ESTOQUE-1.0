@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import inspect, text
-from database import create_app, db, DATABASE_URL
+from database import create_app, db, mail, DATABASE_URL
 from estoque_db import EstoqueDB
 from models import Produto, Movimentacao, User, Chamada, Historico
 from datetime import datetime, timedelta, timezone
 import os
+import base64
 
 # Criar aplicacao Flask
-app, db = create_app()
+app, db, mail = create_app()
 
 # Exibir informacoes de configuracao
 print("\n" + "="*60)
@@ -22,12 +24,6 @@ elif "sqlite" in DATABASE_URL:
 else:
     db_type = "Desconhecido"
 print(f"Banco de dados: {db_type}")
-if db_type == "SQLite":
-    raise SystemExit(
-        "SQLite não é suportado neste modo.\n"
-        "Defina DATABASE_URL no .env para MySQL:\n"
-        "DATABASE_URL=mysql+pymysql://estoque_user:12345@localhost:3306/estoque_db"
-    )
 print("="*60 + "\n")
 
 # Garantir que as colunas adicionais existam (compatibilidade com banco já em uso)
@@ -102,6 +98,111 @@ def registrar_evento(tipo_evento, descricao, usuario_responsavel=None, detalhes=
         db.session.commit()
     except Exception as e:
         print(f"Erro ao registrar evento no histórico: {e}")
+
+# ============================================================================
+# FUNÇÃO AUXILIAR - ENVIO DE EMAILS
+# ============================================================================
+
+def carregar_logo_email():
+    """Carrega o logo Soma Asset como data URI para usar no email."""
+    logo_path = os.path.join(os.path.dirname(__file__), 'static', 'img', 'SOMA_logo.png')
+    if os.path.exists(logo_path):
+        try:
+            with open(logo_path, 'rb') as f:
+                encoded = base64.b64encode(f.read()).decode('ascii')
+            return f"data:image/png;base64,{encoded}"
+        except Exception as e:
+            print(f"Erro ao carregar logo para email: {e}")
+    return ''
+
+
+def enviar_email_notificacao(usuario, titulo, mensagem, chamada_id=None):
+    """Envia email de notificação para o usuário
+    
+    Args:
+        usuario: Objeto User com dados do usuário
+        titulo: Título/Assunto do email
+        mensagem: Conteúdo da mensagem
+        chamada_id: ID da chamada (opcional)
+    """
+    try:
+        # Construir email do usuário usando nome de usuário + domínio padrão
+        mail_domain = os.getenv('MAIL_DOMAIN_DEFAULT', '@empresa.com')
+        email_usuario = f"{usuario.username}{mail_domain}".replace('@@empresa.com', '@empresa.com')
+        
+        if '@' in usuario.username:
+            email_usuario = usuario.username
+
+        logo_src = carregar_logo_email()
+        logo_html = f'<img src="{logo_src}" alt="Soma Asset" width="180" style="display:block; margin:0 auto 20px; max-width:100%; height:auto;" />' if logo_src else ''
+
+        msg = Message(
+            subject=titulo,
+            recipients=[email_usuario],
+            html=f"""
+            <html>
+                <body style="margin:0; padding:0; background:#eef2f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:#1f1f1f;">
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#eef2f7; padding:28px 0;">
+                        <tr>
+                            <td align="center">
+                                <table width="650" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff; border-radius:24px; overflow:hidden; border:1px solid #d8dee8; box-shadow:0 24px 54px rgba(0,0,0,0.08);">
+                                    <tr>
+                                        <td style="background:#000000; padding:28px 32px;">
+                                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                                <tr>
+                                                    <td style="vertical-align:middle;">{logo_html}</td>
+                                                    <td style="vertical-align:middle; text-align:right; color:#ffffff; font-size:13px; letter-spacing:0.4px; text-transform:uppercase;">Soma Asset</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="background:#f8fafc; padding:24px 32px 18px 32px; border-bottom:1px solid #e6ebf3;">
+                                            <span style="display:inline-block; background:#bd9a5f; color:#000000; font-size:12px; letter-spacing:1px; text-transform:uppercase; padding:10px 14px; border-radius:999px;">Notificação</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0 32px 32px 32px;">
+                                            <h1 style="font-size:30px; line-height:1.1; color:#111111; margin:0 0 20px;">{titulo}</h1>
+                                            <p style="font-size:16px; line-height:1.8; color:#3c495b; margin:0 0 22px;">Olá <strong>{usuario.username}</strong>,</p>
+                                            <p style="font-size:16px; line-height:1.8; color:#3c495b; margin:0 0 26px;">{mensagem}</p>
+                                            {f'<div style="margin-bottom:24px; padding:20px; background:#ffffff; border:1px solid #e3e8f1; border-radius:20px;"> <p style="margin:0; font-size:15px; color:#4a5768;"><strong>ID do Chamado:</strong> {chamada_id}</p> </div>' if chamada_id else ''}
+                                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:0;">
+                                                <tr>
+                                                    <td style="width:48%; vertical-align:top; padding-right:10px;">
+                                                        <div style="background:#ffffff; border:1px solid #e3e8f1; border-radius:20px; padding:18px;">
+                                                            <p style="margin:0 0 10px; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#6c757d;">Status</p>
+                                                            <p style="margin:0; font-size:18px; color:#000000;">{titulo}</p>
+                                                        </div>
+                                                    </td>
+                                                    <td style="width:52%; vertical-align:top; padding-left:10px;">
+                                                        <div style="background:#ffffff; border:1px solid #e3e8f1; border-radius:20px; padding:18px;">
+                                                            <p style="margin:0 0 10px; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#6c757d;">Aplicativo</p>
+                                                            <p style="margin:0; font-size:18px; color:#000000;">Sistema de Chamados</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <div style="margin-top:30px; padding:20px; background:#f8fafc; border-radius:20px; border:1px solid #e3e8f1;">
+                                                <p style="margin:0; font-size:14px; line-height:1.7; color:#6b7280;">Este email foi gerado automaticamente pelo Sistema de Chamados Soma Asset. Não responda a esta mensagem.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+            </html>
+            """
+        )
+
+        mail.send(msg)
+        print(f"✓ Email enviado para {email_usuario}: {titulo}")
+        return True
+    except Exception as e:
+        print(f"✗ Erro ao enviar email para {usuario.username}: {e}")
+        return False
 
 # ============================================================================
 # ROTAS - AUTENTICAÇÃO
@@ -572,6 +673,19 @@ def atualizar_status_chamada(chamada_id):
     chamada.status = novo_status
     chamada.lida = novo_status != 'nova'
     db.session.commit()
+
+    # Enviar email de notificação ao usuário
+    usuario = chamada.usuario
+    if usuario:
+        if novo_status == 'execucao':
+            titulo = "Chamado em Execução"
+            mensagem = f"Seu chamado foi iniciado e está em execução. Um administrador está trabalhando na sua solicitação."
+            enviar_email_notificacao(usuario, titulo, mensagem, chamada.id_chamada)
+        
+        elif novo_status == 'concluida':
+            titulo = "Chamado Finalizado"
+            mensagem = f"Seu chamado foi finalizado com sucesso. Obrigado por usar nosso sistema!"
+            enviar_email_notificacao(usuario, titulo, mensagem, chamada.id_chamada)
 
     registrar_evento(
         tipo_evento='chamada_status',
