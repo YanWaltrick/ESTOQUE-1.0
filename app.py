@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from flask_mail import Message
-from werkzeug.security import generate_password_hash, check_password_hash
+from app import create_app
+
+# Criar a aplicação usando o Application Factory
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
 from sqlalchemy import inspect, text
 from database import create_app, db, mail, DATABASE_URL
 from estoque_db import EstoqueDB
