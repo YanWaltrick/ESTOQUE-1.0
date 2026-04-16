@@ -1,6 +1,7 @@
 from flask import Flask, render_template_string
 from flask_login import LoginManager
 from flask_mail import Message
+from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import inspect, text
 from .database import create_app as create_db_app, db, mail
 from .migrate import migrate
@@ -110,10 +111,29 @@ def init_database():
         db.session.commit()
         print("Usuario admin criado (login: admin / senha: admin)")
     else:
-        # Se existir mas não tiver role, atualiza
-        if not admin_user.role or admin_user.role not in ['user', 'admin']:
+        # Se existir mas não tiver role válida, atualiza
+        if not admin_user.role or admin_user.role not in ['usuario', 'admin']:
             admin_user.role = 'admin'
             db.session.commit()
+
+        # Se o hash atual não verificar a senha padrão, redefinir para uma hash compatível
+        try:
+            if not check_password_hash(admin_user.password, 'admin'):
+                admin_user.password = generate_password_hash('admin', method='pbkdf2:sha256')
+                db.session.commit()
+                print('Senha do usuário admin redefinida para admin devido a hash incompatível.')
+        except Exception:
+            admin_user.password = generate_password_hash('admin', method='pbkdf2:sha256')
+            db.session.commit()
+            print('Senha do usuário admin redefinida para admin devido a hash inválido.')
+
+    # Remover usuários com roles obsoletos
+    obsolete_users = User.query.filter(User.role.in_(['gerente', 'operador'])).all()
+    if obsolete_users:
+        for old_user in obsolete_users:
+            db.session.delete(old_user)
+        db.session.commit()
+        print(f"Removidos {len(obsolete_users)} usuários com roles obsoletos: gerente/operador")
 
     # Se a senha do admin for scrypt, atualiza para um hash compatível
     if admin_user and admin_user.password.startswith('scrypt:'):

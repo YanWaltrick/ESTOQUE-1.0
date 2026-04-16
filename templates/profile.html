@@ -29,7 +29,7 @@
                         {% endwith %}
 
                         <p class="text-muted">Para redefinir sua senha, informe seu login e senha atual, depois digite a nova senha duas vezes.</p>
-                        <form method="POST" action="{{ url_for('perfil_password') }}">
+                        <form method="POST" action="{{ url_for('auth.perfil_password') }}">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="login_name" class="form-label">Nome de login</label>
@@ -53,7 +53,7 @@
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-sync-alt"></i> Redefinir senha
                             </button>
-                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary ms-2">Voltar</a>
+                            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary ms-2">Voltar</a>
                         </form>
                     </div>
                 </div>

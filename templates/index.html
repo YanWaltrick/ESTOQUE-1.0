@@ -16,7 +16,7 @@
 <body>
     <nav class="navbar navbar-dark bg-primary navbar-expand-lg sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('index') }}">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/SomaAssetLogoDark.svg') }}" alt="SOMA Asset Logo" style="height:32px; width:auto;" />
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -31,7 +31,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin') }}" id="admin-link">
+                        <a class="nav-link" href="{{ url_for('main.admin') }}" id="admin-link">
                             <i class="fas fa-shield-alt"></i> Admin <span class="badge bg-danger d-none ms-1" id="badge-admin-chamadas">0</span>
                         </a>
                     </li>
@@ -43,12 +43,12 @@
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('perfil') }}">
+                        <a class="nav-link" href="{{ url_for('auth.perfil') }}">
                             <i class="fas fa-user-circle"></i> Perfil
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
                             <i class="fas fa-sign-out-alt"></i> Sair
                         </a>
                     </li>

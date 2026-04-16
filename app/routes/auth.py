@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime, timezone, timedelta
+from werkzeug.security import check_password_hash
 from app.database import db
 from app.models import User, Chamada
 from app.utils import registrar_evento

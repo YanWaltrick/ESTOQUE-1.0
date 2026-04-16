@@ -16,7 +16,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)  # Aumentado para hash seguro
     
-    # RBAC - Roles: 'admin', 'gerente', 'operador', 'usuario'
+    # RBAC - Roles: 'admin', 'usuario'
     role = db.Column(db.String(50), nullable=False, default='usuario')
     
     # Informações do usuário
@@ -222,8 +222,8 @@ class Chamada(db.Model):
     lida = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(50), default='nova', nullable=False)
 
-    # Relacionamento com usuário
-    usuario = db.relationship('User', backref=db.backref('chamadas', lazy=True, cascade='all, delete-orphan'))
+    # Relacionamento com usuário (backref definido no modelo User)
+    # A propriedade `usuario` será criada automaticamente pelo backref.
 
     def __init__(self, id_usuario, mensagem):
         self.id_usuario = id_usuario

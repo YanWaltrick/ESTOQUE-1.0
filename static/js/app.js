@@ -222,12 +222,29 @@ function carregarBadgeAdminChamadas() {
 function carregarDados() {
     if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
         Promise.all([
-            fetch(`${API_BASE}/produtos`).then(r => r.json()),
-            fetch(`${API_BASE}/relatorios/resumo`).then(r => r.json())
+            fetch(`${API_BASE}/produtos`).then(async r => {
+                const data = await r.json().catch(() => null);
+                if (!r.ok) {
+                    const mensagem = data && (data.erro || data.message) ? (data.erro || data.message) : r.statusText;
+                    throw new Error(`Falha ao carregar produtos: ${mensagem}`);
+                }
+                return data;
+            }),
+            fetch(`${API_BASE}/relatorios/resumo`).then(async r => {
+                const data = await r.json().catch(() => null);
+                if (!r.ok) {
+                    const mensagem = data && (data.erro || data.message) ? (data.erro || data.message) : r.statusText;
+                    throw new Error(`Falha ao carregar resumo: ${mensagem}`);
+                }
+                return data;
+            })
         ])
         .then(([produtos, resumo]) => {
-            productsData = produtos;
-            atualizarKPIs(resumo);
+            productsData = Array.isArray(produtos) ? produtos : [];
+            if (!Array.isArray(produtos)) {
+                console.warn('Resposta de produtos não é um array:', produtos);
+            }
+            atualizarKPIs(resumo || {});
             atualizarEstoqueBaixo();
 
             // Atualiza a tabela e gráficos conforme seção ativa (auto-refresh)
@@ -241,7 +258,11 @@ function carregarDados() {
                 atualizarRelatorios();
             }
         })
-        .catch(error => mostrarErro('Erro ao carregar dados', error));
+        .catch(error => {
+            productsData = [];
+            atualizarTabelaProdutos();
+            mostrarErro('Erro ao carregar dados', error);
+        });
     } else {
         atualizarEstoqueBaixo();
         carregarChamadasUsuario();
@@ -552,7 +573,7 @@ function atualizarGraficoTopProdutos() {
 function atualizarTabelaProdutos() {
     const tbody = document.getElementById('produtos-table');
     
-    if (productsData.length === 0) {
+    if (!Array.isArray(productsData) || productsData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhum produto cadastrado</td></tr>';
         return;
     }
@@ -639,7 +660,14 @@ function salvarProduto() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dados)
     })
-    .then(r => r.json())
+    .then(async response => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+            const mensagem = data && (data.erro || data.message) ? (data.erro || data.message) : response.statusText;
+            throw new Error(mensagem || 'Falha ao salvar produto');
+        }
+        return data;
+    })
     .then(resposta => {
         mostrarAlerta('Produto ' + (currentProdutoId ? 'atualizado' : 'criado') + ' com sucesso!', 'success');
         currentProdutoId = null;
@@ -656,7 +684,14 @@ function deletarProduto(id) {
     if (!confirm('Deseja realmente deletar este produto?')) return;
     
     fetch(`${API_BASE}/produtos/${id}`, { method: 'DELETE' })
-        .then(r => r.json())
+        .then(async response => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                const mensagem = data && (data.erro || data.message) ? (data.erro || data.message) : response.statusText;
+                throw new Error(mensagem || 'Falha ao deletar produto');
+            }
+            return data;
+        })
         .then(resposta => {
             mostrarAlerta('Produto deletado com sucesso!', 'success');
             carregarDados();
@@ -957,14 +992,23 @@ function enviarChamada() {
             mensagem: mensagem
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.mensagem) {
+    .then(async response => {
+        const contentType = response.headers.get('Content-Type') || '';
+        let data = {};
+
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.warn('Resposta não JSON ao enviar chamada:', text);
+            throw new Error(text || 'Resposta inválida do servidor');
+        }
+
+        if (response.ok && data.mensagem) {
             mostrarAlerta('Chamada enviada com sucesso! Os administradores foram notificados.', 'success');
             const form = document.getElementById('formChamada');
             if (form) {
                 form.reset();
-                // Ocultar sub-tipo após reset
                 const subtipoContainer = document.getElementById('subtipoContainer');
                 if (subtipoContainer) {
                     subtipoContainer.style.display = 'none';
@@ -976,7 +1020,7 @@ function enviarChamada() {
             }
             carregarChamadasUsuario();
         } else {
-            mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || 'Erro desconhecido'), 'danger');
+            mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || data.message || 'Erro desconhecido'), 'danger');
         }
     })
     .catch(error => {

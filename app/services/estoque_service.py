@@ -45,10 +45,10 @@ class EstoqueService:
                 # Backup do arquivo JSON
                 backup_file = f"{arquivo_json}.backup"
                 os.rename(arquivo_json, backup_file)
-                print(f"✓ Backup criado: {backup_file}")
+                print(f"[OK] Backup criado: {backup_file}")
 
             except Exception as e:
-                print(f"✗ Erro na migração: {e}")
+                print(f"[ERRO] Erro na migração: {e}")
                 db.session.rollback()
 
     def _banco_tem_dados(self):
@@ -64,23 +64,23 @@ class EstoqueService:
         """Adiciona um novo produto ao estoque"""
         try:
             if Produto.query.get(id_produto):
-                print(f"✗ Produto com ID '{id_produto}' já existe!")
+                print(f"[ERRO] Produto com ID '{id_produto}' já existe!")
                 return False
 
             if preco <= 0 or quantidade < 0:
-                print("✗ Preço e quantidade devem ser positivos!")
+                print("[ERRO] Preço e quantidade devem ser positivos!")
                 return False
 
             produto = Produto(id_produto, nome, categoria, preco, quantidade, minimo, localizacao)
             db.session.add(produto)
             db.session.commit()
 
-            print(f"✓ Produto '{nome}' adicionado com sucesso!")
+            print(f"[OK] Produto '{nome}' adicionado com sucesso!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro ao adicionar produto: {e}")
+            print(f"[ERRO] Erro ao adicionar produto: {e}")
             return False
 
     def remover_produto(self, id_produto: str) -> bool:
@@ -88,19 +88,19 @@ class EstoqueService:
         try:
             produto = Produto.query.get(id_produto)
             if not produto:
-                print(f"✗ Produto com ID '{id_produto}' não encontrado!")
+                print(f"[ERRO] Produto com ID '{id_produto}' não encontrado!")
                 return False
 
             nome = produto.nome
             db.session.delete(produto)
             db.session.commit()
 
-            print(f"✓ Produto '{nome}' removido com sucesso!")
+            print(f"[OK] Produto '{nome}' removido com sucesso!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro ao remover produto: {e}")
+            print(f"[ERRO] Erro ao remover produto: {e}")
             return False
 
     def buscar_produto(self, id_produto: str) -> Optional[Produto]:
@@ -116,22 +116,22 @@ class EstoqueService:
         try:
             produto = Produto.query.get(id_produto)
             if not produto:
-                print(f"✗ Produto com ID '{id_produto}' não encontrado!")
+                print(f"[ERRO] Produto com ID '{id_produto}' não encontrado!")
                 return False
 
             if nova_quantidade < 0:
-                print("✗ Quantidade não pode ser negativa!")
+                print("[ERRO] Quantidade não pode ser negativa!")
                 return False
 
             produto.quantidade = nova_quantidade
             db.session.commit()
 
-            print(f"✓ Quantidade atualizada para {nova_quantidade} unidades!")
+            print(f"[OK] Quantidade atualizada para {nova_quantidade} unidades!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro ao atualizar quantidade: {e}")
+            print(f"[ERRO] Erro ao atualizar quantidade: {e}")
             return False
 
     def entrada_estoque(self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = "") -> bool:
@@ -139,11 +139,11 @@ class EstoqueService:
         try:
             produto = Produto.query.get(id_produto)
             if not produto:
-                print(f"✗ Produto com ID '{id_produto}' não encontrado!")
+                print(f"[ERRO] Produto com ID '{id_produto}' não encontrado!")
                 return False
 
             if quantidade <= 0:
-                print("✗ Quantidade deve ser maior que zero!")
+                print("[ERRO] Quantidade deve ser maior que zero!")
                 return False
 
             produto.quantidade += quantidade
@@ -153,12 +153,12 @@ class EstoqueService:
             db.session.add(movimentacao)
 
             db.session.commit()
-            print(f"✓ {quantidade} unidades adicionadas ao estoque!")
+            print(f"[OK] {quantidade} unidades adicionadas ao estoque!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro na entrada de estoque: {e}")
+            print(f"[ERRO] Erro na entrada de estoque: {e}")
             return False
 
     def saida_estoque(self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = "") -> bool:
@@ -166,15 +166,15 @@ class EstoqueService:
         try:
             produto = Produto.query.get(id_produto)
             if not produto:
-                print(f"✗ Produto com ID '{id_produto}' não encontrado!")
+                print(f"[ERRO] Produto com ID '{id_produto}' não encontrado!")
                 return False
 
             if quantidade <= 0:
-                print("✗ Quantidade deve ser maior que zero!")
+                print("[ERRO] Quantidade deve ser maior que zero!")
                 return False
 
             if produto.quantidade < quantidade:
-                print(f"✗ Estoque insuficiente! Disponível: {produto.quantidade}")
+                print(f"[ERRO] Estoque insuficiente! Disponível: {produto.quantidade}")
                 return False
 
             produto.quantidade -= quantidade
@@ -184,12 +184,12 @@ class EstoqueService:
             db.session.add(movimentacao)
 
             db.session.commit()
-            print(f"✓ {quantidade} unidades removidas do estoque!")
+            print(f"[OK] {quantidade} unidades removidas do estoque!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro na saída de estoque: {e}")
+            print(f"[ERRO] Erro na saída de estoque: {e}")
             return False
 
     def atualizar_produto(self, id_produto: str, **dados) -> bool:
@@ -197,7 +197,7 @@ class EstoqueService:
         try:
             produto = Produto.query.get(id_produto)
             if not produto:
-                print(f"✗ Produto com ID '{id_produto}' não encontrado!")
+                print(f"[ERRO] Produto com ID '{id_produto}' não encontrado!")
                 return False
 
             # Atualizar campos permitidos com conversão de tipos
@@ -216,12 +216,12 @@ class EstoqueService:
 
             produto.data_atualizacao = now_gmt3()
             db.session.commit()
-            print(f"✓ Produto '{id_produto}' atualizado com sucesso!")
+            print(f"[OK] Produto '{id_produto}' atualizado com sucesso!")
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"✗ Erro ao atualizar produto: {e}")
+            print(f"[ERRO] Erro ao atualizar produto: {e}")
             return False
 
     def relatorio_estoque_baixo(self) -> List[Produto]:
@@ -242,7 +242,7 @@ class EstoqueService:
                 'total_unidades': total_unidades
             }
         except Exception as e:
-            print(f"✗ Erro no relatório: {e}")
+            print(f"[ERRO] Erro no relatório: {e}")
             return {'valor_total': 0, 'total_produtos': 0, 'total_unidades': 0}
 
     def relatorio_por_categoria(self) -> Dict:
@@ -263,7 +263,7 @@ class EstoqueService:
             } for row in resultado}
 
         except Exception as e:
-            print(f"✗ Erro no relatório por categoria: {e}")
+            print(f"[ERRO] Erro no relatório por categoria: {e}")
             return {}
 
     def get_movimentacoes(self, id_produto: str = None, limit: int = 50) -> List[Movimentacao]:
@@ -274,5 +274,5 @@ class EstoqueService:
                 query = query.filter_by(id_produto=id_produto)
             return query.limit(limit).all()
         except Exception as e:
-            print(f"✗ Erro ao buscar movimentações: {e}")
+            print(f"[ERRO] Erro ao buscar movimentações: {e}")
             return []

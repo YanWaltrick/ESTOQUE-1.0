@@ -3,7 +3,7 @@ Decoradores RBAC (Role-Based Access Control) para controlar acesso baseado em ro
 
 Uso:
     @require_role('admin')              # Apenas admin
-    @require_role(['admin', 'gerente']) # Admin ou gerente
+    @require_role(['admin', 'usuario']) # Admin ou usuário
     @require_permission('delete_user')  # Requer permissão específica
 """
 
@@ -22,28 +22,16 @@ ROLES_PERMISSIONS = {
         'edit_product',
         'delete_product',
         'view_reports',
-        'manage_roles',
         'view_audit_log',
-        'manage_chamadas'
-    ],
-    'gerente': [
-        'view_dashboard',
-        'create_produto',
-        'edit_product',
-        'view_reports',
         'manage_chamadas',
-        'create_user',
-        'edit_user'
-    ],
-    'operador': [
-        'view_dashboard',
+        'create_produto',
+        'edit_user',
         'registrar_entrada',
         'registrar_saida',
         'view_estoque',
         'criar_chamado'
     ],
     'usuario': [
-        'view_estoque',
         'criar_chamado'
     ]
 }
@@ -58,7 +46,7 @@ def require_role(*allowed_roles):
         
     Exemplo:
         @require_role('admin')
-        @require_role('admin', 'gerente')
+        @require_role('admin', 'usuario')
     """
     def decorator(f):
         @wraps(f)

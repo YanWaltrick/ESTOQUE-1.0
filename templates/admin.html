@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar navbar-dark bg-primary navbar-expand-lg sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('index') }}">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/SomaAssetLogoDark.svg') }}" alt="SOMA Asset Logo" style="height:32px; width:auto;" />
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -23,12 +23,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">
                             <i class="fas fa-chart-line"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
                             <i class="fas fa-sign-out-alt"></i> Sair
                         </a>
                     </li>
@@ -96,7 +96,7 @@
                                             <div class="mb-3">
                                                 <label for="role" class="form-label">Tipo de Conta</label>
                                                 <select class="form-select" id="role" name="role" required>
-                                                    <option value="user">Usuário Normal</option>
+                                                    <option value="usuario">Usuário Normal</option>
                                                     <option value="admin">Administrador</option>
                                                 </select>
                                             </div>

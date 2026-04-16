@@ -15,5 +15,5 @@ def index():
 def admin():
     """Página de administração de usuários"""
     if not current_user.is_admin:
-        return redirect(url_for('main.chamadas'))
+        return redirect(url_for('main.index'))
     return render_template('admin.html')

@@ -51,31 +51,6 @@ def main():
             # Criar usuários de exemplo para teste
             print("[4] Criando usuários de teste...")
             
-            # Gerente
-            gerente = User.query.filter_by(username='gerente').first()
-            if not gerente:
-                gerente = User(
-                    username='gerente',
-                    password=PasswordValidator.hash_password('Gerente@123'),
-                    role='gerente',
-                    area='Estoque',
-                    localizacao='Sala 1'
-                )
-                db.session.add(gerente)
-                print("  - Usuário 'gerente' criado")
-            
-            # Operador
-            operador = User.query.filter_by(username='operador').first()
-            if not operador:
-                operador = User(
-                    username='operador',
-                    password=PasswordValidator.hash_password('Operador@123'),
-                    role='operador',
-                    area='Estoque',
-                    localizacao='Sala 2'
-                )
-                db.session.add(operador)
-                print("  - Usuário 'operador' criado")
             
             # Usuário comum
             usuario_comum = User.query.filter_by(username='usuario').first()
@@ -101,16 +76,6 @@ def main():
         print("  Usuário: admin")
         print("  Senha: Admin@123")
         print("  Permissões: Tudo")
-        print()
-        print("Gerente:")
-        print("  Usuário: gerente")
-        print("  Senha: Gerente@123")
-        print("  Permissões: Criar/editar produtos, criar usuários")
-        print()
-        print("Operador:")
-        print("  Usuário: operador")
-        print("  Senha: Operador@123")
-        print("  Permissões: Registrar entrada/saída, visualizar estoque")
         print()
         print("Usuário:")
         print("  Usuário: usuario")

@@ -11,7 +11,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @admin_bp.before_request
 @login_required
-@require_role('admin', 'gerente')
+@require_role('admin')
 def before_admin_request():
     """Proteger todas as rotas admin"""
     pass
@@ -58,8 +58,8 @@ def criar_usuario():
                 flash(f'Erro na senha: {error}', 'error')
             return redirect(url_for('admin.criar_usuario'))
         
-        if role not in ['admin', 'gerente', 'operador', 'usuario']:
-            flash('Role inválido.', 'error')
+        if role not in ['admin', 'usuario']:
+            flash('Role inválido. Escolha entre admin ou usuario.', 'error')
             return redirect(url_for('admin.criar_usuario'))
         
         # Criar novo usuário
@@ -103,8 +103,8 @@ def editar_usuario(user_id):
         localizacao = request.form.get('localizacao', usuario.localizacao).strip()
         ativo = request.form.get('ativo') == 'on'
         
-        if role not in ['admin', 'gerente', 'operador', 'usuario']:
-            flash('Role inválido.', 'error')
+        if role not in ['admin', 'usuario']:
+            flash('Role inválido. Escolha entre admin ou usuario.', 'error')
             return redirect(url_for('admin.editar_usuario', user_id=user_id))
         
         usuario.role = role
@@ -238,8 +238,6 @@ def dashboard():
     usuarios_bloqueados = User.query.filter_by(ativo=False).count()
     
     admins = User.query.filter_by(role='admin').count()
-    gerentes = User.query.filter_by(role='gerente').count()
-    operadores = User.query.filter_by(role='operador').count()
     
     eventos_recentes = Historico.query.order_by(Historico.data_evento.desc()).limit(10).all()
     
@@ -248,8 +246,6 @@ def dashboard():
         'usuarios_ativos': usuarios_ativos,
         'usuarios_bloqueados': usuarios_bloqueados,
         'admins': admins,
-        'gerentes': gerentes,
-        'operadores': operadores,
         'eventos_recentes': eventos_recentes
     }
     
