@@ -21,11 +21,16 @@ document.addEventListener('DOMContentLoaded', function () {
     carregarDados();
     configurarEventos();
 
-    // Exibição inicial conforme permissão de usuário
-    if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
-        showSection('dashboard');
+    const requestedSection = getQueryParam('section');
+    if (requestedSection) {
+        showSection(requestedSection);
     } else {
-        showSection('chamadas');
+        // Exibição inicial conforme permissão de usuário
+        if (window.USUARIO_IS_ADMIN === 'true' || window.USUARIO_IS_ADMIN === true) {
+            showSection('dashboard');
+        } else {
+            showSection('chamadas');
+        }
     }
 
     // Recarregar dados a cada 1 minuto e 30 segundos
@@ -167,6 +172,43 @@ function updateDashboardSubtabActive(section) {
     });
 }
 
+function navigateToSection(section, url) {
+    const currentPath = window.location.pathname;
+    if (currentPath === url) {
+        showSection(section);
+        return;
+    }
+    const separator = url.includes('?') ? '&' : '?';
+    window.location.href = `${url}${separator}section=${section}`;
+}
+
+function getQueryParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+}
+
+function toggleSidebar() {
+    const appShell = document.querySelector('.app-shell');
+    if (!appShell) return;
+    appShell.classList.toggle('sidebar-collapsed');
+
+    // Adiciona/remove classe no body para compatibilidade com botão flutuante
+    if (appShell.classList.contains('sidebar-collapsed')) {
+        document.body.classList.add('sidebar-is-collapsed');
+    } else {
+        document.body.classList.remove('sidebar-is-collapsed');
+    }
+}
+
+const sidebarToggleButton = document.getElementById('sidebarToggle');
+if (sidebarToggleButton) {
+    sidebarToggleButton.addEventListener('click', toggleSidebar);
+}
+
+const sidebarToggleFloat = document.getElementById('sidebarToggleFloat');
+if (sidebarToggleFloat) {
+    sidebarToggleFloat.addEventListener('click', toggleSidebar);
+}
+
 function showSection(section) {
     // Ocultar todas as seções
     document.querySelectorAll('.section').forEach(el => {
@@ -185,6 +227,11 @@ function showSection(section) {
     
     // Atualizar subtab ativa
     updateDashboardSubtabActive(section);
+
+    // Atualizar navegação lateral ativa
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.section === section);
+    });
 
     // Carregar dados específicos
     if (section === 'dashboard') {

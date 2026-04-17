@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
@@ -237,13 +237,29 @@ def saida_estoque():
 @api_bp.route('/relatorios/resumo', methods=['GET'])
 @login_required
 def relatorio_resumo():
-    """Retorna resumo do estoque"""
+    """Retorna resumo do estoque e resumo de chamadas para dashboard"""
     try:
         estatisticas = app.estoque.relatorio_valor_total()
         produtos_baixo = len(app.estoque.relatorio_estoque_baixo())
+
+        sete_dias_atras = datetime.now(timezone(timedelta(hours=-3))) - timedelta(days=7)
+        chamadas_analise = Chamada.query.filter_by(status='analise').count()
+        chamadas_execucao = Chamada.query.filter_by(status='execucao').count()
+        chamadas_novas = Chamada.query.filter_by(status='nova').count()
+        chamadas_finalizadas_7dias = Chamada.query.filter(
+            Chamada.status == 'concluida',
+            Chamada.data_criacao >= sete_dias_atras
+        ).count()
+        chamadas_abertas = Chamada.query.filter(Chamada.status.in_(['nova', 'analise', 'execucao'])).count()
+
         return jsonify({
             'estatisticas': estatisticas,
-            'produtos_baixo_estoque': produtos_baixo
+            'produtos_estoque_baixo': produtos_baixo,
+            'chamadas_analise': chamadas_analise,
+            'chamadas_execucao': chamadas_execucao,
+            'chamadas_abertas': chamadas_abertas,
+            'chamadas_novas': chamadas_novas,
+            'chamadas_finalizadas_7dias': chamadas_finalizadas_7dias
         })
     except Exception as e:
         return jsonify({'erro': str(e)}), 500

@@ -27,6 +27,9 @@ class User(db.Model, UserMixin):
     ativo = db.Column(db.Boolean, default=True, nullable=False)  # Se usuário está ativo/bloqueado
     data_criacao = db.Column(db.DateTime, default=now_gmt3, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
+
+    # Foto de perfil
+    foto_perfil = db.Column(db.String(255), nullable=True)
     
     # Segurança - Último login e tentativas falhas
     ultimo_login = db.Column(db.DateTime, nullable=True)

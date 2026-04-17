@@ -143,7 +143,7 @@ def perfil():
         return redirect(url_for('auth.perfil'))
 
     if session.get('perfil_verified'):
-        return render_template('profile.html', usuario=current_user.username)
+        return render_template('profile.html', usuario=current_user.username, foto_perfil=current_user.foto_perfil)
 
     if 'perfil_previous' not in session:
         anterior = request.referrer
@@ -214,6 +214,86 @@ def perfil_password():
     )
 
     flash('Senha atualizada com sucesso com segurança reforçada.', 'success')
+    return redirect(url_for('auth.perfil'))
+
+@auth_bp.route('/perfil/foto', methods=['POST'])
+@login_required
+def perfil_foto():
+    """Upload de foto de perfil do usuário"""
+    if not session.get('perfil_verified'):
+        flash('Por favor, reautentique para acessar o perfil.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    import os
+    from werkzeug.utils import secure_filename
+
+    # Configurações de upload
+    UPLOAD_FOLDER = os.path.join('static', 'uploads', 'avatars')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
+
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+    # Criar pasta se não existir
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', UPLOAD_FOLDER)
+    upload_path = os.path.abspath(upload_path)
+    if not os.path.exists(upload_path):
+        os.makedirs(upload_path)
+
+    # Verificar se arquivo foi enviado
+    if 'foto_perfil' not in request.files:
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    file = request.files['foto_perfil']
+
+    if file.filename == '':
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    if not allowed_file(file.filename):
+        flash('Formato de arquivo não permitido. Use PNG, JPG, JPEG ou GIF.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    # Verificar tamanho do arquivo
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    if file_size > MAX_FILE_SIZE:
+        flash('Arquivo muito grande. Tamanho máximo: 2MB.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    # Gerar nome único para o arquivo
+    filename = secure_filename(file.filename)
+    name, ext = os.path.splitext(filename)
+    filename = f"user_{current_user.id}_{int(datetime.now().timestamp())}{ext}"
+
+    try:
+        # Remover foto antiga se existir
+        if current_user.foto_perfil:
+            old_file = os.path.join(upload_path, current_user.foto_perfil)
+            if os.path.exists(old_file):
+                os.remove(old_file)
+
+        # Salvar arquivo
+        file.save(os.path.join(upload_path, filename))
+
+        # Atualizar banco de dados
+        current_user.foto_perfil = filename
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='foto_perfil_atualizada',
+            descricao=f'Foto de perfil atualizada',
+            usuario_responsavel=current_user.username
+        )
+
+        flash('Foto de perfil atualizada com sucesso!', 'success')
+    except Exception as e:
+        flash(f'Erro ao salvar foto: {str(e)}', 'error')
+
     return redirect(url_for('auth.perfil'))
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
