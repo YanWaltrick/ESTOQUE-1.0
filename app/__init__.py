@@ -73,6 +73,26 @@ def create_app():
 
     return app
 
+def _ensure_schema_columns():
+    """Adiciona colunas ausentes nas tabelas existentes (migração manual)."""
+    inspector = inspect(db.engine)
+    migrations = [
+        ('users', 'foto_perfil', 'VARCHAR(255)'),
+        ('users', 'ultimo_login', 'DATETIME'),
+        ('users', 'tentativas_login_falhas', 'INTEGER DEFAULT 0'),
+        ('users', 'bloqueado_ate', 'DATETIME'),
+        ('users', 'data_atualizacao', 'DATETIME'),
+    ]
+    for table, column, col_type in migrations:
+        if table not in inspector.get_table_names():
+            continue
+        existing = {c['name'] for c in inspector.get_columns(table)}
+        if column not in existing:
+            db.session.execute(text(f'ALTER TABLE {table} ADD COLUMN {column} {col_type}'))
+            db.session.commit()
+            print(f"[MIGRATE] Coluna '{column}' adicionada em '{table}'")
+
+
 def init_database():
     """Inicializa o banco de dados e cria dados iniciais"""
     global estoque
@@ -102,6 +122,9 @@ def init_database():
         print("[INFO] Nota: {}".format(e))
         print("Criando tabelas padrao...")
         db.create_all()
+
+    # Garantir que todas as colunas do modelo existam (migrations manuais)
+    _ensure_schema_columns()
 
     # Criar usuário admin se não existir
     admin_user = User.query.filter_by(username='admin').first()
