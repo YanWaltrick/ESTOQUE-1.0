@@ -82,6 +82,7 @@ def _ensure_schema_columns():
         ('users', 'tentativas_login_falhas', 'INTEGER DEFAULT 0'),
         ('users', 'bloqueado_ate', 'DATETIME'),
         ('users', 'data_atualizacao', 'DATETIME'),
+        ('chamadas', 'foto_anexo', 'VARCHAR(255)'),
     ]
     for table, column, col_type in migrations:
         if table not in inspector.get_table_names():

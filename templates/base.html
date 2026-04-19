@@ -59,16 +59,23 @@
 
             <div class="sidebar-footer">
                 <div class="sidebar-user">
-                    <div class="user-avatar"><i class="fas fa-user"></i></div>
-                    <div>
-                        <p class="mb-0 text-white small">Olá, {{ current_user.email|default('Usuário') }}</p>
-                        <span class="text-muted small">Mantenha as funcionalidades</span>
+                    <div class="user-avatar">
+                        {% if current_user.foto_perfil %}
+                        <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.foto_perfil) }}" alt="Foto de perfil">
+                        {% else %}
+                        <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div class="sidebar-user-info">
+                        <p class="mb-0 text-white small">Olá,</p>
+                        <p class="mb-0 text-white small sidebar-user-name">{{ current_user.username|default('Usuário', true) }}</p>
                     </div>
                 </div>
             </div>
         </aside>
 
         <div class="content-area">
+            {% if current_user.is_admin %}
             <header class="dashboard-header">
                 <div>
                     <h1>{% block page_heading %}Painel{% endblock %}</h1>
@@ -78,6 +85,7 @@
                     {% block header_actions %}{% endblock %}
                 </div>
             </header>
+            {% endif %}
 
             <main class="main-content container-fluid py-4">
                 {% block content %}{% endblock %}

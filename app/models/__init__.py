@@ -221,6 +221,7 @@ class Chamada(db.Model):
     id_chamada = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
+    foto_anexo = db.Column(db.String(255), nullable=True)
     data_criacao = db.Column(db.DateTime, default=now_gmt3)
     lida = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(50), default='nova', nullable=False)
@@ -228,9 +229,10 @@ class Chamada(db.Model):
     # Relacionamento com usuário (backref definido no modelo User)
     # A propriedade `usuario` será criada automaticamente pelo backref.
 
-    def __init__(self, id_usuario, mensagem):
+    def __init__(self, id_usuario, mensagem, foto_anexo=None):
         self.id_usuario = id_usuario
         self.mensagem = mensagem
+        self.foto_anexo = foto_anexo
         self.status = 'nova'
         self.lida = False
 
@@ -239,9 +241,13 @@ class Chamada(db.Model):
             'id': self.id_chamada,
             'id_usuario': self.id_usuario,
             'usuario': self.usuario.username if self.usuario else 'Desconhecido',
+            'usuario_foto': self.usuario.foto_perfil if self.usuario else None,
+            'usuario_foto_url': f'/static/uploads/avatars/{self.usuario.foto_perfil}' if self.usuario and self.usuario.foto_perfil else None,
             'usuario_area': self.usuario.area if self.usuario else '',
             'usuario_localizacao': self.usuario.localizacao if self.usuario else '',
             'mensagem': self.mensagem,
+            'foto_anexo': self.foto_anexo,
+            'foto_url': f'/static/uploads/chamadas/{self.foto_anexo}' if self.foto_anexo else None,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'lida': self.lida,
             'status': self.status

@@ -54,6 +54,7 @@ def create_app():
     app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
+    app.config['ADMIN_EMAILS'] = os.getenv('ADMIN_EMAILS', '')
 
     # Inicializar banco de dados e email
     db.init_app(app)

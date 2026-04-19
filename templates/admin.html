@@ -55,7 +55,8 @@
                                         <form id="form-adicionar-usuario">
                                             <div class="mb-3">
                                                 <label for="username" class="form-label">Nome de Usuário</label>
-                                                <input type="text" class="form-control" id="username" name="username" required>
+                                                <input type="text" class="form-control" id="username" name="username" placeholder="Ex.: usuario123 ou nome@empresa.com" required>
+                                                <div class="form-text">Você pode cadastrar um username comum ou um email válido.</div>
                                             </div>
                                             <div class="mb-3">
                                                 <label for="password" class="form-label">Senha</label>
@@ -650,11 +651,19 @@
                     headerDiv.className = 'd-flex justify-content-between align-items-start mb-2';
                     
                     const infoDiv = document.createElement('div');
+                    const avatarHtml = chamada.usuario_foto_url
+                        ? `<img src="${escapeHtml(chamada.usuario_foto_url)}" alt="Foto de ${escapeHtml(chamada.usuario)}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d1d5db;">`
+                        : '<div style="width: 36px; height: 36px; border-radius: 50%; background: #e5e7eb; display: inline-flex; align-items: center; justify-content: center; color: #4b5563;"><i class="fas fa-user"></i></div>';
                     infoDiv.innerHTML = `
-                        <strong>${escapeHtml(chamada.usuario)}</strong>
-                        <small class="text-muted d-block">
-                            ${escapeHtml(chamada.data_criacao)}${chamada.usuario_area ? ' • Área: ' + escapeHtml(chamada.usuario_area) : ''}${chamada.usuario_localizacao ? ' • Cidade: ' + escapeHtml(chamada.usuario_localizacao) : ''}
-                        </small>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            ${avatarHtml}
+                            <div>
+                                <strong>${escapeHtml(chamada.usuario)}</strong>
+                                <small class="text-muted d-block">
+                                    ${escapeHtml(chamada.data_criacao)}${chamada.usuario_area ? ' • Área: ' + escapeHtml(chamada.usuario_area) : ''}${chamada.usuario_localizacao ? ' • Cidade: ' + escapeHtml(chamada.usuario_localizacao) : ''}
+                                </small>
+                            </div>
+                        </div>
                     `;
                     
                     const statusDiv = document.createElement('div');
@@ -674,11 +683,20 @@
                     const mensagemDiv = document.createElement('div');
                     mensagemDiv.className = 'mb-2';
                     mensagemDiv.textContent = chamada.mensagem;
+
+                    const fotoDiv = document.createElement('div');
+                    fotoDiv.className = 'mb-2';
+                    if (chamada.foto_url) {
+                        fotoDiv.innerHTML = `
+                            <a href="${escapeHtml(chamada.foto_url)}" target="_blank" rel="noopener noreferrer">
+                                <img src="${escapeHtml(chamada.foto_url)}" alt="Foto do problema" class="img-fluid rounded border" style="max-width: 260px; max-height: 200px; object-fit: cover;">
+                            </a>
+                        `;
+                    }
                     
                     const acoesDiv = document.createElement('div');
                     acoesDiv.className = 'd-flex flex-wrap gap-2';
                     const statusActions = [
-                        { status: 'lida', label: 'Marcar como Lida', classe: 'btn-dark' },
                         { status: 'analise', label: 'Colocar em Análise', classe: 'btn-dark' },
                         { status: 'execucao', label: 'Colocar em Execução', classe: 'btn-dark' },
                         { status: 'concluida', label: 'Marcar como Concluída', classe: 'btn-dark' }
@@ -704,6 +722,9 @@
                     
                     chamadaDiv.appendChild(headerDiv);
                     chamadaDiv.appendChild(mensagemDiv);
+                    if (chamada.foto_url) {
+                        chamadaDiv.appendChild(fotoDiv);
+                    }
                     chamadaDiv.appendChild(acoesDiv);
                     
                     lista.appendChild(chamadaDiv);

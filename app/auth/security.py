@@ -166,11 +166,18 @@ def validate_username(username: str) -> tuple[bool, str]:
     if len(username) < 3:
         return False, "Nome de usuário deve ter no mínimo 3 caracteres"
     
-    if len(username) > 80:
-        return False, "Nome de usuário não pode ter mais de 80 caracteres"
-    
+    if len(username) > 150:
+        return False, "Nome de usuário não pode ter mais de 150 caracteres"
+
+    # Permite email como nome de usuário, mantendo compatibilidade com logins legados.
+    if '@' in username:
+        is_valid_email, email_error = validate_email(username)
+        if not is_valid_email:
+            return False, f"Email inválido para nome de usuário: {email_error}"
+        return True, ""
+
     if not re.match(r'^[a-zA-Z0-9_.-]+$', username):
-        return False, "Nome de usuário só pode conter letras, números, ponto, hífen e underscore"
+        return False, "Nome de usuário só pode conter letras, números, ponto, hífen e underscore, ou ser um email válido"
     
     return True, ""
 
@@ -194,7 +201,7 @@ def validate_email(email: str) -> tuple[bool, str]:
     if not re.match(pattern, email):
         return False, "Email inválido"
     
-    if len(email) > 120:
-        return False, "Email não pode ter mais de 120 caracteres"
+    if len(email) > 150:
+        return False, "Email não pode ter mais de 150 caracteres"
     
     return True, ""

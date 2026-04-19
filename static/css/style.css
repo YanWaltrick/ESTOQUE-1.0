@@ -24,6 +24,7 @@
 
 .app-shell {
     display: flex;
+    align-items: flex-start;
     min-height: 100vh;
     background-color: var(--content-bg);
     transition: margin-left 0.3s ease;
@@ -126,6 +127,12 @@
 
 .dashboard-sidebar {
     width: 260px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
     background: linear-gradient(180deg, var(--sidebar-bg) 0%, #151a23 100%);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     padding: 2rem 1.5rem;
@@ -310,8 +317,9 @@ body.sidebar-is-collapsed .sidebar-toggle-float {
 
 .sidebar-user {
     display: flex;
-    align-items: center;
-    gap: 0.85rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 
 .user-avatar {
@@ -319,10 +327,67 @@ body.sidebar-is-collapsed .sidebar-toggle-float {
     height: 42px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--secondary-color);
+}
+
+.sidebar-user-info {
+    width: 100%;
+}
+
+.sidebar-user-name {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Menu do perfil: reforçar contraste de textos */
+.profile-menu-title {
+    color: #ffffff !important;
+}
+
+.profile-panel-title {
+    color: #ffffff !important;
+}
+
+.profile-menu-subtitle {
+    color: #374151;
+    font-size: 1.1rem;
+}
+
+.profile-option-btn {
+    color: #1f2937;
+}
+
+.profile-option-btn strong {
+    color: #111827;
+}
+
+.profile-option-desc {
+    color: #4b5563 !important;
+}
+
+.profile-option-btn:hover,
+.profile-option-btn:focus {
+    color: #ffffff !important;
+}
+
+.profile-option-btn:hover strong,
+.profile-option-btn:focus strong,
+.profile-option-btn:hover .profile-option-desc,
+.profile-option-btn:focus .profile-option-desc,
+.profile-option-btn:hover i,
+.profile-option-btn:focus i {
+    color: #ffffff !important;
 }
 
 .content-area {

@@ -2,12 +2,12 @@
 {% set active_page = 'perfil' %}
 
 {% block title %}Perfil - {{ usuario }}{% endblock %}
-{% block page_heading %}Perfil de {{ usuario }}{% endblock %}
-{% block page_subtitle %}Gerencie sua conta e informações pessoais.{% endblock %}
+{% block page_heading %}Perfil{% endblock %}
+{% block page_subtitle %}Escolha uma opção para gerenciar sua conta.{% endblock %}
 {% block content %}
     <div class="container py-5">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
+            <div class="col-lg-7">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
@@ -19,27 +19,26 @@
                     {% endif %}
                 {% endwith %}
 
-                <!-- Menu Principal do Perfil -->
-                <div id="perfil-menu" class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0"><i class="fas fa-user-circle"></i> Perfil de {{ usuario }}</h4>
+                <div class="card shadow-sm profile-menu-card">
+                    <div class="card-header bg-primary text-white profile-menu-header">
+                        <h4 class="mb-0 profile-menu-title"><i class="fas fa-user-circle"></i> Perfil de {{ usuario }}</h4>
                     </div>
                     <div class="card-body text-center py-5">
-                        <p class="text-muted mb-4">Escolha uma opção para gerenciar seu perfil:</p>
+                        <p class="profile-menu-subtitle mb-4">Escolha uma opção para gerenciar seu perfil:</p>
                         <div class="row justify-content-center g-3">
                             <div class="col-md-5">
-                                <button onclick="showSection('senha')" class="btn btn-outline-primary w-100 py-4">
-                                    <i class="fas fa-key fa-2x mb-2"></i><br>
-                                    <strong>Redefinir Senha</strong>
-                                    <p class="small text-muted mt-2 mb-0">Altere sua senha de acesso</p>
-                                </button>
-                            </div>
-                            <div class="col-md-5">
-                                <button onclick="showSection('foto')" class="btn btn-outline-success w-100 py-4">
+                                <a href="{{ url_for('auth.perfil_foto') }}" class="btn btn-outline-success w-100 py-4 profile-option-btn">
                                     <i class="fas fa-camera fa-2x mb-2"></i><br>
                                     <strong>Foto de Perfil</strong>
-                                    <p class="small text-muted mt-2 mb-0">Adicione ou altere sua foto</p>
-                                </button>
+                                    <p class="small profile-option-desc mt-2 mb-0">Acessar tela de troca de foto</p>
+                                </a>
+                            </div>
+                            <div class="col-md-5">
+                                <a href="{{ url_for('auth.perfil_senha') }}" class="btn btn-outline-primary w-100 py-4 profile-option-btn">
+                                    <i class="fas fa-key fa-2x mb-2"></i><br>
+                                    <strong>Redefinir Senha</strong>
+                                    <p class="small profile-option-desc mt-2 mb-0">Acessar tela de troca de senha</p>
+                                </a>
                             </div>
                         </div>
                         <div class="mt-4">
@@ -49,99 +48,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Seção Redefinir Senha -->
-                <div id="secao-senha" class="card shadow-sm" style="display: none;">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-key"></i> Redefinir Senha</h4>
-                        <button onclick="showMenu()" class="btn btn-sm btn-light">
-                            <i class="fas fa-arrow-left"></i> Voltar
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">Para redefinir sua senha, informe seu login e senha atual, depois digite a nova senha duas vezes.</p>
-                        <form method="POST" action="{{ url_for('auth.perfil_password') }}">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="login_name" class="form-label">Nome de login</label>
-                                    <input type="text" class="form-control" id="login_name" name="login_name" required value="{{ usuario }}">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="senha_atual" class="form-label">Senha atual</label>
-                                    <input type="password" class="form-control" id="senha_atual" name="senha_atual" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="nova_senha" class="form-label">Nova senha</label>
-                                    <input type="password" class="form-control" id="nova_senha" name="nova_senha" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="confirm_nova_senha" class="form-label">Confirmar nova senha</label>
-                                    <input type="password" class="form-control" id="confirm_nova_senha" name="confirm_nova_senha" required>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-sync-alt"></i> Redefinir senha
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Seção Foto de Perfil -->
-                <div id="secao-foto" class="card shadow-sm" style="display: none;">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-camera"></i> Foto de Perfil</h4>
-                        <button onclick="showMenu()" class="btn btn-sm btn-light">
-                            <i class="fas fa-arrow-left"></i> Voltar
-                        </button>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="mb-4">
-                            {% if foto_perfil %}
-                            <img src="{{ url_for('static', filename='uploads/avatars/' + foto_perfil) }}" alt="Foto de Perfil" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #28a745;">
-                            <p class="text-muted">Sua foto de perfil atual</p>
-                            {% else %}
-                            <div class="bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; border: 3px dashed #dee2e6;">
-                                <i class="fas fa-user-circle fa-5x text-muted"></i>
-                            </div>
-                            <p class="text-muted">Nenhuma foto de perfil definida</p>
-                            {% endif %}
-                        </div>
-                        <form method="POST" action="{{ url_for('auth.perfil_foto') }}" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="foto_perfil" class="form-label">Selecione uma imagem</label>
-                                <input type="file" class="form-control" id="foto_perfil" name="foto_perfil" accept="image/*" required>
-                                <div class="form-text">Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 2MB</div>
-                            </div>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-upload"></i> {% if foto_perfil %}Alterar Foto{% else %}Enviar Foto{% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
-
-    <script>
-        function showSection(secao) {
-            document.getElementById('perfil-menu').style.display = 'none';
-            document.getElementById('secao-senha').style.display = 'none';
-            document.getElementById('secao-foto').style.display = 'none';
-
-            if (secao === 'senha') {
-                document.getElementById('secao-senha').style.display = 'block';
-            } else if (secao === 'foto') {
-                document.getElementById('secao-foto').style.display = 'block';
-            }
-        }
-
-        function showMenu() {
-            document.getElementById('perfil-menu').style.display = 'block';
-            document.getElementById('secao-senha').style.display = 'none';
-            document.getElementById('secao-foto').style.display = 'none';
-        }
-    </script>
 {% endblock %}

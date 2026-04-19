@@ -141,18 +141,37 @@ function carregarDetalhesChamadas(tipo) {
 
             container.innerHTML = detalhes.map(chamada => {
                 const statusLabel = obterStatusLabel(chamada.status);
+                const avatarHtml = chamada.usuario_foto_url
+                    ? `<img src="${escapeHtml(chamada.usuario_foto_url)}" alt="Foto de ${escapeHtml(chamada.usuario || 'Usuário')}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #d1d5db;">`
+                    : '<div style="width: 40px; height: 40px; border-radius: 50%; background: #e5e7eb; display: inline-flex; align-items: center; justify-content: center; color: #4b5563;"><i class="fas fa-user"></i></div>';
+
+                const fotoAnexoHtml = chamada.foto_url
+                    ? `
+                        <div class="mb-2">
+                            <strong>Imagem enviada:</strong><br>
+                            <a href="${escapeHtml(chamada.foto_url)}" target="_blank" rel="noopener noreferrer">
+                                <img src="${escapeHtml(chamada.foto_url)}" alt="Imagem do chamado" class="img-fluid rounded border mt-1" style="max-width: 300px; max-height: 220px; object-fit: cover;">
+                            </a>
+                        </div>
+                    `
+                    : '';
+
                 return `
                     <div class="card mb-3 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h6 class="mb-1">${escapeHtml(chamada.usuario || 'Usuário desconhecido')}</h6>
-                                    <small class="text-muted">${escapeHtml(chamada.usuario_area || '')}${chamada.usuario_localizacao ? ' • ' + escapeHtml(chamada.usuario_localizacao) : ''}</small>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    ${avatarHtml}
+                                    <div>
+                                        <h6 class="mb-1">${escapeHtml(chamada.usuario || 'Usuário desconhecido')}</h6>
+                                        <small class="text-muted">${escapeHtml(chamada.usuario_area || '')}${chamada.usuario_localizacao ? ' • ' + escapeHtml(chamada.usuario_localizacao) : ''}</small>
+                                    </div>
                                 </div>
                                 <span class="badge bg-secondary">${escapeHtml(statusLabel)}</span>
                             </div>
                             <p class="mb-1"><strong>Data:</strong> ${escapeHtml(chamada.data_criacao || '')}</p>
                             <p class="mb-1"><strong>Mensagem:</strong> ${escapeHtml(chamada.mensagem)}</p>
+                            ${fotoAnexoHtml}
                             <p class="mb-0"><strong>ID da chamada:</strong> ${escapeHtml(chamada.id)}</p>
                         </div>
                     </div>
@@ -403,12 +422,21 @@ async function carregarChamadasUsuario() {
             
             if (!chamadasUsuarioPrimeiroLoad) {
                 const anterior = chamadasUsuarioStatus[chamada.id];
-                if (anterior && anterior !== chamada.status) {
+                if (anterior && anterior !== chamada.status && chamada.status !== 'lida') {
                     mostrarAlerta(`Atualização: a chamada "${escapeHtml(chamada.mensagem.substring(0, 40))}" foi alterada de ${statusLabelMap[anterior] || anterior} para ${statusLabel}.`, 'info');
                 }
             }
 
             chamadasUsuarioStatus[chamada.id] = chamada.status;
+            const fotoHtml = chamada.foto_url
+                ? `
+                    <div class="mt-2">
+                        <a href="${escapeHtml(chamada.foto_url)}" target="_blank" rel="noopener noreferrer">
+                            <img src="${escapeHtml(chamada.foto_url)}" alt="Foto do problema" class="img-fluid rounded border" style="max-width: 260px; max-height: 200px; object-fit: cover;">
+                        </a>
+                    </div>
+                `
+                : '';
             
             return `
                 <div class="border rounded p-3 mb-3 ${chamada.status === 'concluida' ? 'bg-success-subtle' : chamada.lida ? 'bg-light' : 'bg-warning-subtle'}">
@@ -417,6 +445,7 @@ async function carregarChamadasUsuario() {
                         <span class="badge ${chamada.status === 'concluida' ? 'bg-success' : chamada.lida ? 'bg-secondary' : 'bg-danger'}">${statusLabel}</span>
                     </div>
                     <p class="mb-0">${escapeHtml(chamada.mensagem)}</p>
+                    ${fotoHtml}
                 </div>
             `;
         }).join('');
@@ -1012,6 +1041,8 @@ function enviarChamada() {
     const tipo = document.getElementById('chamadaTipo').value;
     const subtipo = document.getElementById('chamadaSubtipo').value;
     const mensagem = document.getElementById('chamadaMensagem').value.trim();
+    const fotoInput = document.getElementById('chamadaFoto');
+    const foto = fotoInput && fotoInput.files ? fotoInput.files[0] : null;
 
     if (!tipo) {
         mostrarAlerta('Por favor, selecione o tipo de chamada.', 'warning');
@@ -1028,16 +1059,29 @@ function enviarChamada() {
         return;
     }
 
+    if (foto) {
+        const formatosPermitidos = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!formatosPermitidos.includes(foto.type)) {
+            mostrarAlerta('Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.', 'warning');
+            return;
+        }
+        if (foto.size > 5 * 1024 * 1024) {
+            mostrarAlerta('A foto deve ter no máximo 5MB.', 'warning');
+            return;
+        }
+    }
+
+    const formData = new FormData();
+    formData.append('tipo', tipo);
+    formData.append('subtipo', subtipo || '');
+    formData.append('mensagem', mensagem);
+    if (foto) {
+        formData.append('foto_chamada', foto);
+    }
+
     fetch(`${API_BASE}/chamadas`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            tipo: tipo,
-            subtipo: subtipo,
-            mensagem: mensagem
-        })
+        body: formData
     })
     .then(async response => {
         const contentType = response.headers.get('Content-Type') || '';

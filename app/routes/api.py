@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
+import os
+import uuid
 
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 import app
 from app.auth import require_role
 from app.auth.security import PasswordValidator, validate_username
@@ -521,8 +524,8 @@ def resetar_senha_usuario_api(user_id):
 
 def validar_dados_chamada(dados):
     erros = []
-    if not dados or not isinstance(dados, dict):
-        erros.append('JSON inválido ou vazio')
+    if not dados:
+        erros.append('Dados inválidos ou vazios')
         return erros
 
     tipo = (dados.get('tipo') or '').strip()
@@ -588,13 +591,38 @@ def listar_chamadas():
 def criar_chamada():
     """Cria uma nova chamada para admins."""
     try:
-        dados = request.get_json(silent=True)
+        if request.is_json:
+            dados = request.get_json(silent=True) or {}
+        else:
+            dados = request.form.to_dict()
+
         erros = validar_dados_chamada(dados)
         if erros:
             return jsonify({'erro': ' | '.join(erros)}), 400
 
+        foto_filename = None
+        foto = request.files.get('foto_chamada')
+        if foto and foto.filename:
+            extensoes_permitidas = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            ext = foto.filename.rsplit('.', 1)[1].lower() if '.' in foto.filename else ''
+            if ext not in extensoes_permitidas:
+                return jsonify({'erro': 'Formato de imagem não permitido. Use PNG, JPG, JPEG, GIF ou WEBP.'}), 400
+
+            foto.seek(0, os.SEEK_END)
+            tamanho = foto.tell()
+            foto.seek(0)
+            if tamanho > 5 * 1024 * 1024:
+                return jsonify({'erro': 'Imagem muito grande. Tamanho máximo: 5MB.'}), 400
+
+            upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'uploads', 'chamadas'))
+            os.makedirs(upload_dir, exist_ok=True)
+
+            nome_base = secure_filename(os.path.splitext(foto.filename)[0]) or 'anexo'
+            foto_filename = f"chamada_{current_user.id}_{uuid.uuid4().hex}_{nome_base}.{ext}"
+            foto.save(os.path.join(upload_dir, foto_filename))
+
         texto = montar_texto_chamada(dados.get('tipo'), dados.get('subtipo'), dados.get('mensagem'))
-        chamada = Chamada(id_usuario=current_user.id, mensagem=texto)
+        chamada = Chamada(id_usuario=current_user.id, mensagem=texto, foto_anexo=foto_filename)
         db.session.add(chamada)
         db.session.commit()
 

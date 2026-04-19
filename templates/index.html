@@ -336,7 +336,7 @@
                 <div class="col-md-8 mx-auto">
                     <div class="card mb-4">
                         <div class="card-body">
-                            <form id="formChamada">
+                            <form id="formChamada" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label for="chamadaTipo" class="form-label">Tipo de chamada *</label>
                                     <select class="form-select" id="chamadaTipo" required>
@@ -357,6 +357,11 @@
                                 <div class="mb-3">
                                     <label for="chamadaMensagem" class="form-label">Mensagem *</label>
                                     <textarea class="form-control" id="chamadaMensagem" rows="4" placeholder="Descreva do que você precisa..." required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="chamadaFoto" class="form-label">Enviar foto (opcional)</label>
+                                    <input type="file" class="form-control" id="chamadaFoto" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                                    <div class="form-text">Formatos: PNG, JPG, JPEG, GIF e WEBP. Tamanho máximo: 5MB.</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-paper-plane"></i> Enviar Chamada

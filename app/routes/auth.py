@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime, timezone, timedelta
+from flask_mail import Message
 from werkzeug.security import check_password_hash
-from app.database import db
+from app.database import db, mail
 from app.models import User, Chamada
 from app.utils import registrar_evento
-from app.auth.security import PasswordValidator, validate_username
+from app.auth.security import PasswordValidator, validate_username, validate_email
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -39,6 +40,69 @@ def url_has_allowed_host_and_scheme(url, allowed_hosts=None):
     
     # Verificar se o host está na lista de máquinas permitidas
     return parsed.netloc in allowed_hosts
+
+
+def _smtp_configurado() -> bool:
+    """Verifica se há configuração mínima para envio de e-mails."""
+    return bool(current_app.config.get('MAIL_SERVER') and current_app.config.get('MAIL_DEFAULT_SENDER'))
+
+
+def _emails_admin_destino() -> list[str]:
+    """Monta lista de e-mails de administradores a notificar."""
+    destinos = set()
+
+    # Prioriza configuração explícita via variável de ambiente (se existir)
+    admin_emails_env = (current_app.config.get('ADMIN_EMAILS') or '').strip()
+    if admin_emails_env:
+        for email in [item.strip() for item in admin_emails_env.split(',') if item.strip()]:
+            is_valid, _ = validate_email(email)
+            if is_valid:
+                destinos.add(email)
+
+    # Também usa usuários admin cujo username é um e-mail válido
+    admins = User.query.filter_by(role='admin', ativo=True).all()
+    for admin in admins:
+        is_valid, _ = validate_email(admin.username)
+        if is_valid:
+            destinos.add(admin.username)
+
+    return sorted(destinos)
+
+
+def _enviar_emails_senha_esquecida(user: User, mensagem_texto: str) -> tuple[bool, str]:
+    """Dispara notificações de senha esquecida para admins e usuário solicitante."""
+    if not _smtp_configurado():
+        return False, 'Configuração SMTP incompleta. Defina MAIL_SERVER e MAIL_DEFAULT_SENDER.'
+
+    try:
+        admins_destino = _emails_admin_destino()
+        if admins_destino:
+            assunto_admin = f'[SOMA ASSET] Solicitação de redefinição de senha - {user.username}'
+            corpo_admin = (
+                'Um usuário solicitou redefinição de senha.\n\n'
+                f'Usuário: {user.username}\n'
+                f'Mensagem: {mensagem_texto}\n'
+                f'Data/Hora: {agora_gmt3().strftime("%d/%m/%Y %H:%M:%S")}\n'
+            )
+            msg_admin = Message(subject=assunto_admin, recipients=admins_destino, body=corpo_admin)
+            mail.send(msg_admin)
+
+        # Envia confirmação para o usuário somente se ele usa e-mail como login
+        usuario_eh_email, _ = validate_email(user.username)
+        if usuario_eh_email:
+            assunto_usuario = '[SOMA ASSET] Recebemos sua solicitação de redefinição'
+            corpo_usuario = (
+                'Recebemos sua solicitação de redefinição de senha.\n\n'
+                'Um administrador irá analisar e retornar em breve.\n'
+                'Se você não fez esta solicitação, ignore este e-mail.\n'
+            )
+            msg_usuario = Message(subject=assunto_usuario, recipients=[user.username], body=corpo_usuario)
+            mail.send(msg_usuario)
+
+        return True, ''
+    except Exception as e:
+        current_app.logger.error('Falha ao enviar email de senha esquecida: %s', str(e))
+        return False, str(e)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -154,6 +218,17 @@ def perfil():
 
     return render_template('profile_auth.html', usuario=current_user.username)
 
+
+@auth_bp.route('/perfil/senha', methods=['GET'])
+@login_required
+def perfil_senha():
+    """Tela dedicada para redefinição de senha."""
+    if not session.get('perfil_verified'):
+        flash('Por favor, reautentique para acessar o perfil.', 'error')
+        return redirect(url_for('auth.perfil'))
+
+    return render_template('profile_password.html', usuario=current_user.username)
+
 @auth_bp.route('/perfil/password', methods=['POST'])
 @login_required
 def perfil_password():
@@ -173,11 +248,11 @@ def perfil_password():
             descricao=f'Tentativa de mudança de senha com username diferente',
             usuario_responsavel=current_user.username
         )
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     if not senha_atual or not nova_senha or not confirm_nova_senha:
         flash('Todos os campos são obrigatórios.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     if not PasswordValidator.verify_password(senha_atual, current_user.password):
         flash('Senha atual incorreta.', 'error')
@@ -186,22 +261,22 @@ def perfil_password():
             descricao=f'Tentativa com senha atual incorreta',
             usuario_responsavel=current_user.username
         )
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     if nova_senha != confirm_nova_senha:
         flash('A nova senha deve ser digitada duas vezes de forma idêntica.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     if senha_atual == nova_senha:
         flash('A nova senha deve ser diferente da senha atual.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     # Validar força da nova senha
     is_valid, errors = PasswordValidator.validate(nova_senha)
     if not is_valid:
         for error in errors:
             flash(f'Erro na nova senha: {error}', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_senha'))
 
     # Atualizar senha
     current_user.password = PasswordValidator.hash_password(nova_senha)
@@ -214,15 +289,18 @@ def perfil_password():
     )
 
     flash('Senha atualizada com sucesso com segurança reforçada.', 'success')
-    return redirect(url_for('auth.perfil'))
+    return redirect(url_for('auth.perfil_senha'))
 
-@auth_bp.route('/perfil/foto', methods=['POST'])
+@auth_bp.route('/perfil/foto', methods=['GET', 'POST'])
 @login_required
 def perfil_foto():
     """Upload de foto de perfil do usuário"""
     if not session.get('perfil_verified'):
         flash('Por favor, reautentique para acessar o perfil.', 'error')
         return redirect(url_for('auth.perfil'))
+
+    if request.method == 'GET':
+        return render_template('profile_photo.html', usuario=current_user.username, foto_perfil=current_user.foto_perfil)
 
     import os
     from werkzeug.utils import secure_filename
@@ -244,17 +322,17 @@ def perfil_foto():
     # Verificar se arquivo foi enviado
     if 'foto_perfil' not in request.files:
         flash('Nenhum arquivo selecionado.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_foto'))
 
     file = request.files['foto_perfil']
 
     if file.filename == '':
         flash('Nenhum arquivo selecionado.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_foto'))
 
     if not allowed_file(file.filename):
         flash('Formato de arquivo não permitido. Use PNG, JPG, JPEG ou GIF.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_foto'))
 
     # Verificar tamanho do arquivo
     file.seek(0, os.SEEK_END)
@@ -263,7 +341,7 @@ def perfil_foto():
 
     if file_size > MAX_FILE_SIZE:
         flash('Arquivo muito grande. Tamanho máximo: 2MB.', 'error')
-        return redirect(url_for('auth.perfil'))
+        return redirect(url_for('auth.perfil_foto'))
 
     # Gerar nome único para o arquivo
     filename = secure_filename(file.filename)
@@ -294,7 +372,7 @@ def perfil_foto():
     except Exception as e:
         flash(f'Erro ao salvar foto: {str(e)}', 'error')
 
-    return redirect(url_for('auth.perfil'))
+    return redirect(url_for('auth.perfil_foto'))
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -319,13 +397,20 @@ def forgot_password():
         db.session.add(chamada)
         db.session.commit()
 
+        email_ok, email_error = _enviar_emails_senha_esquecida(user, texto)
+
         registrar_evento(
             tipo_evento='senha_esquecida',
             descricao=f'Chamado de redefinição de senha solicitado para "{user.username}"',
             usuario_responsavel='Sistema'
         )
 
-        flash('Chamado de senha esquecida criado com sucesso. Um administrador irá analisar.', 'success')
+        if email_ok:
+            flash('Chamado criado com sucesso e e-mail enviado para análise.', 'success')
+        else:
+            flash('Chamado criado com sucesso, mas houve falha no envio do e-mail. Verifique a configuração SMTP.', 'error')
+            if email_error:
+                current_app.logger.warning('Detalhe da falha de e-mail: %s', email_error)
         return redirect(url_for('auth.forgot_password'))
 
     return render_template('forgot_password.html')
