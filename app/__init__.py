@@ -112,7 +112,7 @@ def init_database():
     print(f"Banco de dados: {db_type}")
     print("="*60 + "\n")
 
-    #Aplicar migracoes se existirem
+    # Aplicar migracoes se existirem
     try:
         migrations_dir = os.path.join(os.path.dirname(__file__), '..', 'migrations')
         if os.path.exists(os.path.join(migrations_dir, 'versions')):
@@ -121,8 +121,10 @@ def init_database():
             upgrade(revision='head')
     except Exception as e:
         print("[INFO] Nota: {}".format(e))
-        print("Criando tabelas padrao...")
-        db.create_all()
+
+    # Garante criacao das tabelas mesmo quando o upgrade nao gera alteracoes.
+    print("Garantindo estrutura base do banco...")
+    db.create_all()
 
     # Garantir que todas as colunas do modelo existam (migrations manuais)
     _ensure_schema_columns()

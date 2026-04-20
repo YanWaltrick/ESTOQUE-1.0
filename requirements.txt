@@ -5,7 +5,7 @@ Flask-Mail==0.9.1
 Flask-Migrate==4.0.5
 
 SQLAlchemy==2.0.48
-# pymysql==1.0.3  # Driver MySQL (removido, usando SQLite)
+pymysql==1.0.3  # Driver MySQL
 
 python-dotenv==1.2.2
 
