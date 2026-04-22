@@ -16,21 +16,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            background: radial-gradient(circle at top, rgba(189, 154, 95, 0.18), transparent 35%), linear-gradient(135deg, #11141b 0%, #2d3748 100%);
             padding: 1rem;
         }
         .login-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.28);
             overflow: hidden;
             width: 100%;
-            max-width: 600px;
+            max-width: 460px;
         }
         .login-header {
             background: #1a202c;
             color: white;
-            padding: 2.5rem 2rem;
+            padding: 2rem 1.5rem;
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -41,15 +41,17 @@
             max-width: 100%;
             height: auto;
             margin-bottom: 1rem;
+            width: min(220px, 70vw);
         }
         .login-header p {
             margin: 0;
             font-size: 1.1rem;
             font-weight: 300;
             letter-spacing: 0.5px;
+            line-height: 1.4;
         }
         .login-body {
-            padding: 2rem;
+            padding: 1.5rem;
         }
         .btn-login {
             background: #007bff;
@@ -79,7 +81,37 @@
         }
         @media (min-width: 576px) {
             .login-header {
-                padding: 3rem 2.5rem;
+                padding: 2.5rem 2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .login-container {
+                padding: 0.75rem;
+                align-items: flex-start;
+            }
+
+            .login-card {
+                border-radius: 16px;
+                max-width: 100%;
+                margin-top: 1rem;
+            }
+
+            .login-header {
+                padding: 1.5rem 1.25rem;
+            }
+
+            .login-header p {
+                font-size: 1rem;
+            }
+
+            .login-body {
+                padding: 1.25rem;
+            }
+
+            .btn-login,
+            .btn-outline-secondary {
+                width: 100%;
             }
         }
     </style>

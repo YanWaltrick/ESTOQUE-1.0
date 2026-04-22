@@ -14,12 +14,208 @@ let chamadasUsuarioPrimeiroLoad = true;
 const API_BASE = window.location.origin + '/api';
 
 // =============================================================================
+// SISTEMA DE NOTIFICAÇÕES (TOAST)
+// =============================================================================
+
+/**
+ * Exibe uma notificação toast
+ * @param {string} mensagem - Texto da notificação
+ * @param {string} tipo - 'success', 'danger', 'warning', 'info' (padrão)
+ * @param {number} duracao - Tempo em ms antes de desaparecer (0 = manual)
+ */
+function mostrarNotificacao(mensagem, tipo = 'info', duracao = 4000) {
+    const container = document.getElementById('toast-container') || criarToastContainer();
+    
+    const icons = {
+        success: 'fas fa-check-circle',
+        danger: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${tipo}`;
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="${icons[tipo] || icons.info} toast-header-icon"></i>
+            <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span style="font-weight: 600; color: #212529;">${escapeHtml(mensagem)}</span>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.parentElement.classList.add('hide'); setTimeout(() => this.parentElement.parentElement.remove(), 300);">&times;</button>
+        </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remover após duração
+    if (duracao > 0) {
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }, duracao);
+    }
+    
+    return toast;
+}
+
+/**
+ * Cria o container para toast notifications
+ */
+function criarToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+/**
+ * Atalho para notificação de sucesso
+ */
+function mostrarSucesso(mensagem, duracao = 3000) {
+    mostrarNotificacao(mensagem, 'success', duracao);
+}
+
+/**
+ * Atalho para notificação de erro
+ */
+function mostrarErro(mensagem, erro = null, duracao = 5000) {
+    if (erro instanceof Error) {
+        console.error(mensagem, erro);
+        mostrarNotificacao(`${mensagem}: ${erro.message}`, 'danger', duracao);
+    } else if (erro) {
+        console.error(mensagem, erro);
+        mostrarNotificacao(mensagem, 'danger', duracao);
+    } else {
+        mostrarNotificacao(mensagem, 'danger', duracao);
+    }
+}
+
+/**
+ * Atalho para notificação de aviso
+ */
+function mostrarAviso(mensagem, duracao = 4000) {
+    mostrarNotificacao(mensagem, 'warning', duracao);
+}
+
+// =============================================================================
+// CARREGAMENTO E VALIDAÇÃO DE FORMS
+// =============================================================================
+
+/**
+ * Configura feedback de validação para um formulário
+ */
+function configurarValidacaoForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity() === false) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+}
+
+/**
+ * Aplica validação em tempo real para inputs
+ */
+function configurarValidacaoRealTime(inputSelector) {
+    document.querySelectorAll(inputSelector).forEach(input => {
+        input.addEventListener('blur', function() {
+            this.classList.add('touched');
+            if (!this.checkValidity()) {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            }
+        });
+
+        input.addEventListener('input', function() {
+            if (this.classList.contains('touched')) {
+                if (!this.checkValidity()) {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                } else {
+                    this.classList.add('is-valid');
+                    this.classList.remove('is-invalid');
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Mostra loading state em um botão
+ */
+function setarLoadingBtn(btnSelector, isLoading = true) {
+    const btn = document.querySelector(btnSelector);
+    if (!btn) return;
+    
+    if (isLoading) {
+        btn.disabled = true;
+        btn.classList.add('btn-loading');
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner spinner-sm"></span> Processando...';
+    } else {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = btn.dataset.originalText || btn.innerHTML;
+    }
+}
+
+/**
+ * Wrapper para requisições com melhor tratamento de erros
+ */
+async function fetchAPI(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            ...options
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.erro || data.message || `Erro HTTP ${response.status}`);
+        }
+
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+}
+
+// =============================================================================
 // INICIALIZAÇÃO
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
     carregarDados();
     configurarEventos();
+
+    const appShell = document.querySelector('.app-shell');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+    if (window.matchMedia('(max-width: 992px)').matches && appShell) {
+        appShell.classList.add('sidebar-collapsed');
+        document.body.classList.add('sidebar-is-collapsed');
+    }
+
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', () => {
+            if (appShell && !appShell.classList.contains('sidebar-collapsed')) {
+                toggleSidebar();
+            }
+        });
+    }
 
     const requestedSection = getQueryParam('section');
     if (requestedSection) {
@@ -90,7 +286,7 @@ function abrirDetalhesChamadas(tipo) {
         novas: 'Chamados Novos',
         finalizadas: 'Finalizados (7 dias)'
     };
-    const titulo = titulos[tipo] || 'Detalhes das Chamadas';
+    const titulo = titulos[tipo] || 'Detalhes dos Chamados';
     document.getElementById('modalDetalhesChamadasLabel').textContent = titulo;
     document.getElementById('modalDetalhesChamadasContainer').innerHTML = '<p class="text-muted">Carregando...</p>';
 
@@ -179,8 +375,8 @@ function carregarDetalhesChamadas(tipo) {
             }).join('');
         })
         .catch(error => {
-            console.error('Erro ao carregar detalhes das chamadas:', error);
-            document.getElementById('modalDetalhesChamadasContainer').innerHTML = '<p class="text-danger">Erro ao carregar detalhes das chamadas.</p>';
+            console.error('Erro ao carregar detalhes dos chamados:', error);
+            document.getElementById('modalDetalhesChamadasContainer').innerHTML = '<p class="text-danger">Erro ao carregar detalhes dos chamados.</p>';
         });
 }
 
@@ -265,15 +461,21 @@ function showSection(section) {
 }
 
 function carregarBadgeAdminChamadas() {
-    const badge = document.getElementById('badge-admin-chamadas');
-    if (!badge) return;
+    const badges = [
+        document.getElementById('badge-admin-chamadas'),
+        document.getElementById('badge-admin-chamados-sidebar')
+    ].filter(Boolean);
+
+    if (badges.length === 0) return;
 
     fetch(`${API_BASE}/chamadas/nao-lidas`)
         .then(response => response.json())
         .then(data => {
             if (data && typeof data.nao_lidas === 'number') {
-                badge.textContent = data.nao_lidas;
-                badge.classList.toggle('d-none', data.nao_lidas <= 0);
+                badges.forEach(badge => {
+                    badge.textContent = data.nao_lidas;
+                    badge.classList.toggle('d-none', data.nao_lidas <= 0);
+                });
             }
         })
         .catch(error => {
@@ -362,12 +564,24 @@ function atualizarEstoqueBaixo() {
     const tbody = document.getElementById('estoque-baixo-table');
     if (!tbody) return;
 
+    // Mostrar loading skeleton
+    tbody.innerHTML = '<tr><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>';
+
     fetch(`${API_BASE}/relatorios/estoque-baixo`)
         .then(r => r.json())
         .then(datos => {
-            
             if (datos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-success">✓ Todos os produtos estão acima do estoque mínimo!</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="fas fa-check"></i></div>
+                                <div class="empty-state-title">Tudo em ordem!</div>
+                                <div class="empty-state-text">Todos os produtos estão acima do estoque mínimo.</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
             
@@ -380,21 +594,34 @@ function atualizarEstoqueBaixo() {
                     <td>${escapeHtml(prod.minimo)}</td>
                     <td><strong class="text-danger">-${escapeHtml(prod.faltam)}</strong></td>
                     <td>
-                        <button class="btn btn-sm btn-success" onclick="abrirMovimentacao('${escapeHtml(prod.id)}')">
+                        <button class="btn btn-sm btn-success" onclick="abrirMovimentacao('${escapeHtml(prod.id)}')" title="Registrar entrada de estoque">
                             <i class="fas fa-arrow-up"></i> Entrada
                         </button>
                     </td>
                 </tr>
             `).join('');
         })
-        .catch(error => console.error('Erro ao carregar estoque baixo:', error));
+        .catch(error => {
+            console.error('Erro ao carregar estoque baixo:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="fas fa-exclamation"></i></div>
+                            <div class="empty-state-title">Erro ao carregar</div>
+                            <div class="empty-state-text">Não foi possível buscar dados de estoque.</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
 }
 
 async function carregarChamadasUsuario() {
     const container = document.getElementById('lista-chamadas-usuario');
     if (!container) return;
 
-    container.innerHTML = '<p class="text-muted">Carregando chamadas...</p>';
+                container.innerHTML = '<p class="text-muted">Carregando chamados...</p>';
 
     try {
         const response = await fetch(`${API_BASE}/chamadas`);
@@ -1011,31 +1238,9 @@ function formatarMoeda(valor) {
 
 
 
-function mostrarAlerta(mensagem, tipo = 'info') {
-    const alertaHtml = `
-        <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-            ${mensagem}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    const container = document.createElement('div');
-    container.innerHTML = alertaHtml;
-    document.querySelector('.container-fluid').insertBefore(
-        container.firstElementChild, 
-        document.querySelector('.container-fluid').firstElementChild
-    );
-    
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if (alert) alert.remove();
-    }, 5000);
-}
-
-function mostrarErro(mensagem, error) {
-    console.error(mensagem, error);
-    mostrarAlerta(mensagem + ': ' + error.message, 'danger');
-}
+// =============================================================================
+// CONFIGURAÇÃO DE EVENTOS DE FORMS
+// =============================================================================
 
 function enviarChamada() {
     const tipo = document.getElementById('chamadaTipo').value;
@@ -1045,12 +1250,12 @@ function enviarChamada() {
     const foto = fotoInput && fotoInput.files ? fotoInput.files[0] : null;
 
     if (!tipo) {
-        mostrarAlerta('Por favor, selecione o tipo de chamada.', 'warning');
+        mostrarAviso('Por favor, selecione o tipo de chamada.');
         return;
     }
 
     if (tipo !== 'Outros' && !subtipo) {
-        mostrarAlerta('Por favor, selecione o problema específico.', 'warning');
+        mostrarAviso('Por favor, selecione o problema específico.');
         return;
     }
 
@@ -1096,7 +1301,7 @@ function enviarChamada() {
         }
 
         if (response.ok && data.mensagem) {
-            mostrarAlerta('Chamada enviada com sucesso! Os administradores foram notificados.', 'success');
+            mostrarSucesso('Chamada enviada com sucesso! Os administradores foram notificados.');
             const form = document.getElementById('formChamada');
             if (form) {
                 form.reset();
@@ -1111,7 +1316,7 @@ function enviarChamada() {
             }
             carregarChamadasUsuario();
         } else {
-            mostrarAlerta('Erro ao enviar chamada: ' + (data.erro || data.message || 'Erro desconhecido'), 'danger');
+            mostrarErro('Erro ao enviar chamada', new Error(data.erro || data.message || 'Erro desconhecido'));
         }
     })
     .catch(error => {

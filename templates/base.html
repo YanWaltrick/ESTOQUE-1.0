@@ -11,10 +11,15 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <!-- Container para notificações Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
     <!-- Botão flutuante para reabrir sidebar quando escondida -->
     <button class="sidebar-toggle-float" id="sidebarToggleFloat" aria-label="Abrir menu">
         <i class="fas fa-bars"></i>
     </button>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
     <div class="app-shell">
         <aside class="dashboard-sidebar">
@@ -41,10 +46,15 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>Admin</span>
                 </a>
-                {% else %}
-                <a class="sidebar-link {% if active_page == 'chamadas' %}active{% endif %}" href="{{ url_for('main.index') }}" onclick="navigateToSection('chamadas', '{{ url_for('main.index') }}'); return false;">
+                <a class="sidebar-link {% if active_page == 'chamadas' %}active{% endif %}" href="{{ url_for('main.admin', tab='chamadas') }}">
                     <i class="fas fa-bell"></i>
-                    <span>Chamadas</span>
+                    <span>Chamados</span>
+                    <span class="badge bg-danger d-none" id="badge-admin-chamados-sidebar">0</span>
+                </a>
+                {% else %}
+                <a class="sidebar-link {% if active_page == 'chamadas' %}active{% endif %}" href="{{ url_for('main.index', section='chamadas') }}" onclick="navigateToSection('chamadas', '{{ url_for('main.index') }}'); return false;">
+                    <i class="fas fa-bell"></i>
+                    <span>Chamados</span>
                 </a>
                 {% endif %}
                 <a class="sidebar-link {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('auth.perfil') }}">

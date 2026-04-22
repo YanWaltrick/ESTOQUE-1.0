@@ -18,8 +18,8 @@ def get_database_url():
     db_url = os.getenv('DATABASE_URL')
 
     if not db_url:
-        # Usar SQLite por padrão se não houver configuração
-        db_url = 'sqlite:///estoque.db'
+        # Usar MySQL por padrão; localhost funciona para execução fora do Docker.
+        db_url = 'mysql+pymysql://root:QAZwsxEDCrfv@localhost:3306/estoque_db'
 
     # Aceita MySQL, SQLite ou outros drivers explícitos.
     return db_url

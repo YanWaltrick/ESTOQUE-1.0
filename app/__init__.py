@@ -112,13 +112,25 @@ def init_database():
     print(f"Banco de dados: {db_type}")
     print("="*60 + "\n")
 
-    # Aplicar migracoes se existirem
+    # Aplicar migracoes somente quando houver revisoes geradas.
     try:
         migrations_dir = os.path.join(os.path.dirname(__file__), '..', 'migrations')
-        if os.path.exists(os.path.join(migrations_dir, 'versions')):
+        versions_dir = os.path.join(migrations_dir, 'versions')
+        has_revisions = False
+        if os.path.exists(versions_dir):
+            for fname in os.listdir(versions_dir):
+                if fname.endswith('.py') and fname != '__init__.py':
+                    has_revisions = True
+                    break
+
+        if has_revisions:
             from flask_migrate import upgrade
             print("Aplicando migracoes do banco de dados...")
             upgrade(revision='head')
+        else:
+            print("Nenhuma revisao de migracao encontrada; seguindo com create_all().")
+    except SystemExit as e:
+        print("[INFO] Migracoes nao aplicadas (SystemExit: {}); seguindo inicializacao.".format(e))
     except Exception as e:
         print("[INFO] Nota: {}".format(e))
 

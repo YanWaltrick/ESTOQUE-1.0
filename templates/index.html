@@ -327,8 +327,8 @@
         <div id="chamadas-section" class="section" style="display: none;">
             <div class="row mb-4">
                 <div class="col-12">
-                    <h3><i class="fas fa-bell"></i> Chamadas para Admin</h3>
-                    <p class="text-muted">Envie uma mensagem para os administradores online solicitando ajuda ou informações. Abaixo você verá o histórico de chamadas enviadas por você.</p>
+                    <h3><i class="fas fa-bell"></i> Chamados para Admin</h3>
+                    <p class="text-muted">Envie uma mensagem para os administradores online solicitando ajuda ou informações. Abaixo você verá o histórico de chamados enviados por você.</p>
                 </div>
             </div>
 
@@ -338,9 +338,9 @@
                         <div class="card-body">
                             <form id="formChamada" enctype="multipart/form-data">
                                 <div class="mb-3">
-                                    <label for="chamadaTipo" class="form-label">Tipo de chamada *</label>
+                                    <label for="chamadaTipo" class="form-label">Tipo de chamado *</label>
                                     <select class="form-select" id="chamadaTipo" required>
-                                        <option value="" disabled selected>Selecione o tipo de chamada</option>
+                                        <option value="" disabled selected>Selecione o tipo de chamado</option>
                                         <option value="Equipamento defeituoso">Equipamento defeituoso</option>
                                         <option value="Computador com erro">Computador com erro</option>
                                         <option value="Conexão com a internet">Conexão com a internet</option>
@@ -349,22 +349,22 @@
                                     </select>
                                 </div>
                                 <div class="mb-3" id="subtipoContainer" style="display: none;">
-                                    <label for="chamadaSubtipo" class="form-label">Especifique o problema *</label>
+                                    <label for="chamadaSubtipo" class="form-label">Especifique o chamado *</label>
                                     <select class="form-select" id="chamadaSubtipo" required>
-                                        <option value="" disabled selected>Selecione o problema específico</option>
+                                        <option value="" disabled selected>Selecione o chamado específico</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="chamadaMensagem" class="form-label">Mensagem *</label>
-                                    <textarea class="form-control" id="chamadaMensagem" rows="4" placeholder="Descreva do que você precisa..." required></textarea>
+                                    <label for="chamadaMensagem" class="form-label">Mensagem do chamado *</label>
+                                    <textarea class="form-control" id="chamadaMensagem" rows="4" placeholder="Descreva o que você precisa..." required></textarea>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="chamadaFoto" class="form-label">Enviar foto (opcional)</label>
+                                    <label for="chamadaFoto" class="form-label">Enviar foto do chamado (opcional)</label>
                                     <input type="file" class="form-control" id="chamadaFoto" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
                                     <div class="form-text">Formatos: PNG, JPG, JPEG, GIF e WEBP. Tamanho máximo: 5MB.</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane"></i> Enviar Chamada
+                                    <i class="fas fa-paper-plane"></i> Enviar Chamado
                                 </button>
                             </form>
                         </div>
@@ -372,10 +372,10 @@
 
                     <div class="card">
                         <div class="card-header bg-light">
-                            <h5 class="card-title mb-0"><i class="fas fa-history"></i> Histórico de Chamadas</h5>
+                            <h5 class="card-title mb-0"><i class="fas fa-history"></i> Histórico de Chamados</h5>
                         </div>
                         <div class="card-body">
-                            <div id="lista-chamadas-usuario">Carregando chamadas...</div>
+                            <div id="lista-chamadas-usuario">Carregando chamados...</div>
                         </div>
                     </div>
                 </div>
@@ -467,7 +467,7 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalDetalhesChamadasLabel">Detalhes das Chamadas</h5>
+                    <h5 class="modal-title" id="modalDetalhesChamadasLabel">Detalhes dos Chamados</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">

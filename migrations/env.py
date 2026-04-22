@@ -32,7 +32,7 @@ def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = os.environ.get(
         "DATABASE_URL",
-        "sqlite:///estoque.db"
+        "mysql+pymysql://root:senha123@localhost:3306/estoque_db"
     )
     
     connectable = engine_from_config(

@@ -1,54 +1,45 @@
 version: '3.8'
 
 services:
-  # Serviço da aplicação Flask
   flask-app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: estoque-app
-    ports:
-      - "5000:5000"
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - DATABASE_URL=sqlite:///estoque.db
-      # Descomente a linha abaixo para usar MySQL
-      # - DATABASE_URL=mysql+pymysql://root:senha123@mysql:3306/estoque_db
+      - DATABASE_URL=mysql+pymysql://root:senha123@mysql:3306/estoque_db
     volumes:
-      # Montar o código da aplicação para desenvolvimento em tempo real
       - .:/app
-      # Persistir dados do SQLite
       - ./instance:/app/instance
     ports:
       - "5000:5000"
     depends_on:
-      # Descomente a linha abaixo se estiver usando MySQL
-      # - mysql
+      - mysql
     command: python app.py
+    networks:
+      - estoque-network
 
-  # Serviço MySQL (OPCIONAL - Descomente se quiser usar MySQL em vez de SQLite)
-  # mysql:
-  #   image: mysql:8.0
-  #   container_name: estoque-mysql
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: senha123
-  #     MYSQL_DATABASE: estoque_db
-  #     MYSQL_USER: estoque_user
-  #     MYSQL_PASSWORD: senha123
-  #   ports:
-  #     - "3306:3306"
-  #   volumes:
-  #     - mysql_data:/var/lib/mysql
-  #   networks:
-  #     - estoque-network
+  mysql:
+    image: mysql:8.0
+    container_name: estoque-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: senha123
+      MYSQL_DATABASE: estoque_db
+      MYSQL_USER: estoque_user
+      MYSQL_PASSWORD: senha123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - estoque-network
 
-# Volumes (para persistência de dados)
 volumes:
   mysql_data:
     driver: local
 
-# Redes
 networks:
   estoque-network:
     driver: bridge
