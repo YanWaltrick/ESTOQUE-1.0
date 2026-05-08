@@ -13,6 +13,22 @@ let chamadasUsuarioPrimeiroLoad = true;
 
 const API_BASE = window.location.origin + '/api';
 
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+function getCsrfHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    const token = getCsrfToken();
+
+    if (token) {
+        headers['X-CSRFToken'] = token;
+    }
+
+    return headers;
+}
+
 // =============================================================================
 // SISTEMA DE NOTIFICAÇÕES (TOAST)
 // =============================================================================
@@ -172,11 +188,21 @@ function setarLoadingBtn(btnSelector, isLoading = true) {
  */
 async function fetchAPI(url, options = {}) {
     try {
+        const method = (options.method || 'GET').toUpperCase();
+        const headers = {
+            ...(method !== 'GET' ? { 'Content-Type': 'application/json' } : {}),
+            ...options.headers
+        };
+
+        if (method !== 'GET') {
+            const csrfToken = getCsrfToken();
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+        }
+
         const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
+            headers,
             ...options
         });
 
@@ -960,7 +986,7 @@ function salvarProduto() {
     
     fetch(url, {
         method: metodo,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
         body: JSON.stringify(dados)
     })
     .then(async response => {
@@ -986,7 +1012,7 @@ function salvarProduto() {
 function deletarProduto(id) {
     if (!confirm('Deseja realmente deletar este produto?')) return;
     
-    fetch(`${API_BASE}/produtos/${id}`, { method: 'DELETE' })
+    fetch(`${API_BASE}/produtos/${id}`, { method: 'DELETE', headers: { 'X-CSRFToken': getCsrfToken() } })
         .then(async response => {
             const data = await response.json().catch(() => null);
             if (!response.ok) {
@@ -1037,7 +1063,7 @@ function salvarMovimentacao() {
     
     fetch(`${API_BASE}/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
         body: JSON.stringify(dados)
     })
     .then(r => r.json())
@@ -1286,6 +1312,7 @@ function enviarChamada() {
 
     fetch(`${API_BASE}/chamadas`, {
         method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() },
         body: formData
     })
     .then(async response => {

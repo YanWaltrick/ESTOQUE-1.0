@@ -26,6 +26,7 @@
 
                         <p>Confirme seu login para acessar as opções de perfil.</p>
                         <form method="POST" action="{{ url_for('auth.perfil') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="mb-3">
                                 <label for="username" class="form-label">Nome de usuário</label>
                                 <input type="text" class="form-control" id="username" name="username" required value="{{ usuario }}">

@@ -1,0 +1,1238 @@
+2026-05-08 14:43:29 | ERROR    | estoque | registrar_erro:72 | OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 14:53:52 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | GET /admin | 0.002s
+2026-05-08 14:53:52 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.013s
+2026-05-08 14:53:56 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 14:54:00 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.000s
+2026-05-08 14:54:05 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 14:55:10 | ERROR    | estoque | registrar_erro:72 | OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 957, in _request_authentication
+    auth_packet = self._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 957, in _request_authentication
+    auth_packet = self._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 14:56:31 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 14:56:34 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.009s
+2026-05-08 14:56:42 | ERROR    | estoque | registrar_erro:72 | OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 979, in _request_authentication
+    auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 268, in caching_sha2_password_auth
+    pkt = _roundtrip(conn, data)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 121, in _roundtrip
+    pkt = conn._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 979, in _request_authentication
+    auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 268, in caching_sha2_password_auth
+    pkt = _roundtrip(conn, data)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 121, in _roundtrip
+    pkt = conn._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 14:56:43 | ERROR    | estoque | registrar_erro:72 | OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 979, in _request_authentication
+    auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 268, in caching_sha2_password_auth
+    pkt = _roundtrip(conn, data)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 121, in _roundtrip
+    pkt = conn._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 361, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 669, in connect
+    self._request_authentication()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 979, in _request_authentication
+    auth_packet = _auth.caching_sha2_password_auth(self, auth_packet)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 268, in caching_sha2_password_auth
+    pkt = _roundtrip(conn, data)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\_auth.py", line 121, in _roundtrip
+    pkt = conn._read_packet()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: YES)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 14:57:05 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.008s
+2026-05-08 14:57:11 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 14:58:54 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 14:58:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | GET / | 0.000s
+2026-05-08 14:58:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.006s
+2026-05-08 14:59:42 | ERROR    | estoque | registrar_erro:72 | OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 14:59:43 | ERROR    | estoque | registrar_erro:72 | OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8) | Contexto: {'contexto': 'init_database'}
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0\app\__init__.py", line 223, in init_database
+    db.create_all()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\flask_sqlalchemy\extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3267, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3257, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 2448, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laboratorio\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sqlalchemy\engine\default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-05-08 15:01:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.005s
+2026-05-08 15:01:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.000s
+2026-05-08 15:01:29 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 15:01:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | GET / | 0.002s
+2026-05-08 15:01:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.025s
+2026-05-08 15:01:51 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /login | 0.000s
+2026-05-08 15:04:09 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | GET / | 0.001s
+2026-05-08 15:04:09 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.004s
+2026-05-08 15:04:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | POST /login | 0.897s
+2026-05-08 15:04:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET / | 0.019s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/produtos | 0.004s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/top-produtos | 0.018s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.021s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.035s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/top-produtos | 0.014s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/resumo | 0.047s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/estoque-baixo | 0.006s
+2026-05-08 15:04:18 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/top-produtos | 0.003s
+2026-05-08 15:04:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:04:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:04:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/relatorios/top-produtos | 0.004s
+2026-05-08 15:04:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.023s
+2026-05-08 15:04:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.009s
+2026-05-08 15:04:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.012s
+2026-05-08 15:04:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.014s
+2026-05-08 15:04:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:04:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:04:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.018s
+2026-05-08 15:04:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.020s
+2026-05-08 15:04:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.019s
+2026-05-08 15:04:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:04:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:04:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:04:31 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.002s
+2026-05-08 15:04:31 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.007s
+2026-05-08 15:04:31 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.006s
+2026-05-08 15:04:31 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.008s
+2026-05-08 15:04:32 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.020s
+2026-05-08 15:04:59 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | GET / | 0.001s
+2026-05-08 15:04:59 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /login | 0.001s
+2026-05-08 15:05:02 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.013s
+2026-05-08 15:05:11 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | POST /login | 0.911s
+2026-05-08 15:05:22 | DEBUG    | estoque | set_secure_headers:103 | HTTP 302 | POST /login | 0.868s
+2026-05-08 15:05:22 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET / | 0.002s
+2026-05-08 15:05:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:05:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:05:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:05:32 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:05:32 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:05:33 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:05:38 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:05:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:05:44 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:05:52 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:05:53 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:06:02 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:06:03 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:06:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:06:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:06:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:06:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:06:32 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.015s
+2026-05-08 15:06:32 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:06:33 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:06:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:06:49 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.004s
+2026-05-08 15:06:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.007s
+2026-05-08 15:06:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.013s
+2026-05-08 15:06:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.017s
+2026-05-08 15:06:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:06:53 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:06:53 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:07:03 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:07:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:07:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.007s
+2026-05-08 15:07:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:07:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.023s
+2026-05-08 15:08:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:08:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.011s
+2026-05-08 15:08:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:08:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:09:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:09:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:09:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:09:53 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:10:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:10:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:10:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:11:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:11:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:11:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:11:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:12:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:12:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:12:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:12:53 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:13:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:13:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:13:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:14:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:14:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:14:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:14:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:15:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:15:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:15:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:16:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:16:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:16:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:16:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:17:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:17:20 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:18:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:18:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.020s
+2026-05-08 15:18:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:19:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:19:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.010s
+2026-05-08 15:19:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:20:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.027s
+2026-05-08 15:20:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.039s
+2026-05-08 15:21:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.017s
+2026-05-08 15:21:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.019s
+2026-05-08 15:21:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:22:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:22:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:22:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.012s
+2026-05-08 15:23:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:23:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:24:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.019s
+2026-05-08 15:24:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.014s
+2026-05-08 15:24:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:25:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.016s
+2026-05-08 15:25:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.017s
+2026-05-08 15:25:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:26:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:26:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:27:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.010s
+2026-05-08 15:27:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:27:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:28:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:28:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:28:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:29:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:29:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:30:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.017s
+2026-05-08 15:30:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:30:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:31:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.015s
+2026-05-08 15:31:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.017s
+2026-05-08 15:31:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:32:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:32:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:33:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:33:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:33:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:34:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:34:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:34:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:35:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.015s
+2026-05-08 15:35:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.016s
+2026-05-08 15:36:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.014s
+2026-05-08 15:36:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.022s
+2026-05-08 15:36:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:36:42 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.012s
+2026-05-08 15:36:44 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:36:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET / | 0.025s
+2026-05-08 15:36:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:36:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:36:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:36:53 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:36:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:36:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:37:07 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.013s
+2026-05-08 15:37:19 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.008s
+2026-05-08 15:37:20 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.012s
+2026-05-08 15:37:23 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET / | 0.029s
+2026-05-08 15:37:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:37:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:37:24 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.018s
+2026-05-08 15:37:34 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:37:43 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:37:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:37:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:37:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:37:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.008s
+2026-05-08 15:37:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:37:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.015s
+2026-05-08 15:37:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.021s
+2026-05-08 15:37:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.035s
+2026-05-08 15:37:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.043s
+2026-05-08 15:37:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:38:05 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:38:15 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:38:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:38:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:38:35 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:38:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:38:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:38:58 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:39:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:39:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.010s
+2026-05-08 15:39:58 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:40:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:40:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:40:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:40:58 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:41:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:41:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:41:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:42:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:42:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:43:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:43:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:43:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:43:51 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:43:53 | WARNING  | estoque | set_secure_headers:101 | HTTP 400 | POST /api/chamadas | 0.000s
+2026-05-08 15:43:54 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:43:55 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET / | 0.017s
+2026-05-08 15:43:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:43:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:43:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:44:00 | DEBUG    | estoque | set_secure_headers:103 | HTTP 201 | POST /api/chamadas | 0.029s
+2026-05-08 15:44:00 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:44:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:44:05 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:44:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:44:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:44:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:44:26 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:44:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:44:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:44:36 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:44:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:44:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:44:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.009s
+2026-05-08 15:44:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:45:06 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:45:26 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.005s
+2026-05-08 15:45:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.016s
+2026-05-08 15:45:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:45:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.008s
+2026-05-08 15:45:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:46:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.003s
+2026-05-08 15:46:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.006s
+2026-05-08 15:46:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:46:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.013s
+2026-05-08 15:46:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.015s
+2026-05-08 15:46:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:47:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:47:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:47:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:47:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.009s
+2026-05-08 15:47:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:48:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:48:26 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 15:48:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.009s
+2026-05-08 15:48:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:48:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.012s
+2026-05-08 15:48:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:49:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:49:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:49:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:49:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:49:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:49:57 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:50:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:50:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:50:27 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:50:58 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.013s
+2026-05-08 15:50:58 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:51:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.009s
+2026-05-08 15:51:11 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:51:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.009s
+2026-05-08 15:51:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:51:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.014s
+2026-05-08 15:51:12 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:51:14 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:51:14 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:51:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.004s
+2026-05-08 15:51:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.029s
+2026-05-08 15:51:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.034s
+2026-05-08 15:51:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.037s
+2026-05-08 15:51:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.005s
+2026-05-08 15:51:26 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.004s
+2026-05-08 15:51:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:52:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:52:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:52:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:52:56 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:53:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:53:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:53:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:54:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.011s
+2026-05-08 15:54:17 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.008s
+2026-05-08 15:54:47 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:55:48 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.007s
+2026-05-08 15:56:49 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:57:50 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:58:25 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 15:58:28 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.077s
+2026-05-08 15:58:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.008s
+2026-05-08 15:58:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.014s
+2026-05-08 15:58:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.017s
+2026-05-08 15:58:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:58:29 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:58:30 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.008s
+2026-05-08 15:58:30 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 15:58:30 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.013s
+2026-05-08 15:58:30 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:58:35 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:58:36 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.021s
+2026-05-08 15:58:36 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.016s
+2026-05-08 15:58:36 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.023s
+2026-05-08 15:58:36 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.007s
+2026-05-08 15:58:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:58:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.021s
+2026-05-08 15:58:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.025s
+2026-05-08 15:58:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.027s
+2026-05-08 15:58:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 15:58:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 15:58:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.008s
+2026-05-08 15:58:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.011s
+2026-05-08 15:58:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.015s
+2026-05-08 15:58:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 15:59:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 15:59:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 16:00:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 16:00:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.006s
+2026-05-08 16:01:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 16:01:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 16:02:16 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.003s
+2026-05-08 16:03:04 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.009s
+2026-05-08 16:03:41 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.010s
+2026-05-08 16:03:42 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.036s
+2026-05-08 16:03:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.010s
+2026-05-08 16:03:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.013s
+2026-05-08 16:03:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.022s
+2026-05-08 16:03:43 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.007s
+2026-05-08 16:03:44 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.002s
+2026-05-08 16:03:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.015s
+2026-05-08 16:03:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.017s
+2026-05-08 16:03:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.023s
+2026-05-08 16:03:45 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.004s
+2026-05-08 16:03:46 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin/usuarios | 0.014s
+2026-05-08 16:04:06 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 16:04:06 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.008s
+2026-05-08 16:04:06 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.006s
+2026-05-08 16:04:06 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.009s
+2026-05-08 16:04:07 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.023s
+2026-05-08 16:04:10 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin/usuarios | 0.005s
+2026-05-08 16:04:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin | 0.003s
+2026-05-08 16:04:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/users | 0.006s
+2026-05-08 16:04:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas | 0.007s
+2026-05-08 16:04:13 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/historico | 0.006s
+2026-05-08 16:04:14 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /api/chamadas/nao-lidas | 0.010s
+2026-05-08 16:04:14 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin/usuarios | 0.005s
+2026-05-08 16:07:51 | DEBUG    | estoque | set_secure_headers:103 | HTTP 200 | GET /admin/usuarios | 0.013s

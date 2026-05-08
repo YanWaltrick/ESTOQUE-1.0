@@ -39,6 +39,7 @@
                             {% endif %}
                         </div>
                         <form method="POST" action="{{ url_for('auth.perfil_foto') }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="mb-3">
                                 <label for="foto_perfil" class="form-label">Selecione uma imagem</label>
                                 <input type="file" class="form-control" id="foto_perfil" name="foto_perfil" accept="image/*" required>

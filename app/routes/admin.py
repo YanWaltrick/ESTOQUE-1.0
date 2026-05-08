@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.database import db
-from app.models import User, Historico
+from app.models import User, Historico, DocumentoUsuario, ItemRecebido
 from app.auth import require_role, require_permission
 from app.auth.security import PasswordValidator, validate_username
 from app.utils import registrar_evento
@@ -250,3 +250,266 @@ def dashboard():
     }
     
     return render_template('admin/dashboard.html', stats=stats)
+
+
+@admin_bp.route('/usuarios', methods=['GET'])
+def usuarios_pagina():
+    """Página exclusiva com lista visual de usuários."""
+    usuarios = User.query.order_by(User.ativo.desc(), User.role.desc(), User.username.asc()).all()
+    return render_template('admin/usuarios.html', usuarios=usuarios)
+
+
+# ============ GERENCIAMENTO DE DOCUMENTOS ============
+
+@admin_bp.route('/usuarios/<int:user_id>/documentos/upload', methods=['POST'])
+def upload_documento_usuario(user_id):
+    """Upload de documento para um usuário"""
+    import os
+    from werkzeug.utils import secure_filename
+    from datetime import datetime
+    
+    usuario = User.query.get_or_404(user_id)
+    
+    # Validar arquivo
+    if 'arquivo' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo foi enviado.'}), 400
+    
+    arquivo = request.files['arquivo']
+    if arquivo.filename == '':
+        return jsonify({'success': False, 'message': 'Arquivo não selecionado.'}), 400
+    
+    # Obter dados do formulário
+    nome_documento = request.form.get('nome', '').strip()
+    descricao = request.form.get('descricao', '').strip()
+    
+    if not nome_documento:
+        return jsonify({'success': False, 'message': 'Nome do documento é obrigatório.'}), 400
+    
+    # Validações de arquivo
+    EXTENSOES_PERMITIDAS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png', 'gif'}
+    TAMANHO_MAXIMO = 10 * 1024 * 1024  # 10MB
+    
+    # Verificar extensão
+    if not ('.' in arquivo.filename):
+        return jsonify({'success': False, 'message': 'Arquivo sem extensão.'}), 400
+    
+    extensao = arquivo.filename.rsplit('.', 1)[1].lower()
+    if extensao not in EXTENSOES_PERMITIDAS:
+        return jsonify({'success': False, 'message': f'Tipo de arquivo não permitido. Extensões aceitas: {", ".join(EXTENSOES_PERMITIDAS)}'}), 400
+    
+    # Verificar tamanho
+    arquivo.seek(0, os.SEEK_END)
+    tamanho = arquivo.tell()
+    arquivo.seek(0)
+    
+    if tamanho > TAMANHO_MAXIMO:
+        return jsonify({'success': False, 'message': f'Arquivo muito grande. Máximo: 10MB. Seu arquivo: {tamanho / (1024*1024):.2f}MB'}), 400
+    
+    if tamanho == 0:
+        return jsonify({'success': False, 'message': 'Arquivo vazio.'}), 400
+    
+    # Criar pasta se não existir
+    pasta_documentos = os.path.join('static', 'uploads', 'documentos')
+    if not os.path.exists(pasta_documentos):
+        os.makedirs(pasta_documentos, exist_ok=True)
+    
+    # Gerar nome único para o arquivo
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo_seguro = secure_filename(f"{usuario.id}_{timestamp}_{arquivo.filename}")
+    caminho_arquivo = os.path.join(pasta_documentos, nome_arquivo_seguro)
+    
+    try:
+        # Salvar arquivo
+        arquivo.save(caminho_arquivo)
+        
+        # Criar registro no banco de dados
+        novo_documento = DocumentoUsuario(
+            id_usuario=usuario.id,
+            nome_documento=nome_documento,
+            arquivo=nome_arquivo_seguro,
+            tipo_arquivo=extensao,
+            tamanho_arquivo=tamanho,
+            usuario_enviador=current_user.username,
+            descricao=descricao if descricao else None
+        )
+        
+        db.session.add(novo_documento)
+        db.session.commit()
+        
+        # Registrar no auditoria
+        registrar_evento(
+            tipo_evento='documento_usuario_enviado',
+            descricao=f'Documento "{nome_documento}" enviado para o usuário "{usuario.username}"',
+            usuario_responsavel=current_user.username,
+            detalhes=f'Arquivo: {nome_arquivo_seguro}, Tamanho: {tamanho} bytes'
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Documento "{nome_documento}" enviado com sucesso!',
+            'documento': novo_documento.to_dict()
+        })
+    
+    except Exception as e:
+        # Remover arquivo se algo deu errado no banco de dados
+        if os.path.exists(caminho_arquivo):
+            os.remove(caminho_arquivo)
+        
+        return jsonify({'success': False, 'message': f'Erro ao salvar documento: {str(e)}'}), 500
+
+
+@admin_bp.route('/usuarios/documentos/<int:documento_id>/download', methods=['GET'])
+def download_documento(documento_id):
+    """Download de documento do usuário"""
+    from flask import send_file
+    import os
+    
+    documento = DocumentoUsuario.query.get_or_404(documento_id)
+    
+    # Verificar permissões: apenas admin pode fazer download
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Permissão negada.'}), 403
+    
+    caminho_arquivo = os.path.join('static', 'uploads', 'documentos', documento.arquivo)
+    
+    if not os.path.exists(caminho_arquivo):
+        return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
+    
+    try:
+        return send_file(
+            caminho_arquivo,
+            as_attachment=True,
+            download_name=documento.arquivo,
+            mimetype='application/octet-stream'
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao fazer download: {str(e)}'}), 500
+
+
+@admin_bp.route('/usuarios/<int:user_id>/documentos', methods=['GET'])
+def listar_documentos_usuario(user_id):
+    """Listar documentos de um usuário"""
+    usuario = User.query.get_or_404(user_id)
+    documentos = DocumentoUsuario.query.filter_by(id_usuario=user_id).order_by(DocumentoUsuario.data_criacao.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'usuario': usuario.username,
+        'documentos': [doc.to_dict() for doc in documentos]
+    })
+
+
+# ============ GERENCIAMENTO DE ITENS RECEBIDOS ============
+
+@admin_bp.route('/usuarios/<int:user_id>/itens-recebidos', methods=['GET'])
+def listar_itens_recebidos(user_id):
+    """Listar itens recebidos de um usuário separados por tipo"""
+    usuario = User.query.get_or_404(user_id)
+    
+    itens_entrada = ItemRecebido.query.filter_by(
+        id_usuario=user_id,
+        tipo_recebimento='entrada'
+    ).order_by(ItemRecebido.data_criacao.desc()).all()
+    
+    itens_posteriormente = ItemRecebido.query.filter_by(
+        id_usuario=user_id,
+        tipo_recebimento='posteriormente'
+    ).order_by(ItemRecebido.data_criacao.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'usuario': usuario.username,
+        'itens_entrada': [item.to_dict() for item in itens_entrada],
+        'itens_posteriormente': [item.to_dict() for item in itens_posteriormente]
+    })
+
+
+@admin_bp.route('/usuarios/<int:user_id>/itens-recebidos/adicionar', methods=['POST'])
+def adicionar_item_recebido(user_id):
+    """Adicionar novo item recebido para um usuário"""
+    usuario = User.query.get_or_404(user_id)
+    
+    descricao_item = request.form.get('descricao', '').strip()
+    tipo_recebimento = request.form.get('tipo', 'entrada').strip()
+    
+    if not descricao_item:
+        return jsonify({'success': False, 'message': 'Descrição do item é obrigatória.'}), 400
+    
+    if tipo_recebimento not in ['entrada', 'posteriormente']:
+        return jsonify({'success': False, 'message': 'Tipo de recebimento inválido.'}), 400
+    
+    novo_item = ItemRecebido(
+        id_usuario=user_id,
+        descricao_item=descricao_item,
+        tipo_recebimento=tipo_recebimento,
+        usuario_responsavel=current_user.username
+    )
+    
+    db.session.add(novo_item)
+    db.session.commit()
+    
+    registrar_evento(
+        tipo_evento='item_recebido_adicionado',
+        descricao=f'Item "{descricao_item}" adicionado para "{usuario.username}" (tipo: {tipo_recebimento})',
+        usuario_responsavel=current_user.username
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Item adicionado com sucesso!',
+        'item': novo_item.to_dict()
+    })
+
+
+@admin_bp.route('/usuarios/itens-recebidos/<int:item_id>/editar', methods=['PUT'])
+def editar_item_recebido(item_id):
+    """Editar item recebido"""
+    item = ItemRecebido.query.get_or_404(item_id)
+    
+    data = request.get_json()
+    descricao_item = data.get('descricao', '').strip()
+    tipo_recebimento = data.get('tipo', item.tipo_recebimento).strip()
+    
+    if not descricao_item:
+        return jsonify({'success': False, 'message': 'Descrição do item é obrigatória.'}), 400
+    
+    if tipo_recebimento not in ['entrada', 'posteriormente']:
+        return jsonify({'success': False, 'message': 'Tipo de recebimento inválido.'}), 400
+    
+    item.descricao_item = descricao_item
+    item.tipo_recebimento = tipo_recebimento
+    db.session.commit()
+    
+    registrar_evento(
+        tipo_evento='item_recebido_editado',
+        descricao=f'Item ID {item_id} foi editado: "{descricao_item}" (tipo: {tipo_recebimento})',
+        usuario_responsavel=current_user.username
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Item atualizado com sucesso!',
+        'item': item.to_dict()
+    })
+
+
+@admin_bp.route('/usuarios/itens-recebidos/<int:item_id>/deletar', methods=['DELETE'])
+def deletar_item_recebido(item_id):
+    """Deletar item recebido"""
+    item = ItemRecebido.query.get_or_404(item_id)
+    id_usuario = item.id_usuario
+    descricao = item.descricao_item
+    
+    db.session.delete(item)
+    db.session.commit()
+    
+    registrar_evento(
+        tipo_evento='item_recebido_deletado',
+        descricao=f'Item "{descricao}" foi deletado',
+        usuario_responsavel=current_user.username
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Item deletado com sucesso!'
+    })

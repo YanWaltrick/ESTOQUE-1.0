@@ -71,8 +71,9 @@ def _emails_admin_destino() -> list[str]:
 
 def _enviar_emails_senha_esquecida(user: User, mensagem_texto: str) -> tuple[bool, str]:
     """Dispara notificações de senha esquecida para admins e usuário solicitante."""
+    # Se SMTP não está configurado, apenas retorna sucesso (chamado foi salvo no BD)
     if not _smtp_configurado():
-        return False, 'Configuração SMTP incompleta. Defina MAIL_SERVER e MAIL_DEFAULT_SENDER.'
+        return True, ''
 
     try:
         admins_destino = _emails_admin_destino()
@@ -162,6 +163,13 @@ def login():
         # Login bem-sucedido
         user.registrar_login_sucesso()
         login_user(user, remember=request.form.get('remember') == 'on')
+        # Registrar atividade da sessão para timeout de inatividade (aplica apenas para usuários)
+        try:
+            if user.role != 'admin':
+                session.permanent = True
+                session['last_activity'] = datetime.utcnow().isoformat()
+        except Exception:
+            pass
         
         registrar_evento(
             tipo_evento='login_sucesso',
@@ -405,12 +413,7 @@ def forgot_password():
             usuario_responsavel='Sistema'
         )
 
-        if email_ok:
-            flash('Chamado criado com sucesso e e-mail enviado para análise.', 'success')
-        else:
-            flash('Chamado criado com sucesso, mas houve falha no envio do e-mail. Verifique a configuração SMTP.', 'error')
-            if email_error:
-                current_app.logger.warning('Detalhe da falha de e-mail: %s', email_error)
+        flash('Chamado criado com sucesso! Um administrador analisará sua solicitação em breve.', 'success')
         return redirect(url_for('auth.forgot_password'))
 
     return render_template('forgot_password.html')

@@ -18,8 +18,10 @@ def get_database_url():
     db_url = os.getenv('DATABASE_URL')
 
     if not db_url:
-        # Usar MySQL por padrão; localhost funciona para execução fora do Docker.
-        db_url = 'mysql+pymysql://root:QAZwsxEDCrfv@localhost:3306/estoque_db'
+        # Não usar credenciais codificadas: por padrão, usar SQLite local
+        # para desenvolvimento. Para produção, defina a variável
+        # de ambiente DATABASE_URL explicitamente (ex: mysql+pymysql://user:pass@host/db).
+        db_url = 'sqlite:///./instance/estoque.sqlite'
 
     # Aceita MySQL, SQLite ou outros drivers explícitos.
     return db_url
@@ -40,12 +42,22 @@ def create_app():
                 static_url_path='/static')
 
     # Configuracoes
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave-secreta-desenvolvimento')
+    # Em produção, REQUIRE que SECRET_KEY esteja definida.
+    secret = os.getenv('SECRET_KEY')
+    if not secret and os.getenv('FLASK_ENV') != 'development':
+        raise RuntimeError('SECRET_KEY não definida. Configure SECRET_KEY em variáveis de ambiente.')
+    app.config['SECRET_KEY'] = secret or 'chave-secreta-desenvolvimento'
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'connect_args': {'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
     }
+
+    # Cookies de sessão seguros (não forçar em development para facilitar testes locais)
+    is_dev = os.getenv('FLASK_ENV') == 'development'
+    app.config['SESSION_COOKIE_SECURE'] = False if is_dev else os.getenv('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
 
     # Configuracoes de Email
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')

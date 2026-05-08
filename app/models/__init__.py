@@ -280,3 +280,77 @@ class Historico(db.Model):
             'data_evento': self.data_evento.strftime("%d/%m/%Y %H:%M:%S") if self.data_evento else None,
             'detalhes': self.detalhes
         }
+
+
+class DocumentoUsuario(db.Model):
+    """Modelo para documentos associados a usuários"""
+    __tablename__ = 'documentos_usuarios'
+
+    id_documento = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    nome_documento = db.Column(db.String(255), nullable=False)
+    arquivo = db.Column(db.String(255), nullable=False)  # Nome do arquivo salvo
+    descricao = db.Column(db.Text, nullable=True)
+    tipo_arquivo = db.Column(db.String(50), nullable=False)  # extensão do arquivo
+    tamanho_arquivo = db.Column(db.Integer, nullable=False)  # em bytes
+    data_criacao = db.Column(db.DateTime, default=now_gmt3)
+    data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
+    usuario_enviador = db.Column(db.String(150), nullable=False)  # Quem fez upload
+    
+    # Relacionamento com usuário
+    usuario = db.relationship('User', backref=db.backref('documentos', lazy=True, cascade='all, delete-orphan'))
+
+    def __init__(self, id_usuario, nome_documento, arquivo, tipo_arquivo, tamanho_arquivo, usuario_enviador, descricao=None):
+        self.id_usuario = id_usuario
+        self.nome_documento = nome_documento
+        self.arquivo = arquivo
+        self.tipo_arquivo = tipo_arquivo
+        self.tamanho_arquivo = tamanho_arquivo
+        self.usuario_enviador = usuario_enviador
+        self.descricao = descricao
+
+    def to_dict(self):
+        return {
+            'id': self.id_documento,
+            'id_usuario': self.id_usuario,
+            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
+            'nome_documento': self.nome_documento,
+            'arquivo': self.arquivo,
+            'tipo_arquivo': self.tipo_arquivo,
+            'tamanho_arquivo': self.tamanho_arquivo,
+            'descricao': self.descricao,
+            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
+            'usuario_enviador': self.usuario_enviador
+        }
+
+
+class ItemRecebido(db.Model):
+    """Modelo para itens recebidos por usuários"""
+    __tablename__ = 'itens_recebidos'
+
+    id_item = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    descricao_item = db.Column(db.String(255), nullable=False)
+    tipo_recebimento = db.Column(db.String(50), nullable=False)  # 'entrada' ou 'posteriormente'
+    data_criacao = db.Column(db.DateTime, default=now_gmt3)
+    data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
+    usuario_responsavel = db.Column(db.String(150), nullable=False)  # Quem registrou
+    
+    # Relacionamento com usuário
+    usuario = db.relationship('User', backref=db.backref('itens_recebidos', lazy=True, cascade='all, delete-orphan'))
+
+    def __init__(self, id_usuario, descricao_item, tipo_recebimento, usuario_responsavel):
+        self.id_usuario = id_usuario
+        self.descricao_item = descricao_item
+        self.tipo_recebimento = tipo_recebimento
+        self.usuario_responsavel = usuario_responsavel
+
+    def to_dict(self):
+        return {
+            'id': self.id_item,
+            'id_usuario': self.id_usuario,
+            'descricao_item': self.descricao_item,
+            'tipo_recebimento': self.tipo_recebimento,
+            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
+            'usuario_responsavel': self.usuario_responsavel
+        }

@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+{% set active_page = 'usuarios' %}
+
+{% block title %}Usuários - Sistema de Gestão do TI{% endblock %}
+{% block page_heading %}Usuários Cadastrados{% endblock %}
+{% block page_subtitle %}Visualize todos os usuários do sistema com foto de perfil e nome.{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h1 class="h3 mb-1">
+                    <i class="fas fa-users text-primary"></i> Usuários Cadastrados
+                </h1>
+                <p class="text-muted mb-0">Lista completa com foto de perfil, nome e status.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-dark-subtle text-dark px-3 py-2">Total: {{ usuarios|length }}</span>
+                <a href="{{ url_for('main.admin') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Admin
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if usuarios %}
+                <ul class="list-group list-group-flush">
+                    {% for user in usuarios %}
+                    <li class="list-group-item px-3 px-md-4 py-3 py-md-4 border-0 border-bottom d-flex align-items-center gap-3 hover-bg">
+                        <!-- Foto de Perfil -->
+                        <div class="user-photo rounded-circle overflow-hidden border bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;">
+                            {% if user.foto_perfil %}
+                                <img src="{{ url_for('static', filename='uploads/avatars/' ~ user.foto_perfil) }}" alt="Foto de {{ user.username }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                <i class="fas fa-user fa-lg text-secondary"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Informações do Usuário -->
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                <h2 class="h6 mb-0">{{ user.username }}</h2>
+                                {% if user.is_admin %}
+                                    <span class="badge bg-primary">ADMIN</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">USUÁRIO</span>
+                                {% endif %}
+                                {% if not user.ativo %}
+                                    <span class="badge bg-danger">Bloqueado</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-muted small">
+                                {% if user.area %}
+                                    <span class="me-3"><i class="fas fa-briefcase"></i> {{ user.area }}</span>
+                                {% endif %}
+                                {% if user.localizacao %}
+                                    <span class="me-3"><i class="fas fa-map-marker-alt"></i> {{ user.localizacao }}</span>
+                                {% endif %}
+                                {% if user.data_criacao %}
+                                    <span><i class="fas fa-calendar"></i> {{ user.data_criacao.strftime('%d/%m/%Y') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Botão Adicionar Documento -->
+                        <div class="flex-shrink-0">
+                            <button type="button" class="btn btn-outline-primary btn-add-documento" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#documentoModal">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <!-- Botão Itens Recebidos -->
+                        <div class="flex-shrink-0">
+                            <button type="button" class="btn btn-outline-info btn-itens-recebidos" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#itensRecebidosModal">
+                                <i class="fas fa-box"></i>
+                            </button>
+                        </div>
+
+                        <!-- Botão Documentos -->
+                        {% if user.documentos|length > 0 %}
+                        <div class="flex-shrink-0">
+                            <button type="button" class="btn btn-outline-success btn-documentos" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#documentosModal">
+                                <i class="fas fa-folder-open"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-users fa-3x mb-3"></i>
+                    <p class="mb-0">Nenhum usuário cadastrado.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        .hover-bg:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            transition: background-color 0.2s ease;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none !important;
+        }
+
+        .btn-add-documento {
+            padding: 0.5rem 0.75rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add-documento:hover {
+            background-color: #0056b3;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        .btn-itens-recebidos {
+            padding: 0.5rem 0.75rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-itens-recebidos:hover {
+            background-color: #0c5460;
+            color: white;
+            border-color: #0c5460;
+        }
+
+        .btn-documentos {
+            padding: 0.5rem 0.75rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-documentos:hover {
+            background-color: #198754;
+            color: white;
+            border-color: #198754;
+        }
+    </style>
+
+    <!-- Modal Adicionar Documento -->
+    <div class="modal fade" id="documentoModal" tabindex="-1" aria-labelledby="documentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentoModalLabel">
+                        <i class="fas fa-file-upload text-primary"></i> Adicionar Documento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formUploadDocumento">
+                        <div class="mb-3">
+                            <label class="form-label">Usuário</label>
+                            <input type="text" class="form-control" id="usuarioDocumento" readonly style="background-color: #f8f9fa;">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="documentoNome" class="form-label">Nome do Documento</label>
+                            <input type="text" class="form-control" id="documentoNome" placeholder="Ex: Documento importante" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="documentoArquivo" class="form-label">Selecionar Arquivo</label>
+                            <input type="file" class="form-control" id="documentoArquivo" required accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif">
+                            <small class="text-muted d-block mt-2">Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, GIF (máx 10MB)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="documentoDescricao" class="form-label">Descrição (opcional)</label>
+                            <textarea class="form-control" id="documentoDescricao" rows="3" placeholder="Descreva o documento..."></textarea>
+                        </div>
+
+                        <div id="progressContainer" style="display: none;">
+                            <div class="progress">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted">Enviando arquivo...</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarDocumento">
+                        <i class="fas fa-save"></i> Salvar Documento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variável para armazenar o ID do usuário selecionado
+        let usuarioAtualSelecionado = null;
+
+        // Abrir modal e preencher informações do usuário
+        document.querySelectorAll('.btn-add-documento').forEach(btn => {
+            btn.addEventListener('click', function() {
+                usuarioAtualSelecionado = this.dataset.userId;
+                const nomeUsuario = this.dataset.userName;
+                
+                document.getElementById('usuarioDocumento').value = nomeUsuario;
+                document.getElementById('documentoNome').value = '';
+                document.getElementById('documentoArquivo').value = '';
+                document.getElementById('documentoDescricao').value = '';
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('progressBar').style.width = '0%';
+            });
+        });
+
+        // Ao selecionar arquivo, mostrar seu nome
+        document.getElementById('documentoArquivo').addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const arquivo = this.files[0];
+                const tamanhoMB = (arquivo.size / (1024 * 1024)).toFixed(2);
+                console.log(`Arquivo selecionado: ${arquivo.name} (${tamanhoMB}MB)`);
+            }
+        });
+
+        // Função para obter CSRF token
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
+        // Botão salvar documento
+        document.getElementById('btnSalvarDocumento').addEventListener('click', async function() {
+            const nome = document.getElementById('documentoNome').value.trim();
+            const descricao = document.getElementById('documentoDescricao').value.trim();
+            const arquivo = document.getElementById('documentoArquivo').files[0];
+
+            // Validações
+            if (!nome) {
+                alert('Por favor, preencha o nome do documento.');
+                return;
+            }
+
+            if (!arquivo) {
+                alert('Por favor, selecione um arquivo.');
+                return;
+            }
+
+            if (!usuarioAtualSelecionado) {
+                alert('Erro: usuário não identificado.');
+                return;
+            }
+
+            // Validar tamanho (10MB)
+            const tamanhoMaxMB = 10;
+            if (arquivo.size > tamanhoMaxMB * 1024 * 1024) {
+                alert(`Arquivo muito grande. Máximo: ${tamanhoMaxMB}MB`);
+                return;
+            }
+
+            // Desabilitar botão e mostrar progresso
+            const btnSalvar = document.getElementById('btnSalvarDocumento');
+            btnSalvar.disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+
+            // Preparar FormData
+            const formData = new FormData();
+            formData.append('arquivo', arquivo);
+            formData.append('nome', nome);
+            formData.append('descricao', descricao);
+
+            try {
+                const response = await fetch(`/admin/usuarios/${usuarioAtualSelecionado}/documentos/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Animar progresso
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 30;
+                        if (progress > 90) progress = 90;
+                        document.getElementById('progressBar').style.width = progress + '%';
+                    }, 200);
+
+                    setTimeout(() => {
+                        clearInterval(interval);
+                        document.getElementById('progressBar').style.width = '100%';
+                        
+                        // Fechar modal após sucesso
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('documentoModal'));
+                            if (modal) modal.hide();
+                            
+                            // Mostrar notificação
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                            alertDiv.setAttribute('role', 'alert');
+                            alertDiv.innerHTML = `
+                                <i class="fas fa-check-circle"></i> <strong>Sucesso!</strong> ${data.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                            `;
+                            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+                            
+                            // Remover alerta após 5 segundos
+                            setTimeout(() => alertDiv.remove(), 5000);
+
+                            // Atualizar a página para mostrar o botão de documentos quando for o primeiro upload
+                            setTimeout(() => window.location.reload(), 1200);
+                        }, 500);
+                    }, 1500);
+                } else {
+                    alert('Erro: ' + data.message);
+                    document.getElementById('progressContainer').style.display = 'none';
+                    document.getElementById('progressBar').style.width = '0%';
+                }
+            } catch (error) {
+                console.error('Erro ao enviar arquivo:', error);
+                alert('Erro ao enviar arquivo: ' + error.message);
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('progressBar').style.width = '0%';
+            } finally {
+                btnSalvar.disabled = false;
+            }
+        });
+    </script>
+
+    <!-- Modal Itens Recebidos -->
+    <div class="modal fade" id="itensRecebidosModal" tabindex="-1" aria-labelledby="itensRecebidosModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itensRecebidosModalLabel">
+                        <i class="fas fa-box text-info"></i> Itens Recebidos
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="modalItensBody">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Documentos -->
+    <div class="modal fade" id="documentosModal" tabindex="-1" aria-labelledby="documentosModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentosModalLabel">
+                        <i class="fas fa-folder-open text-success"></i> Documentos do Usuário
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="modalDocumentosBody">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let usuarioSelecionadoItens = null;
+        let usuarioSelecionadoDocumentos = null;
+
+        // Abrir modal de itens recebidos
+        document.querySelectorAll('.btn-itens-recebidos').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                usuarioSelecionadoItens = this.dataset.userId;
+                const nomeUsuario = this.dataset.userName;
+                
+                document.getElementById('itensRecebidosModalLabel').textContent = `Itens Recebidos - ${nomeUsuario}`;
+                
+                await carregarItensRecebidos(usuarioSelecionadoItens);
+            });
+        });
+
+        document.querySelectorAll('.btn-documentos').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                usuarioSelecionadoDocumentos = this.dataset.userId;
+                const nomeUsuario = this.dataset.userName;
+
+                document.getElementById('documentosModalLabel').innerHTML = `<i class="fas fa-folder-open text-success"></i> Documentos do Usuário - ${nomeUsuario}`;
+
+                await carregarDocumentos(usuarioSelecionadoDocumentos);
+            });
+        });
+
+        async function carregarItensRecebidos(userId) {
+            try {
+                const response = await fetch(`/admin/usuarios/${userId}/itens-recebidos`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    document.getElementById('modalItensBody').innerHTML = `<div class="alert alert-danger">Erro ao carregar itens.</div>`;
+                    return;
+                }
+
+                let html = '';
+
+                // Itens recebidos na entrada
+                html += '<h6 class="mt-4 mb-3"><i class="fas fa-sign-in-alt text-primary"></i> Itens Recebidos na Entrada</h6>';
+                if (data.itens_entrada.length > 0) {
+                    html += '<div class="list-group">';
+                    data.itens_entrada.forEach(item => {
+                        html += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center" data-item-id="${item.id}">
+                                <div class="flex-grow-1">
+                                    <p class="mb-1"><strong>${item.descricao_item}</strong></p>
+                                    <small class="text-muted">${item.data_criacao}</small>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-editar-item" data-item-id="${item.id}" data-tipo="${item.tipo_recebimento}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-item" data-item-id="${item.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="text-muted">Nenhum item nesta categoria.</p>';
+                }
+
+                // Itens recebidos posteriormente
+                html += '<h6 class="mt-4 mb-3"><i class="fas fa-plus-circle text-success"></i> Itens Recebidos Posteriormente</h6>';
+                if (data.itens_posteriormente.length > 0) {
+                    html += '<div class="list-group">';
+                    data.itens_posteriormente.forEach(item => {
+                        html += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center" data-item-id="${item.id}">
+                                <div class="flex-grow-1">
+                                    <p class="mb-1"><strong>${item.descricao_item}</strong></p>
+                                    <small class="text-muted">${item.data_criacao}</small>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-editar-item" data-item-id="${item.id}" data-tipo="${item.tipo_recebimento}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-item" data-item-id="${item.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="text-muted">Nenhum item nesta categoria.</p>';
+                }
+
+                // Seção para adicionar novo item
+                html += `
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="fas fa-plus"></i> Adicionar Novo Item</h6>
+                    <div class="mb-3">
+                        <label for="novoItemDescricao" class="form-label">Descrição do Item</label>
+                        <input type="text" class="form-control" id="novoItemDescricao" placeholder="Ex: Notebook Dell">
+                    </div>
+                    <div class="mb-3">
+                        <label for="novoItemTipo" class="form-label">Tipo de Recebimento</label>
+                        <select class="form-select" id="novoItemTipo">
+                            <option value="entrada">Recebido na Entrada</option>
+                            <option value="posteriormente">Recebido Posteriormente</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" id="btnAdicionarItem">
+                        <i class="fas fa-save"></i> Adicionar Item
+                    </button>
+                `;
+
+                document.getElementById('modalItensBody').innerHTML = html;
+
+                // Attach event listeners
+                document.querySelectorAll('.btn-deletar-item').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const itemId = this.dataset.itemId;
+                        if (confirm('Tem certeza que deseja deletar este item?')) {
+                            deletarItem(itemId);
+                        }
+                    });
+                });
+
+                document.getElementById('btnAdicionarItem').addEventListener('click', adicionarNovoItem);
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('modalItensBody').innerHTML = `<div class="alert alert-danger">Erro ao carregar itens: ${error.message}</div>`;
+            }
+        }
+
+        async function carregarDocumentos(userId) {
+            try {
+                const response = await fetch(`/admin/usuarios/${userId}/documentos`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    document.getElementById('modalDocumentosBody').innerHTML = `<div class="alert alert-danger mb-0">Erro ao carregar documentos.</div>`;
+                    return;
+                }
+
+                let html = '';
+
+                if (data.documentos.length > 0) {
+                    html += '<div class="list-group">';
+                    data.documentos.forEach(documento => {
+                        html += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                <div class="flex-grow-1">
+                                    <p class="mb-1 fw-semibold">${documento.nome_documento}</p>
+                                    <small class="text-muted d-block">${documento.data_criacao || ''}</small>
+                                    ${documento.descricao ? `<small class="text-muted d-block">${documento.descricao}</small>` : ''}
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <span class="badge bg-secondary text-uppercase">${documento.tipo_arquivo}</span>
+                                    <a class="btn btn-sm btn-outline-success" href="/admin/usuarios/documentos/${documento.id}/download">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                } else {
+                    html = '<div class="alert alert-info mb-0">Nenhum documento salvo para este usuário.</div>';
+                }
+
+                document.getElementById('modalDocumentosBody').innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar documentos:', error);
+                document.getElementById('modalDocumentosBody').innerHTML = `<div class="alert alert-danger mb-0">Erro ao carregar documentos: ${error.message}</div>`;
+            }
+        }
+
+        async function adicionarNovoItem() {
+            const descricao = document.getElementById('novoItemDescricao').value.trim();
+            const tipo = document.getElementById('novoItemTipo').value;
+
+            if (!descricao) {
+                alert('Por favor, preencha a descrição do item.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('descricao', descricao);
+            formData.append('tipo', tipo);
+
+            try {
+                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoItens}/itens-recebidos/adicionar`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Limpar campos
+                    document.getElementById('novoItemDescricao').value = '';
+                    // Recarregar lista
+                    await carregarItensRecebidos(usuarioSelecionadoItens);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao adicionar item: ' + error.message);
+            }
+        }
+
+        async function deletarItem(itemId) {
+            try {
+                const response = await fetch(`/admin/usuarios/itens-recebidos/${itemId}/deletar`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Recarregar lista
+                    await carregarItensRecebidos(usuarioSelecionadoItens);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao deletar item: ' + error.message);
+            }
+        }
+    </script>
+
+</div>
+{% endblock %}

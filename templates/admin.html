@@ -43,9 +43,8 @@
                 <div class="tab-content" id="adminTabsContent">
                     <div class="tab-pane fade show active" id="tab-usuarios" role="tabpanel" aria-labelledby="tab-usuarios-tab">
                         <div class="row">
-                            <!-- Formulário para adicionar usuário -->
                             <div class="col-md-6 mb-4">
-                                <div class="card">
+                                <div class="card h-100">
                                     <div class="card-header bg-primary text-white">
                                         <h5 class="card-title mb-0">
                                             <i class="fas fa-user-plus"></i> Adicionar Novo Usuário
@@ -87,13 +86,13 @@
                                 </div>
                             </div>
 
-                            <!-- Lista de usuários -->
                             <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header bg-secondary text-white">
+                                <div class="card h-100">
+                                    <div class="card-header bg-scheme-dark d-flex justify-content-between align-items-center">
                                         <h5 class="card-title mb-0">
                                             <i class="fas fa-users"></i> Usuários Cadastrados
                                         </h5>
+                                        <small class="text-muted">Foto e nome</small>
                                     </div>
                                     <div class="card-body">
                                         <div class="row mb-3">
@@ -103,7 +102,7 @@
                                                 </select>
                                             </div>
                                         </div>
-                                        <div id="lista-usuarios">
+                                        <div id="lista-usuarios" class="d-grid gap-2">
                                             <!-- Usuários serão carregados aqui -->
                                         </div>
                                     </div>
@@ -148,7 +147,7 @@
                             </div>
                             <div class="col-lg-6 mb-4">
                                 <div class="card mb-4">
-                                    <div class="card-header bg-secondary text-white">
+                                    <div class="card-header bg-scheme-dark">
                                         <h5 class="card-title mb-0">
                                             <i class="fas fa-user-lock"></i> Redefinir senha de usuário
                                         </h5>
@@ -359,18 +358,26 @@
 
         function renderUsuarioItem(user) {
             const userDiv = document.createElement('div');
-            userDiv.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+            userDiv.className = 'd-flex justify-content-between align-items-center border rounded-3 p-3 bg-light shadow-sm';
 
             const infoDiv = document.createElement('div');
             infoDiv.innerHTML = `
-                <strong>${escapeHtml(user.username)}</strong>
-                <br>
-                <small class="text-muted">
-                    ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
-                    ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.area || 'Sem área') : ''}
-                    ${user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : ''}
-                    | Criado em: ${escapeHtml(user.data_criacao)}
-                </small>`;
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle overflow-hidden bg-white border" style="width: 52px; height: 52px; flex: 0 0 52px;">
+                        ${user.foto_perfil
+                            ? `<img src="/static/uploads/avatars/${escapeHtml(user.foto_perfil)}" alt="Foto de ${escapeHtml(user.username)}" style="width: 100%; height: 100%; object-fit: cover;">`
+                            : `<div class="d-flex align-items-center justify-content-center h-100 text-secondary"><i class="fas fa-user"></i></div>`
+                        }
+                    </div>
+                    <div>
+                        <strong class="d-block">${escapeHtml(user.username)}</strong>
+                        <small class="text-muted">
+                            ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
+                            ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.area || 'Sem área') : ''}
+                            ${user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : ''}
+                        </small>
+                    </div>
+                </div>`;
 
             const btnDiv = document.createElement('div');
             if (user.username !== 'admin') {
@@ -442,7 +449,8 @@
                 const response = await fetch('/api/users', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
                     body: JSON.stringify(dados)
                 });
