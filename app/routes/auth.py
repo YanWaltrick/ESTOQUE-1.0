@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, current_app, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime, timezone, timedelta
 from flask_mail import Message
@@ -7,6 +7,7 @@ from app.database import db, mail
 from app.models import User, Chamada
 from app.utils import registrar_evento
 from app.auth.security import PasswordValidator, validate_username, validate_email
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -417,3 +418,80 @@ def forgot_password():
         return redirect(url_for('auth.forgot_password'))
 
     return render_template('forgot_password.html')
+
+@auth_bp.route('/user-files')
+@login_required
+def user_files():
+    """Página para listar arquivos salvos do usuário"""
+    # Diretórios onde arquivos podem estar salvos
+    upload_folders = [
+        os.path.join('static', 'uploads', 'documentos'),
+        os.path.join('static', 'uploads', 'chamadas')
+    ]
+    
+    files = []
+    
+    # Usar o diretório raiz da aplicação (onde app.py está)
+    if current_app.root_path:
+        app_root = current_app.root_path
+    else:
+        app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    for folder in upload_folders:
+        folder_path = os.path.join(app_root, folder)
+        # Criar diretório se não existir
+        os.makedirs(folder_path, exist_ok=True)
+        
+        try:
+            for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                if os.path.isfile(file_path):
+                    files.append({
+                        'name': filename,
+                        'path': folder,
+                        'size': os.path.getsize(file_path),
+                        'modified': datetime.fromtimestamp(os.path.getmtime(file_path))
+                    })
+        except Exception as e:
+            current_app.logger.error(f'Erro ao ler pasta {folder}: {str(e)}')
+    
+    # Ordenar por data modificada (mais recente primeiro)
+    files.sort(key=lambda x: x['modified'], reverse=True)
+    
+    return render_template('user_files.html', usuario=current_user.username, files=files)
+
+@auth_bp.route('/download/<path:filename>')
+@login_required
+def download_file(filename):
+    # Usar o diretório raiz da aplicação (onde app.py está)
+    if current_app.root_path:
+        app_root = current_app.root_path
+    else:
+        app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    # Verificar se o arquivo está em um dos diretórios permitidos
+    for folder in allowed_folders:
+        folder_path = os.path.join(app_root, folder)
+        file_path = os.path.join(folder_path, filename)
+        
+        # Normalizar caminhos para comparação segura
+        abs_file_path = os.path.abspath(file_path)
+        abs_folder_path = os.path.abspath(folder_path)
+        
+        # Verificar se o caminho é válido e seguro (dentro da pasta permitida)
+        if abs_file_path.startswith(abs_folder_path) and os.path.isfile(abs_file_path):
+            try:
+                registrar_evento(
+                    tipo_evento='arquivo_baixado',
+                    descricao=f'Arquivo baixado: {filename}',
+                    usuario_responsavel=current_user.username
+                )
+                return send_file(abs_file_path, as_attachment=True)
+            except Exception as e:
+                current_app.logger.error(f'Erro ao fazer download de {abs_file_path}: {str(e)}')
+                flash(f'Erro ao baixar arquivo: {str(e)}', 'error')
+                return redirect(url_for('auth.user_files'))
+    
+    current_app.logger.warning(f'Tentativa de download de arquivo não encontrado: {filename}')
+    flash('Arquivo não encontrado.', 'error')
+    return redirect(url_for('auth.user_files'))

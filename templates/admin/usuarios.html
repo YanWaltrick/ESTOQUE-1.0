@@ -388,9 +388,31 @@
         </div>
     </div>
 
+    <!-- Modal de pré-visualização -->
+    <div class="modal fade" id="previewDocumentoModal" tabindex="-1" aria-labelledby="previewDocumentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewDocumentoModalLabel">
+                        <i class="fas fa-eye text-primary"></i> Visualizar Documento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body p-0 bg-light" id="previewDocumentoBody" style="min-height: 70vh;"></div>
+                <div class="modal-footer">
+                    <a id="previewDocumentoDownload" class="btn btn-success" href="#" target="_blank" rel="noopener">
+                        <i class="fas fa-download"></i> Baixar
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let usuarioSelecionadoItens = null;
         let usuarioSelecionadoDocumentos = null;
+        let previewDocumentoObjectUrl = null;
 
         // Abrir modal de itens recebidos
         document.querySelectorAll('.btn-itens-recebidos').forEach(btn => {
@@ -544,9 +566,12 @@
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-2">
                                     <span class="badge bg-secondary text-uppercase">${documento.tipo_arquivo}</span>
-                                    <a class="btn btn-sm btn-outline-success" href="/admin/usuarios/documentos/${documento.id}/download">
-                                        <i class="fas fa-download"></i>
-                                    </a>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        ${documento.pode_visualizar ? `<button type="button" class="btn btn-outline-primary btn-visualizar-documento" data-preview-url="${documento.preview_url}" data-download-url="${documento.download_url}" data-documento-nome="${documento.nome_documento}" data-documento-tipo="${documento.tipo_arquivo}"><i class="fas fa-eye"></i></button>` : ''}
+                                        <a class="btn btn-outline-success" href="${documento.download_url}">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -557,11 +582,69 @@
                 }
 
                 document.getElementById('modalDocumentosBody').innerHTML = html;
+
+                document.querySelectorAll('.btn-visualizar-documento').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        abrirPreviewDocumento(
+                            this.dataset.previewUrl,
+                            this.dataset.downloadUrl,
+                            this.dataset.documentoNome,
+                            this.dataset.documentoTipo
+                        );
+                    });
+                });
             } catch (error) {
                 console.error('Erro ao carregar documentos:', error);
                 document.getElementById('modalDocumentosBody').innerHTML = `<div class="alert alert-danger mb-0">Erro ao carregar documentos: ${error.message}</div>`;
             }
         }
+
+        async function abrirPreviewDocumento(previewUrl, downloadUrl, nomeDocumento, tipoArquivo) {
+            const corpo = document.getElementById('previewDocumentoBody');
+            const titulo = document.getElementById('previewDocumentoModalLabel');
+            const download = document.getElementById('previewDocumentoDownload');
+
+            titulo.innerHTML = `<i class="fas fa-eye text-primary"></i> ${nomeDocumento} <small class="text-muted">(${tipoArquivo})</small>`;
+            download.href = downloadUrl || previewUrl;
+            corpo.innerHTML = `<div class="d-flex justify-content-center align-items-center p-5" style="min-height: 70vh;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div>`;
+
+            if (previewDocumentoObjectUrl) {
+                URL.revokeObjectURL(previewDocumentoObjectUrl);
+                previewDocumentoObjectUrl = null;
+            }
+
+            try {
+                const response = await fetch(previewUrl, { credentials: 'same-origin' });
+                if (!response.ok) {
+                    throw new Error(`Falha ao carregar arquivo (${response.status})`);
+                }
+
+                const blob = await response.blob();
+                previewDocumentoObjectUrl = URL.createObjectURL(blob);
+
+                const tipo = (tipoArquivo || '').toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(tipo)) {
+                    corpo.innerHTML = `<div class="d-flex justify-content-center align-items-center p-3" style="min-height: 70vh;"><img src="${previewDocumentoObjectUrl}" alt="${nomeDocumento}" class="img-fluid" style="max-height: 70vh; object-fit: contain;"></div>`;
+                } else if (tipo === 'pdf') {
+                    corpo.innerHTML = `<iframe src="${previewDocumentoObjectUrl}" title="${nomeDocumento}" style="width: 100%; height: 70vh; border: 0;"></iframe>`;
+                } else {
+                    corpo.innerHTML = `<div class="p-4"><div class="alert alert-warning mb-0">Esse tipo de arquivo não tem visualização embutida. Use o botão de download.</div></div>`;
+                }
+            } catch (error) {
+                corpo.innerHTML = `<div class="p-4"><div class="alert alert-danger mb-0">Não foi possível carregar o documento para visualização: ${error.message}</div></div>`;
+            }
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('previewDocumentoModal'));
+            modal.show();
+        }
+
+        document.getElementById('previewDocumentoModal').addEventListener('hidden.bs.modal', function() {
+            if (previewDocumentoObjectUrl) {
+                URL.revokeObjectURL(previewDocumentoObjectUrl);
+                previewDocumentoObjectUrl = null;
+            }
+            document.getElementById('previewDocumentoBody').innerHTML = '';
+        });
 
         async function adicionarNovoItem() {
             const descricao = document.getElementById('novoItemDescricao').value.trim();

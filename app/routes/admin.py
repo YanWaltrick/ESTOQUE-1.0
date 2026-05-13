@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import os
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 from app.database import db
 from app.models import User, Historico, DocumentoUsuario, ItemRecebido
@@ -309,7 +311,8 @@ def upload_documento_usuario(user_id):
         return jsonify({'success': False, 'message': 'Arquivo vazio.'}), 400
     
     # Criar pasta se não existir
-    pasta_documentos = os.path.join('static', 'uploads', 'documentos')
+    pasta_documentos = os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos')
+    pasta_documentos = os.path.abspath(pasta_documentos)
     if not os.path.exists(pasta_documentos):
         os.makedirs(pasta_documentos, exist_ok=True)
     
@@ -358,19 +361,40 @@ def upload_documento_usuario(user_id):
         return jsonify({'success': False, 'message': f'Erro ao salvar documento: {str(e)}'}), 500
 
 
+def _caminho_documentos():
+    return os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos'))
+
+
+def _caminho_documento(documento):
+    return os.path.join(_caminho_documentos(), documento.arquivo)
+
+
+@admin_bp.route('/usuarios/documentos/<int:documento_id>/visualizar', methods=['GET'])
+def visualizar_documento(documento_id):
+    """Abrir documento para pré-visualização."""
+    documento = DocumentoUsuario.query.get_or_404(documento_id)
+
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Permissão negada.'}), 403
+
+    caminho_arquivo = _caminho_documento(documento)
+
+    if not os.path.exists(caminho_arquivo):
+        return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
+
+    return send_file(caminho_arquivo, as_attachment=False)
+
+
 @admin_bp.route('/usuarios/documentos/<int:documento_id>/download', methods=['GET'])
 def download_documento(documento_id):
     """Download de documento do usuário"""
-    from flask import send_file
-    import os
-    
     documento = DocumentoUsuario.query.get_or_404(documento_id)
     
     # Verificar permissões: apenas admin pode fazer download
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Permissão negada.'}), 403
     
-    caminho_arquivo = os.path.join('static', 'uploads', 'documentos', documento.arquivo)
+    caminho_arquivo = _caminho_documento(documento)
     
     if not os.path.exists(caminho_arquivo):
         return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
@@ -379,7 +403,7 @@ def download_documento(documento_id):
         return send_file(
             caminho_arquivo,
             as_attachment=True,
-            download_name=documento.arquivo,
+            download_name=f'{documento.nome_documento}.{documento.tipo_arquivo}',
             mimetype='application/octet-stream'
         )
     except Exception as e:
@@ -391,11 +415,19 @@ def listar_documentos_usuario(user_id):
     """Listar documentos de um usuário"""
     usuario = User.query.get_or_404(user_id)
     documentos = DocumentoUsuario.query.filter_by(id_usuario=user_id).order_by(DocumentoUsuario.data_criacao.desc()).all()
+
+    documentos_json = []
+    for doc in documentos:
+        documento = doc.to_dict()
+        documento['download_url'] = url_for('admin.download_documento', documento_id=doc.id_documento)
+        documento['preview_url'] = url_for('admin.visualizar_documento', documento_id=doc.id_documento)
+        documento['pode_visualizar'] = doc.tipo_arquivo.lower() in {'pdf', 'jpg', 'jpeg', 'png', 'gif'}
+        documentos_json.append(documento)
     
     return jsonify({
         'success': True,
         'usuario': usuario.username,
-        'documentos': [doc.to_dict() for doc in documentos]
+        'documentos': documentos_json
     })
 
 
