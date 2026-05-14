@@ -78,6 +78,46 @@
                                                 <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Ex.: São Paulo">
                                                 <div class="form-text">Informe a cidade do usuário.</div>
                                             </div>
+                                            <div class="mb-3">
+                                                <label for="empresa" class="form-label">Empresa</label>
+                                                <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ex.: Empresa XYZ">
+                                                <div class="form-text">Nome da empresa.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="cnpj" class="form-label">CNPJ</label>
+                                                <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="Ex.: 12.345.678/0001-90">
+                                                <div class="form-text">CNPJ da empresa.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="endereco" class="form-label">Endereço</label>
+                                                <input type="text" class="form-control" id="endereco" name="endereco" placeholder="Ex.: Rua Principal, 123">
+                                                <div class="form-text">Endereço completo.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="cargo" class="form-label">Cargo/Função</label>
+                                                <input type="text" class="form-control" id="cargo" name="cargo" placeholder="Ex.: Gerente de Projetos">
+                                                <div class="form-text">Cargo ou função do usuário.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="cpf" class="form-label">CPF</label>
+                                                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="Ex.: 123.456.789-00">
+                                                <div class="form-text">CPF do usuário.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="data_admissao" class="form-label">Data de Admissão</label>
+                                                <input type="date" class="form-control" id="data_admissao" name="data_admissao">
+                                                <div class="form-text">Data de admissão do usuário.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="departamento" class="form-label">Departamento</label>
+                                                <input type="text" class="form-control" id="departamento" name="departamento" placeholder="Ex.: Financeiro, TI, Operações">
+                                                <div class="form-text">Departamento do usuário.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="local_trabalho" class="form-label">Local de Trabalho</label>
+                                                <input type="text" class="form-control" id="local_trabalho" name="local_trabalho" placeholder="Ex.: Matriz, Filial - São Paulo">
+                                                <div class="form-text">Local de trabalho do usuário.</div>
+                                            </div>
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="fas fa-plus"></i> Adicionar Usuário
                                             </button>
@@ -442,7 +482,15 @@
                 password: formData.get('password'),
                 role: formData.get('role'),
                 area: formData.get('area') || '',
-                localizacao: formData.get('localizacao') || ''
+                localizacao: formData.get('localizacao') || '',
+                empresa: formData.get('empresa') || '',
+                cnpj: formData.get('cnpj') || '',
+                endereco: formData.get('endereco') || '',
+                cargo: formData.get('cargo') || '',
+                cpf: formData.get('cpf') || '',
+                data_admissao: formData.get('data_admissao') || '',
+                departamento: formData.get('departamento') || '',
+                local_trabalho: formData.get('local_trabalho') || ''
             };
 
             try {
@@ -470,6 +518,11 @@
             }
         });
 
+        // Helper CSRF
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
         // Confirmar delete
         function confirmarDelete(user) {
             usuarioParaDeletar = user;
@@ -486,7 +539,10 @@
 
             try {
                 const response = await fetch(`/api/users/${usuarioParaDeletar.id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
                 });
 
                 let result = {};

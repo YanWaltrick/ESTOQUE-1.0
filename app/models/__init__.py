@@ -23,6 +23,16 @@ class User(db.Model, UserMixin):
     area = db.Column(db.String(255), nullable=False, default='')
     localizacao = db.Column(db.String(255), nullable=False, default='')
     
+    # Informações da empresa
+    empresa = db.Column(db.String(255), nullable=False, default='')
+    cnpj = db.Column(db.String(18), nullable=False, default='')
+    endereco = db.Column(db.String(500), nullable=False, default='')
+    cargo = db.Column(db.String(255), nullable=False, default='')
+    cpf = db.Column(db.String(14), nullable=False, default='')
+    data_admissao = db.Column(db.Date, nullable=True)
+    departamento = db.Column(db.String(255), nullable=False, default='')
+    local_trabalho = db.Column(db.String(255), nullable=False, default='')
+    
     # Status e auditoria
     ativo = db.Column(db.Boolean, default=True, nullable=False)  # Se usuário está ativo/bloqueado
     data_criacao = db.Column(db.DateTime, default=now_gmt3, nullable=False)
@@ -39,12 +49,21 @@ class User(db.Model, UserMixin):
     # Relacionamentos
     chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
-    def __init__(self, username, password, role='usuario', area='', localizacao=''):
+    def __init__(self, username, password, role='usuario', area='', localizacao='', empresa='', cnpj='', 
+                 endereco='', cargo='', cpf='', data_admissao=None, departamento='', local_trabalho=''):
         self.username = username
         self.password = password  # Já deve vir em hash
         self.role = role
         self.area = area.strip() if area else ''
         self.localizacao = localizacao.strip() if localizacao else ''
+        self.empresa = empresa.strip() if empresa else ''
+        self.cnpj = cnpj.strip() if cnpj else ''
+        self.endereco = endereco.strip() if endereco else ''
+        self.cargo = cargo.strip() if cargo else ''
+        self.cpf = cpf.strip() if cpf else ''
+        self.data_admissao = data_admissao
+        self.departamento = departamento.strip() if departamento else ''
+        self.local_trabalho = local_trabalho.strip() if local_trabalho else ''
         self.ativo = True
         self.tentativas_login_falhas = 0
 
@@ -122,6 +141,14 @@ class User(db.Model, UserMixin):
             'role': self.role,
             'area': self.area,
             'localizacao': self.localizacao,
+            'empresa': self.empresa,
+            'cnpj': self.cnpj,
+            'endereco': self.endereco,
+            'cargo': self.cargo,
+            'cpf': self.cpf,
+            'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
+            'departamento': self.departamento,
+            'local_trabalho': self.local_trabalho,
             'ativo': self.ativo,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'ultimo_login': self.ultimo_login.strftime("%d/%m/%Y %H:%M:%S") if self.ultimo_login else "Nunca",
@@ -353,4 +380,76 @@ class ItemRecebido(db.Model):
             'tipo_recebimento': self.tipo_recebimento,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'usuario_responsavel': self.usuario_responsavel
+        }
+
+
+class TermoEntrega(db.Model):
+    """Modelo para Termo de Entrega e Responsabilidade de Equipamentos"""
+    __tablename__ = 'termos_entrega'
+
+    id_termo = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Informações da empresa
+    empresa = db.Column(db.String(255), nullable=False, default='')
+    cnpj = db.Column(db.String(18), nullable=False, default='')
+    endereco = db.Column(db.String(500), nullable=False, default='')
+    
+    # Informações do colaborador
+    nome_colaborador = db.Column(db.String(255), nullable=False, default='')
+    cargo_funcao = db.Column(db.String(255), nullable=False, default='')
+    cpf_cnpj = db.Column(db.String(18), nullable=False, default='')
+    departamento = db.Column(db.String(255), nullable=False, default='')
+    local_trabalho = db.Column(db.String(255), nullable=False, default='')
+    data_admissao = db.Column(db.Date, nullable=True)
+    
+    # Equipamentos entregues (JSON para flexibilidade)
+    equipamentos = db.Column(db.Text, nullable=True, default='[]')  # JSON string
+    
+    # Status e auditoria
+    data_criacao = db.Column(db.DateTime, default=now_gmt3, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
+    assinado = db.Column(db.Boolean, default=False)
+    data_assinatura = db.Column(db.DateTime, nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    
+    # Relacionamento com usuário
+    usuario = db.relationship('User', backref=db.backref('termos_entrega', lazy=True, cascade='all, delete-orphan'))
+
+    def __init__(self, id_usuario, empresa='', cnpj='', endereco='', nome_colaborador='', 
+                 cargo_funcao='', cpf_cnpj='', departamento='', local_trabalho='', data_admissao=None):
+        self.id_usuario = id_usuario
+        self.empresa = empresa
+        self.cnpj = cnpj
+        self.endereco = endereco
+        self.nome_colaborador = nome_colaborador
+        self.cargo_funcao = cargo_funcao
+        self.cpf_cnpj = cpf_cnpj
+        self.departamento = departamento
+        self.local_trabalho = local_trabalho
+        self.data_admissao = data_admissao
+        self.equipamentos = '[]'
+        self.assinado = False
+
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id_termo,
+            'id_usuario': self.id_usuario,
+            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
+            'empresa': self.empresa,
+            'cnpj': self.cnpj,
+            'endereco': self.endereco,
+            'nome_colaborador': self.nome_colaborador,
+            'cargo_funcao': self.cargo_funcao,
+            'cpf_cnpj': self.cpf_cnpj,
+            'departamento': self.departamento,
+            'local_trabalho': self.local_trabalho,
+            'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
+            'equipamentos': json.loads(self.equipamentos) if self.equipamentos else [],
+            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
+            'data_atualizacao': self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_atualizacao else None,
+            'assinado': self.assinado,
+            'data_assinatura': self.data_assinatura.strftime("%d/%m/%Y %H:%M:%S") if self.data_assinatura else None,
+            'observacoes': self.observacoes
         }

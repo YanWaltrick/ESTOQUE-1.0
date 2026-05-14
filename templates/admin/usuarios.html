@@ -29,7 +29,7 @@
             {% if usuarios %}
                 <ul class="list-group list-group-flush">
                     {% for user in usuarios %}
-                    <li class="list-group-item px-3 px-md-4 py-3 py-md-4 border-0 border-bottom d-flex align-items-center gap-3 hover-bg">
+                    <li class="list-group-item px-3 px-md-4 py-3 py-md-4 border-0 border-bottom d-flex align-items-center gap-3 hover-bg user-list-item" data-user-id="{{ user.id }}" style="cursor: pointer;">
                         <!-- Foto de Perfil -->
                         <div class="user-photo rounded-circle overflow-hidden border bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;">
                             {% if user.foto_perfil %}
@@ -66,14 +66,14 @@
                         </div>
 
                         <!-- Botão Adicionar Documento -->
-                        <div class="flex-shrink-0">
+                        <div class="flex-shrink-0" onclick="event.stopPropagation();">
                             <button type="button" class="btn btn-outline-primary btn-add-documento" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#documentoModal">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
 
                         <!-- Botão Itens Recebidos -->
-                        <div class="flex-shrink-0">
+                        <div class="flex-shrink-0" onclick="event.stopPropagation();">
                             <button type="button" class="btn btn-outline-info btn-itens-recebidos" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#itensRecebidosModal">
                                 <i class="fas fa-box"></i>
                             </button>
@@ -81,12 +81,19 @@
 
                         <!-- Botão Documentos -->
                         {% if user.documentos|length > 0 %}
-                        <div class="flex-shrink-0">
+                        <div class="flex-shrink-0" onclick="event.stopPropagation();">
                             <button type="button" class="btn btn-outline-success btn-documentos" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#documentosModal">
                                 <i class="fas fa-folder-open"></i>
                             </button>
                         </div>
                         {% endif %}
+
+                        <!-- Botão Termo de Entrega -->
+                        <div class="flex-shrink-0" onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-outline-warning btn-termo-entrega" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}" data-bs-toggle="modal" data-bs-target="#termoEntregaModal">
+                                <i class="fas fa-file-contract"></i>
+                            </button>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -103,6 +110,10 @@
         .hover-bg:hover {
             background-color: rgba(0, 123, 255, 0.05);
             transition: background-color 0.2s ease;
+        }
+        
+        .hover-bg {
+            cursor: pointer;
         }
         
         .list-group-item:last-child {
@@ -155,6 +166,70 @@
             background-color: #198754;
             color: white;
             border-color: #198754;
+        }
+
+        .btn-termo-entrega {
+            padding: 0.5rem 0.75rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-termo-entrega:hover {
+            background-color: #ffc107;
+            color: #000;
+            border-color: #ffc107;
+        }
+
+        /* Estilos para o modal de detalhes */
+        .card {
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-bottom: 1px solid #e3e6f0;
+            padding: 0.75rem 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .card-body label {
+            margin-bottom: 0.25rem;
+        }
+
+        .card-body p {
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .border-start {
+            border-left: 0.25rem solid !important;
+        }
+
+        .border-primary {
+            border-color: #0d6efd !important;
+        }
+
+        .border-success {
+            border-color: #198754 !important;
+        }
+
+        .border-info {
+            border-color: #0dcaf0 !important;
+        }
+
+        .border-secondary {
+            border-color: #6c757d !important;
+        }
+
+        .modal-lg {
+            max-width: 800px;
         }
     </style>
 
@@ -706,7 +781,529 @@
                 alert('Erro ao deletar item: ' + error.message);
             }
         }
+
+        // ==================== Modal de Detalhes do Usuário ====================
+        document.querySelectorAll('.user-list-item').forEach(item => {
+            item.addEventListener('click', async function(e) {
+                const userId = this.dataset.userId;
+                await abrirDetalhesUsuario(userId);
+            });
+        });
+
+        async function abrirDetalhesUsuario(userId) {
+            try {
+                const response = await fetch(`/api/users/${userId}`);
+                const usuario = await response.json();
+
+                // Preencher modal com dados do usuário
+                document.getElementById('detalheUsername').textContent = usuario.username;
+                document.getElementById('detalheRole').innerHTML = usuario.role === 'admin' 
+                    ? '<span class="badge bg-primary">ADMIN</span>' 
+                    : '<span class="badge bg-secondary">USUÁRIO</span>';
+                document.getElementById('detalheAtivo').innerHTML = usuario.ativo 
+                    ? '<span class="badge bg-success">Ativo</span>' 
+                    : '<span class="badge bg-danger">Bloqueado</span>';
+                
+                // Dados gerais
+                document.getElementById('detalheArea').textContent = usuario.area || '—';
+                document.getElementById('detalheLocalizacao').textContent = usuario.localizacao || '—';
+                document.getElementById('detalheDataCriacao').textContent = usuario.data_criacao || '—';
+                
+                // Dados da empresa
+                document.getElementById('detalheEmpresa').textContent = usuario.empresa || '—';
+                document.getElementById('detalheCNPJ').textContent = usuario.cnpj || '—';
+                document.getElementById('detalheEndereco').textContent = usuario.endereco || '—';
+                document.getElementById('detalheCargo').textContent = usuario.cargo || '—';
+                document.getElementById('detalheCPF').textContent = usuario.cpf || '—';
+                document.getElementById('detalheDataAdmissao').textContent = usuario.data_admissao || '—';
+                document.getElementById('detalheDepartamento').textContent = usuario.departamento || '—';
+                document.getElementById('detalheLocalTrabalho').textContent = usuario.local_trabalho || '—';
+                
+                // Abrir modal
+                const modal = new bootstrap.Modal(document.getElementById('detalheUsuarioModal'));
+                modal.show();
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+                alert('Erro ao carregar detalhes do usuário');
+            }
+        }
     </script>
 
-</div>
+    <!-- Modal de Detalhes do Usuário -->
+    <div class="modal fade" id="detalheUsuarioModal" tabindex="-1" aria-labelledby="detalheUsuarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="detalheUsuarioModalLabel">
+                        <i class="fas fa-user-circle"></i> Detalhes do Usuário
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Seção 1: Informações Básicas -->
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user text-primary"></i> Informações Básicas</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Nome de Usuário</label>
+                                    <p class="mb-0" id="detalheUsername">—</p>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="fw-bold text-muted small">Tipo</label>
+                                    <p class="mb-0" id="detalheRole">—</p>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="fw-bold text-muted small">Status</label>
+                                    <p class="mb-0" id="detalheAtivo">—</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Área da Empresa</label>
+                                    <p class="mb-0" id="detalheArea">—</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Localização/Cidade</label>
+                                    <p class="mb-0" id="detalheLocalizacao">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 2: Dados da Empresa -->
+                    <div class="card mb-3 border-start border-success border-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-building text-success"></i> Dados da Empresa</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Empresa</label>
+                                    <p class="mb-0" id="detalheEmpresa">—</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">CNPJ</label>
+                                    <p class="mb-0" id="detalheCNPJ">—</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="fw-bold text-muted small">Endereço</label>
+                                    <p class="mb-0" id="detalheEndereco">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 3: Dados do Colaborador -->
+                    <div class="card mb-3 border-start border-info border-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-id-card text-info"></i> Dados do Colaborador</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Cargo/Função</label>
+                                    <p class="mb-0" id="detalheCargo">—</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">CPF</label>
+                                    <p class="mb-0" id="detalheCPF">—</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Data de Admissão</label>
+                                    <p class="mb-0" id="detalheDataAdmissao">—</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold text-muted small">Departamento</label>
+                                    <p class="mb-0" id="detalheDepartamento">—</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="fw-bold text-muted small">Local de Trabalho</label>
+                                    <p class="mb-0" id="detalheLocalTrabalho">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 4: Datas do Sistema -->
+                    <div class="card border-start border-secondary border-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-calendar text-secondary"></i> Datas do Sistema</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="fw-bold text-muted small">Data de Criação</label>
+                                    <p class="mb-0" id="detalheDataCriacao">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Termo de Entrega e Responsabilidade -->
+    <div class="modal fade" id="termoEntregaModal" tabindex="-1" aria-labelledby="termoEntregaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="termoEntregaModalLabel">
+                        <i class="fas fa-file-contract"></i> Termo de Entrega e Responsabilidade
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="modalTermoBody">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-outline-success" id="btnExportarTermo" style="display: none; margin-right: .5rem;">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button type="button" class="btn btn-warning" id="btnSalvarTermo" style="display: none;">
+                        <i class="fas fa-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Modal Termo de Entrega ====================
+        let usuarioSelecionadoTermo = null;
+
+        document.querySelectorAll('.btn-termo-entrega').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                usuarioSelecionadoTermo = this.dataset.userId;
+                const nomeUsuario = this.dataset.userName;
+                
+                document.getElementById('termoEntregaModalLabel').innerHTML = `<i class="fas fa-file-contract"></i> Termo de Entrega - ${nomeUsuario}`;
+                
+                await carregarTermo(usuarioSelecionadoTermo);
+            });
+        });
+
+        async function carregarTermo(userId) {
+            try {
+                const response = await fetch(`/admin/usuarios/${userId}/termo-entrega`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-warning">Nenhum termo encontrado. Será criado ao atualizar.</div>`;
+                    return;
+                }
+
+                const termo = data.termo;
+                let html = `
+                    <div class="card border-start border-warning border-4 mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-building text-warning"></i> Informações da Empresa</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="termoEmpresa" class="form-label"><strong>Empresa</strong></label>
+                                    <input type="text" class="form-control" id="termoEmpresa" value="${termo.empresa || ''}" placeholder="Nome da Empresa">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="termoCNPJ" class="form-label"><strong>CNPJ</strong></label>
+                                    <input type="text" class="form-control" id="termoCNPJ" value="${termo.cnpj || ''}" placeholder="00.000.000/0000-00">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label for="termoEndereco" class="form-label"><strong>Endereço</strong></label>
+                                    <input type="text" class="form-control" id="termoEndereco" value="${termo.endereco || ''}" placeholder="Rua, número, complemento...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-start border-info border-4 mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user text-info"></i> Informações do Colaborador</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="termoNome" class="form-label"><strong>Nome</strong></label>
+                                    <input type="text" class="form-control" id="termoNome" value="${termo.nome_colaborador || ''}" placeholder="Nome do Colaborador" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="termoCPF" class="form-label"><strong>CPF</strong></label>
+                                    <input type="text" class="form-control" id="termoCPF" value="${termo.cpf_cnpj || ''}" placeholder="000.000.000-00">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="termoCargo" class="form-label"><strong>Cargo/Função</strong></label>
+                                    <input type="text" class="form-control" id="termoCargo" value="${termo.cargo_funcao || ''}" placeholder="Ex: Analista de TI">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="termoDepartamento" class="form-label"><strong>Departamento</strong></label>
+                                    <input type="text" class="form-control" id="termoDepartamento" value="${termo.departamento || ''}" placeholder="Ex: Tecnologia da Informação">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="termoLocal" class="form-label"><strong>Local de Trabalho</strong></label>
+                                    <input type="text" class="form-control" id="termoLocal" value="${termo.local_trabalho || ''}" placeholder="Local">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="termoDataAdmissao" class="form-label"><strong>Data de Admissão</strong></label>
+                                    <input type="date" class="form-control" id="termoDataAdmissao" value="${termo.data_admissao || ''}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-start border-success border-4 mb-3">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-laptop text-success"></i> Equipamentos Entregues</h6>
+                            <button type="button" class="btn btn-sm btn-success" id="btnAdicionarEquipamento">
+                                <i class="fas fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+                        <div class="card-body" id="equipamentosContainer">
+                            ${termo.equipamentos && termo.equipamentos.length > 0 ? `
+                                <div class="list-group">
+                                    ${termo.equipamentos.map(eq => `
+                                        <div class="list-group-item d-flex justify-content-between align-items-center" data-eq-id="${eq.id}">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1"><strong>${eq.descricao}</strong></p>
+                                                <small class="text-muted">
+                                                    ${eq.marca ? 'Marca: ' + eq.marca : ''} 
+                                                    ${eq.modelo ? '| Modelo: ' + eq.modelo : ''}
+                                                    ${eq.estado ? '| Estado: ' + eq.estado : ''}
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-equipamento" data-eq-id="${eq.id}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `<p class="text-muted mb-0">Nenhum equipamento registrado.</p>`}
+                        </div>
+                    </div>
+
+                    <div class="card border-start border-secondary border-4 mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-file-alt text-secondary"></i> Observações</h6>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" id="termoObservacoes" rows="3" placeholder="Adicione observações ou comentários...">${termo.observacoes || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="alert ${termo.assinado ? 'alert-success' : 'alert-info'}" role="alert">
+                        <i class="fas ${termo.assinado ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+                        <strong>Status:</strong> ${termo.assinado ? `Assinado em ${termo.data_assinatura}` : 'Não assinado'}
+                    </div>
+                `;
+
+                document.getElementById('modalTermoBody').innerHTML = html;
+                document.getElementById('btnSalvarTermo').style.display = 'inline-block';
+
+                // Event listeners
+                document.getElementById('btnAdicionarEquipamento').addEventListener('click', abrirFormularioEquipamento);
+                
+                document.querySelectorAll('.btn-deletar-equipamento').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const eqId = this.dataset.eqId;
+                        if (confirm('Tem certeza que deseja remover este equipamento?')) {
+                            deletarEquipamento(usuarioSelecionadoTermo, eqId);
+                        }
+                    });
+                });
+
+                document.getElementById('btnSalvarTermo').addEventListener('click', salvarTermo);
+                document.getElementById('btnExportarTermo').addEventListener('click', exportarTermo);
+
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-danger">Erro ao carregar termo: ${error.message}</div>`;
+            }
+        }
+
+        function abrirFormularioEquipamento() {
+            const html = `
+                <div class="card border-info mb-3" id="formEquipamento">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">Novo Equipamento</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="eqDescricao" class="form-label">Descrição <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="eqDescricao" placeholder="Ex: Notebook" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="eqMarca" class="form-label">Marca</label>
+                                <input type="text" class="form-control" id="eqMarca" placeholder="Ex: Dell">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="eqModelo" class="form-label">Modelo</label>
+                                <input type="text" class="form-control" id="eqModelo" placeholder="Ex: Inspiron 3000">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="eqEstado" class="form-label">Estado</label>
+                                <select class="form-select" id="eqEstado">
+                                    <option value="Bom">Bom</option>
+                                    <option value="Aceitável">Aceitável</option>
+                                    <option value="Ruim">Ruim</option>
+                                    <option value="Necessita Reparo">Necessita Reparo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-success" id="btnConfirmarEquipamento">
+                                <i class="fas fa-check"></i> Adicionar
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="btnCancelarEquipamento">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('equipamentosContainer').insertAdjacentHTML('beforeend', html);
+            
+            document.getElementById('btnConfirmarEquipamento').addEventListener('click', adicionarEquipamento);
+            document.getElementById('btnCancelarEquipamento').addEventListener('click', () => {
+                document.getElementById('formEquipamento').remove();
+            });
+        }
+
+        async function adicionarEquipamento() {
+            const descricao = document.getElementById('eqDescricao').value.trim();
+            const marca = document.getElementById('eqMarca').value.trim();
+            const modelo = document.getElementById('eqModelo').value.trim();
+            const estado = document.getElementById('eqEstado').value;
+
+            if (!descricao) {
+                alert('Descrição do equipamento é obrigatória.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('descricao', descricao);
+            formData.append('marca', marca);
+            formData.append('modelo', modelo);
+            formData.append('estado', estado);
+
+            try {
+                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/equipamentos/adicionar`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await carregarTermo(usuarioSelecionadoTermo);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao adicionar equipamento: ' + error.message);
+            }
+        }
+
+        async function deletarEquipamento(userId, eqId) {
+            try {
+                const response = await fetch(`/admin/usuarios/${userId}/termo-entrega/equipamentos/${eqId}/deletar`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await carregarTermo(userId);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao deletar equipamento: ' + error.message);
+            }
+        }
+
+        async function salvarTermo() {
+            const formData = new FormData();
+            formData.append('empresa', document.getElementById('termoEmpresa').value);
+            formData.append('cnpj', document.getElementById('termoCNPJ').value);
+            formData.append('endereco', document.getElementById('termoEndereco').value);
+            formData.append('cargo_funcao', document.getElementById('termoCargo').value);
+            formData.append('departamento', document.getElementById('termoDepartamento').value);
+            formData.append('local_trabalho', document.getElementById('termoLocal').value);
+            formData.append('observacoes', document.getElementById('termoObservacoes').value);
+
+            try {
+                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/atualizar`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Termo salvo com sucesso!');
+                    await exportarTermoSilencioso();
+                    await carregarTermo(usuarioSelecionadoTermo);
+                } else {
+                    alert('Erro ao salvar: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao salvar termo: ' + error.message);
+            }
+        }
+
+        async function exportarTermoSilencioso() {
+            try {
+                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/exportar`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+
+                return await response.json();
+            } catch (error) {
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function exportarTermo() {
+            const data = await exportarTermoSilencioso();
+            if (data.success) {
+                alert('Documento exportado e salvo nos Documentos do usuário.');
+                setTimeout(() => window.location.reload(), 900);
+            } else {
+                alert('Erro ao exportar: ' + (data.message || 'Erro desconhecido'));
+            }
+        }
+    </script>
 {% endblock %}

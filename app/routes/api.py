@@ -72,6 +72,17 @@ def get_users():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+@api_bp.route('/users/<int:user_id>', methods=['GET'])
+@login_required
+@require_role('admin')
+def get_user_details(user_id):
+    """Retorna detalhes completos de um usuário específico"""
+    try:
+        usuario = User.query.get_or_404(user_id)
+        return jsonify(usuario.to_dict())
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
 @api_bp.route('/produtos', methods=['GET'])
 @login_required
 def get_produtos():
@@ -369,6 +380,23 @@ def criar_usuario_api():
             role = 'usuario'
         area = (dados.get('area') or '').strip()
         localizacao = (dados.get('localizacao') or '').strip()
+        empresa = (dados.get('empresa') or '').strip()
+        cnpj = (dados.get('cnpj') or '').strip()
+        endereco = (dados.get('endereco') or '').strip()
+        cargo = (dados.get('cargo') or '').strip()
+        cpf = (dados.get('cpf') or '').strip()
+        departamento = (dados.get('departamento') or '').strip()
+        local_trabalho = (dados.get('local_trabalho') or '').strip()
+        
+        # Converter data_admissao
+        data_admissao = None
+        data_admissao_str = (dados.get('data_admissao') or '').strip()
+        if data_admissao_str:
+            try:
+                from datetime import datetime
+                data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
+            except:
+                return jsonify({'erro': 'Erro ao processar a data de admissão.'}), 400
 
         is_valid_user, user_error = validate_username(username)
         if not is_valid_user:
@@ -389,7 +417,15 @@ def criar_usuario_api():
             password=PasswordValidator.hash_password(password),
             role=role,
             area=area,
-            localizacao=localizacao
+            localizacao=localizacao,
+            empresa=empresa,
+            cnpj=cnpj,
+            endereco=endereco,
+            cargo=cargo,
+            cpf=cpf,
+            data_admissao=data_admissao,
+            departamento=departamento,
+            local_trabalho=local_trabalho
         )
         db.session.add(novo_usuario)
         db.session.commit()
