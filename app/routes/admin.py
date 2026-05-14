@@ -1059,40 +1059,26 @@ def assinar_termo_entrega(user_id):
 
 @admin_bp.route('/usuarios/<int:user_id>/termo-entrega/exportar', methods=['POST'])
 def exportar_termo_pdf(user_id):
-    """Gerar arquivo .pdf do Termo ou Aditivo COMPLETO preenchido e salvar em uploads/documentos"""
+    """Gerar arquivo .pdf do Termo preenchido e salvar em uploads/documentos"""
     try:
+        import os
+        from app.services.termo_service import TermoService
+        
         usuario = User.query.get_or_404(user_id)
         termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
-        dados = termo.to_dict() if termo else {
-            'empresa': usuario.empresa or '',
-            'cnpj': usuario.cnpj or '',
-            'endereco': usuario.endereco or '',
-            'nome_colaborador': usuario.username,
-            'cargo_funcao': usuario.cargo or '',
-            'cpf_cnpj': usuario.cpf or '',
-            'data_admissao': usuario.data_admissao.strftime("%d/%m/%Y") if usuario.data_admissao else '',
-            'departamento': usuario.departamento or '',
-            'local_trabalho': usuario.local_trabalho or '',
-            'equipamentos': []
-        }
+        if not termo:
+            return jsonify({'success': False, 'message': 'Termo não encontrado para este usuário'}), 404
 
         try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.units import mm
-            from reportlab.pdfbase.pdfmetrics import stringWidth
-            from reportlab.pdfgen import canvas
+            TermoService
         except Exception:
-            return jsonify({'success': False, 'message': 'Dependência reportlab não instalada.'}), 500
+            return jsonify({'success': False, 'message': 'Serviço de Termo não disponível'}), 500
 
-        import os
-
-        equipamentos = dados.get('equipamentos') or []
         pasta = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos'))
         os.makedirs(pasta, exist_ok=True)
 
-        eh_aditivo = termo and termo.assinado
+        eh_aditivo = termo.assinado
         numero_aditivo = 0
         
         if eh_aditivo:
@@ -1102,299 +1088,17 @@ def exportar_termo_pdf(user_id):
             ).count()
             numero_aditivo = aditivos_existentes + 1
             nome_arquivo = f'termo_{usuario.id}_aditivo_{numero_aditivo}.pdf'
-            caminho = os.path.join(pasta, nome_arquivo)
-            titulo = 'ADITIVO AO TERMO DE ENTREGA E RESPONSABILIDADE'
             nome_doc = f'Aditivo ao Termo de Entrega #{numero_aditivo}'
             descricao_doc = f'Aditivo #{numero_aditivo} ao Termo de Entrega'
         else:
             nome_arquivo = f'termo_{usuario.id}.pdf'
-            caminho = os.path.join(pasta, nome_arquivo)
-            titulo = 'TERMO DE ENTREGA E RESPONSABILIDADE'
             nome_doc = 'Termo de Entrega'
             descricao_doc = 'Termo de Entrega e Responsabilidade'
 
-        pdf = canvas.Canvas(caminho, pagesize=A4)
-        width, height = A4
-        left = 18 * mm
-        right = width - 18 * mm
-        top = height - 18 * mm
-        y = top
-        bottom_margin = 18 * mm
+        caminho = os.path.join(pasta, nome_arquivo)
 
-        pdf.setTitle(titulo)
-
-        def ensure_page(current_y, space_needed=50):
-            """Verifica se há espaço na página; se não, cria nova página"""
-            if current_y < bottom_margin + space_needed:
-                pdf.showPage()
-                return top
-            return current_y
-
-        def draw_paragraph(text, current_y, font_size=9, font_name='Times-Roman'):
-            """Desenha parágrafo com quebra de linhas automática"""
-            pdf.setFont(font_name, font_size)
-            words = text.split()
-            lines = []
-            current = ''
-            max_width = right - left - 4
-            
-            for word in words:
-                candidate = f'{current} {word}'.strip()
-                if stringWidth(candidate, font_name, font_size) <= max_width:
-                    current = candidate
-                else:
-                    if current:
-                        lines.append(current)
-                    current = word
-            if current:
-                lines.append(current)
-            
-            for line in lines:
-                current_y = ensure_page(current_y, 15)
-                pdf.drawString(left + 2, current_y, line)
-                current_y -= font_size + 3
-            
-            return current_y
-
-        def draw_section_title(title, current_y):
-            """Desenha título de seção com formatação"""
-            current_y = ensure_page(current_y, 20)
-            pdf.setFont('Times-Bold', 11)
-            pdf.drawString(left, current_y, title)
-            current_y -= 16
-            return current_y
-
-        # ===== CABEÇALHO =====
-        pdf.setFont('Times-Bold', 13)
-        y = ensure_page(y)
-        pdf.drawCentredString(width / 2, y, titulo)
-        y -= 18
-
-        # Linha de separação
-        pdf.setLineWidth(0.5)
-        pdf.line(left, y, right, y)
-        y -= 8
-
-        # Informações da empresa e colaborador em formato de tabela
-        pdf.setFont('Times-Roman', 9)
-        campos = [
-            ('Empresa:', dados.get('empresa', ''), 'CNPJ:', dados.get('cnpj', '')),
-            ('Endereço:', dados.get('endereco', ''), 'Colaborador:', dados.get('nome_colaborador', '')),
-            ('Cargo/Função:', dados.get('cargo_funcao', ''), 'CPF:', dados.get('cpf_cnpj', '')),
-            ('Data de Admissão:', dados.get('data_admissao', ''), 'Departamento:', dados.get('departamento', '')),
-            ('Local de Trabalho:', dados.get('local_trabalho', ''), '', ''),
-        ]
-
-        col1_x = left
-        col2_x = left + 95 * mm
-
-        for campo1_label, campo1_valor, campo2_label, campo2_valor in campos:
-            y = ensure_page(y, 15)
-            
-            if campo1_label:
-                pdf.setFont('Times-Bold', 8)
-                pdf.drawString(col1_x, y, campo1_label)
-                pdf.setFont('Times-Roman', 8)
-                pdf.drawString(col1_x + 28 * mm, y, str(campo1_valor)[:40])
-                pdf.line(col1_x + 28 * mm, y - 1, col1_x + 75 * mm, y - 1)
-            
-            if campo2_label:
-                pdf.setFont('Times-Bold', 8)
-                pdf.drawString(col2_x, y, campo2_label)
-                pdf.setFont('Times-Roman', 8)
-                pdf.drawString(col2_x + 28 * mm, y, str(campo2_valor)[:40])
-                pdf.line(col2_x + 28 * mm, y - 1, col2_x + 75 * mm, y - 1)
-            
-            y -= 12
-
-        y -= 6
-
-        # ===== SEÇÃO 1: OBJETO =====
-        y = draw_section_title('1. OBJETO', y)
-        texto_objeto = ('O presente Aditivo tem por objeto formalizar a entrega adicional de equipamentos, dispositivos e acessórios e demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais.' if eh_aditivo else 'O presente Termo tem por objeto formalizar a entrega, posse e responsabilidade do colaborador quanto ao uso, guarda, conservação e devolução dos equipamentos, dispositivos, acessórios e demais bens de propriedade da empresa.')
-        y = draw_paragraph(texto_objeto, y, font_size=9)
-        y -= 8
-
-        # ===== SEÇÃO 2: EQUIPAMENTOS =====
-        y = draw_section_title(('2. ITENS ADICIONAIS ENTREGUES' if eh_aditivo else '2. EQUIPAMENTOS ENTREGUES'), y)
-        texto_eqs = ('Os seguintes itens adicionais foram entregues ao colaborador:' if eh_aditivo else 'Os seguintes itens foram entregues ao colaborador:')
-        y = draw_paragraph(texto_eqs, y, font_size=9)
-        y -= 10
-
-        if equipamentos:
-            data = [['Equipamento / Acessório', 'Marca', 'Modelo', 'Estado', 'Entrega']]
-            for eq in equipamentos:
-                data.append([
-                    eq.get('descricao', '')[:24],
-                    eq.get('marca', '')[:14],
-                    eq.get('modelo', '')[:14],
-                    eq.get('estado', '')[:12],
-                    eq.get('data_entrega', '')[:10]
-                ])
-            
-            # Completa com linhas em branco
-            while len(data) < 8:
-                data.append(['', '', '', '', ''])
-
-            y = ensure_page(y, 100)
-            
-            # Desenhar tabela manualmente
-            col_widths = [48 * mm, 24 * mm, 24 * mm, 22 * mm, 22 * mm]
-            row_height = 18
-            header_height = 20
-            
-            # Desenhar cabeçalho
-            pdf.setFont('Times-Bold', 9)
-            pdf.setFillColorRGB(0.827, 0.827, 0.827)  # Cor cinza (#d3d3d3)
-            header_y = y
-            
-            pdf.rect(left, header_y - header_height, sum(col_widths), header_height, fill=1, stroke=1)
-            pdf.setFillColorRGB(0, 0, 0)
-            
-            col_x = left
-            for i, header in enumerate(data[0]):
-                pdf.drawCentredString(col_x + col_widths[i] / 2, header_y - 12, header)
-                col_x += col_widths[i]
-            
-            # Desenhar linhas de dados
-            pdf.setFont('Times-Roman', 8)
-            data_y = header_y - header_height
-            
-            for row in data[1:]:
-                col_x = left
-                for col_idx, cell in enumerate(row):
-                    pdf.rect(col_x, data_y - row_height, col_widths[col_idx], row_height, fill=0, stroke=1)
-                    pdf.drawString(col_x + 2, data_y - 10, str(cell))
-                    col_x += col_widths[col_idx]
-                data_y -= row_height
-            
-            y = data_y - 10
-        else:
-            y = draw_paragraph('Nenhum equipamento registrado.', y, font_size=9)
-            y -= 8
-
-        # ===== SEÇÃO 3: CHECKLIST =====
-        y = draw_section_title(('3. CHECKLIST DE ITENS ADICIONAIS' if eh_aditivo else '3. CHECKLIST DE ENTREGA'), y)
-        texto_checklist = 'O colaborador declara ter recebido os seguintes itens:'
-        y = draw_paragraph(texto_checklist, y, font_size=9)
-        
-        if equipamentos:
-            y -= 6
-            for eq in equipamentos[:8]:
-                y = ensure_page(y, 12)
-                pdf.setFont('Times-Roman', 8)
-                pdf.drawString(left + 4, y, f'☐ {eq.get("descricao", "")} - {eq.get("marca", "")}/{eq.get("modelo", "")}')
-                y -= 9
-
-        y -= 8
-
-        # ===== SEÇÃO 4: RESPONSABILIDADES =====
-        y = draw_section_title('4. RESPONSABILIDADES DO COLABORADOR', y)
-        responsabilidades = [
-            'I. Zelar pela integridade física e funcional dos equipamentos, utilizando-os com diligência e cuidado, exclusivamente para atividades profissionais.',
-            'II. Utilizar os equipamentos de forma adequada, abstendo-se de práticas que possam ocasionar danos.',
-            'III. Não compartilhar, ceder ou permitir o uso dos equipamentos por terceiros não autorizados.',
-            'IV. Não instalar softwares ou aplicações sem autorização da empresa.',
-            'V. Observar rigorosamente as políticas internas de segurança da informação e proteção de dados.'
-        ]
-        
-        for resp in responsabilidades:
-            y = draw_paragraph(resp, y, font_size=8)
-            y -= 4
-
-        y -= 6
-
-        # ===== SEÇÃO 5: POLÍTICAS =====
-        y = draw_section_title('5. POLÍTICAS DE USO E SEGURANÇA DIGITAL', y)
-        politicas = [
-            'I. Utilizar equipamentos em conformidade com as normas internas da empresa.',
-            'II. Observar as diretrizes relativas à segurança da informação e proteção de dados.',
-            'III. Não copiar, reproduzir ou compartilhar informações corporativas sem autorização.',
-            'IV. Adotar boas práticas de segurança digital, incluindo proteção de senhas e bloqueio de dispositivos.',
-            'V. Não acessar ou armazenar conteúdos impróprios que comprometam a segurança corporativa.'
-        ]
-        
-        for politica in politicas:
-            y = draw_paragraph(politica, y, font_size=8)
-            y -= 4
-
-        y -= 6
-
-        # ===== SEÇÃO 6: DEVOLUÇÃO =====
-        y = draw_section_title('6. CONDIÇÕES DE DEVOLUÇÃO', y)
-        texto_dev = 'Os equipamentos deverão ser devolvidos em condições compatíveis com o uso regular. Constatados danos ou ausência de itens, a empresa procederá à apuração de responsabilidade. Eventual ressarcimento será limitado ao valor de reparo ou reposição do bem.'
-        y = draw_paragraph(texto_dev, y, font_size=8)
-        y -= 6
-
-        # ===== SEÇÃO 7: DESCONTO =====
-        y = draw_section_title('7. AUTORIZAÇÃO DE DESCONTO', y)
-        texto_desc = 'O colaborador autoriza expressamente a empresa a proceder ao desconto em folha de pagamento de valores correspondentes à reparação ou reposição dos equipamentos, limitado ao valor efetivamente apurado para o prejuízo comprovado, conforme artigo 462 da CLT.'
-        y = draw_paragraph(texto_desc, y, font_size=8)
-        y -= 6
-
-        # ===== SEÇÃO 8: VIGÊNCIA =====
-        y = draw_section_title('8. VIGÊNCIA', y)
-        texto_vig = 'O presente Termo entra em vigor na data de sua assinatura e permanecerá válido por prazo indeterminado, enquanto o colaborador estiver de posse de quaisquer equipamentos fornecidos pela empresa.'
-        y = draw_paragraph(texto_vig, y, font_size=8)
-        y -= 6
-
-        # ===== SEÇÃO 9: ASSINATURA ELETRÔNICA =====
-        y = draw_section_title('9. ASSINATURA ELETRÔNICA', y)
-        texto_ass = 'Este documento poderá ser firmado por meio de assinatura eletrônica, em conformidade com a Lei Federal nº 14.063/2020, produzindo efeitos válidos e executáveis conforme legislação vigente.'
-        y = draw_paragraph(texto_ass, y, font_size=8)
-        y -= 6
-
-        # ===== SEÇÃO 10: FORO =====
-        y = draw_section_title('10. FORO', y)
-        texto_foro = 'Para dirimir eventuais dúvidas oriundas deste Termo, as partes elegem o foro da comarca do local da prestação de serviços do colaborador.'
-        y = draw_paragraph(texto_foro, y, font_size=8)
-        y -= 6
-
-        # ===== SEÇÃO 11: DECLARAÇÃO FINAL =====
-        y = draw_section_title('11. DECLARAÇÃO FINAL', y)
-        texto_final = 'O colaborador declara que recebeu os equipamentos em perfeitas condições de uso e funcionamento, após conferência, e concorda integralmente com todas as cláusulas e condições estabelecidas neste Termo.'
-        y = draw_paragraph(texto_final, y, font_size=8)
-        y -= 12
-
-        # ===== ASSINATURAS =====
-        y = ensure_page(y, 100)
-        
-        pdf.setFont('Times-Roman', 9)
-        pdf.drawString(left, y, 'Local e Data: ___________________________________')
-        y -= 20
-
-        # Desenhar tabela de assinaturas manualmente
-        sig_col_widths = [85 * mm, 85 * mm]
-        sig_row_height = 50
-        sig_header_height = 16
-        
-        sig_y = y - 60
-        sig_y = ensure_page(sig_y, 100)
-        
-        # Desenhar cabeçalho
-        pdf.setFont('Times-Bold', 9)
-        pdf.setFillColorRGB(1, 1, 1)  # Branco
-        header_y = sig_y
-        
-        pdf.rect(left + 5, header_y - sig_header_height, sum(sig_col_widths), sig_header_height, fill=1, stroke=1)
-        pdf.setFillColorRGB(0, 0, 0)
-        
-        col_x = left + 5
-        for i, header in enumerate(['Colaborador / Terceiro', 'Empresa']):
-            pdf.drawCentredString(col_x + sig_col_widths[i] / 2, header_y - 10, header)
-            col_x += sig_col_widths[i]
-        
-        # Desenhar linha de assinatura
-        pdf.setFont('Times-Roman', 9)
-        data_y = header_y - sig_header_height
-        
-        col_x = left + 5
-        for width in sig_col_widths:
-            pdf.rect(col_x, data_y - sig_row_height, width, sig_row_height, fill=0, stroke=1)
-            pdf.drawCentredString(col_x + width / 2, data_y - (sig_row_height - 10), '_______________________')
-            col_x += width
-
-        pdf.save()
+        # Gerar PDF usando TermoService
+        TermoService.gerar_pdf(user_id, caminho)
 
         tamanho = os.path.getsize(caminho)
         usuario_enviador = getattr(current_user, 'username', None) or 'sistema'
@@ -1415,6 +1119,13 @@ def exportar_termo_pdf(user_id):
         )
         db.session.add(novo_doc)
         db.session.commit()
+
+        equipamentos = []
+        if termo.equipamentos:
+            try:
+                equipamentos = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
+            except:
+                equipamentos = []
 
         itens_existentes = ItemRecebido.query.filter_by(id_usuario=user_id).count()
         tipo_recebimento = 'posteriormente' if itens_existentes > 0 else 'entrada'
@@ -1443,7 +1154,7 @@ def exportar_termo_pdf(user_id):
             usuario_responsavel=current_user.username
         )
 
-        mensagem = f'{"Termo" if not eh_aditivo else "Aditivo"} completo exportado e salvo nos documentos do usuário.'
+        mensagem = f'{"Termo" if not eh_aditivo else "Aditivo"} exportado e salvo com sucesso.'
         return jsonify({'success': True, 'message': mensagem, 'documento_id': novo_doc.id_documento})
         
     except Exception as e:
