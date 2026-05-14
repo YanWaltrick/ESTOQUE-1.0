@@ -1,8 +1,26 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+import os
+from datetime import datetime
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+
 from app import estoque
+from app.database import db
+from app.models import DocumentoUsuario
+from app.utils import registrar_evento
 
 main_bp = Blueprint('main', __name__)
+
+EXTENSOES_PERMITIDAS_DOCUMENTOS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'}
+TAMANHO_MAXIMO_DOCUMENTO = 10 * 1024 * 1024  # 10 MB
+
+
+def _pasta_documentos():
+    pasta = os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos')
+    pasta = os.path.abspath(pasta)
+    os.makedirs(pasta, exist_ok=True)
+    return pasta
 
 @main_bp.route('/')
 @login_required
@@ -17,3 +35,152 @@ def admin():
     if not current_user.is_admin:
         return redirect(url_for('main.index'))
     return render_template('admin.html')
+
+
+@main_bp.route('/documentos')
+@login_required
+def documentos():
+    """Tela de documentos empresariais."""
+    if current_user.is_admin:
+        docs = DocumentoUsuario.query.order_by(DocumentoUsuario.data_criacao.desc()).all()
+    else:
+        docs = (
+            DocumentoUsuario.query
+            .filter_by(id_usuario=current_user.id)
+            .order_by(DocumentoUsuario.data_criacao.desc())
+            .all()
+        )
+
+    return render_template(
+        'documentos.html',
+        documentos=docs,
+        allowed_extensions=sorted(EXTENSOES_PERMITIDAS_DOCUMENTOS),
+        max_upload_mb=int(TAMANHO_MAXIMO_DOCUMENTO / (1024 * 1024)),
+    )
+
+
+@main_bp.route('/documentos/upload', methods=['POST'])
+@login_required
+def upload_documento():
+    """Upload de documento empresarial para o usuário logado."""
+    if 'arquivo' not in request.files:
+        flash('Nenhum arquivo foi enviado.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    arquivo = request.files['arquivo']
+    nome_documento = request.form.get('nome_documento', '').strip()
+    descricao = request.form.get('descricao', '').strip() or None
+
+    if arquivo.filename == '':
+        flash('Selecione um arquivo para enviar.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    if not nome_documento:
+        flash('Informe o nome do documento.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    if '.' not in arquivo.filename:
+        flash('Arquivo sem extensão válida.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    extensao = arquivo.filename.rsplit('.', 1)[1].lower()
+    if extensao not in EXTENSOES_PERMITIDAS_DOCUMENTOS:
+        flash('Tipo de arquivo não permitido.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    arquivo.seek(0, os.SEEK_END)
+    tamanho = arquivo.tell()
+    arquivo.seek(0)
+
+    if tamanho <= 0:
+        flash('Arquivo vazio não é permitido.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    if tamanho > TAMANHO_MAXIMO_DOCUMENTO:
+        flash(f'Arquivo muito grande. Limite: {int(TAMANHO_MAXIMO_DOCUMENTO / (1024 * 1024))}MB.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo_seguro = secure_filename(f'{current_user.id}_{timestamp}_{arquivo.filename}')
+    caminho_arquivo = os.path.join(_pasta_documentos(), nome_arquivo_seguro)
+
+    try:
+        arquivo.save(caminho_arquivo)
+
+        novo_documento = DocumentoUsuario(
+            id_usuario=current_user.id,
+            nome_documento=nome_documento,
+            arquivo=nome_arquivo_seguro,
+            tipo_arquivo=extensao,
+            tamanho_arquivo=tamanho,
+            usuario_enviador=current_user.username,
+            descricao=descricao,
+        )
+        db.session.add(novo_documento)
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='documento_empresarial_enviado',
+            descricao=f'Documento "{nome_documento}" enviado por "{current_user.username}"',
+            usuario_responsavel=current_user.username,
+            detalhes=f'arquivo={nome_arquivo_seguro}; tamanho={tamanho}',
+        )
+        flash('Documento enviado com sucesso.', 'success')
+    except Exception:
+        if os.path.exists(caminho_arquivo):
+            os.remove(caminho_arquivo)
+        db.session.rollback()
+        flash('Não foi possível salvar o documento.', 'error')
+
+    return redirect(url_for('main.documentos'))
+
+
+@main_bp.route('/documentos/<int:documento_id>/download')
+@login_required
+def download_documento(documento_id):
+    """Download de documento empresarial."""
+    documento = DocumentoUsuario.query.get_or_404(documento_id)
+
+    if not current_user.is_admin and documento.id_usuario != current_user.id:
+        flash('Você não tem permissão para baixar este documento.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    caminho_arquivo = os.path.join(_pasta_documentos(), documento.arquivo)
+    if not os.path.exists(caminho_arquivo):
+        flash('Arquivo não encontrado no servidor.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    nome_download = f'{documento.nome_documento}.{documento.tipo_arquivo}'
+    return send_file(caminho_arquivo, as_attachment=True, download_name=nome_download)
+
+
+@main_bp.route('/documentos/<int:documento_id>/excluir', methods=['POST'])
+@login_required
+def excluir_documento(documento_id):
+    """Exclusão de documento empresarial."""
+    documento = DocumentoUsuario.query.get_or_404(documento_id)
+
+    if not current_user.is_admin and documento.id_usuario != current_user.id:
+        flash('Você não tem permissão para excluir este documento.', 'error')
+        return redirect(url_for('main.documentos'))
+
+    caminho_arquivo = os.path.join(_pasta_documentos(), documento.arquivo)
+    try:
+        if os.path.exists(caminho_arquivo):
+            os.remove(caminho_arquivo)
+
+        nome_documento = documento.nome_documento
+        db.session.delete(documento)
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='documento_empresarial_excluido',
+            descricao=f'Documento "{nome_documento}" excluído por "{current_user.username}"',
+            usuario_responsavel=current_user.username,
+        )
+        flash('Documento excluído com sucesso.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Não foi possível excluir o documento.', 'error')
+
+    return redirect(url_for('main.documentos'))

@@ -505,9 +505,16 @@ def listar_documentos_usuario(user_id):
 
 @admin_bp.route('/usuarios/<int:user_id>/itens-recebidos', methods=['GET'])
 def listar_itens_recebidos(user_id):
-    """Listar itens recebidos de um usuário separados por tipo"""
+    """Listar itens recebidos de um usuário e equipamentos do Termo"""
     usuario = User.query.get_or_404(user_id)
     
+    # Carregar equipamentos do termo
+    termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
+    equipamentos_termo = []
+    if termo and termo.equipamentos:
+        equipamentos_termo = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
+    
+    # Carregar itens recebidos
     itens_entrada = ItemRecebido.query.filter_by(
         id_usuario=user_id,
         tipo_recebimento='entrada'
@@ -521,9 +528,174 @@ def listar_itens_recebidos(user_id):
     return jsonify({
         'success': True,
         'usuario': usuario.username,
+        'equipamentos_termo': equipamentos_termo,
         'itens_entrada': [item.to_dict() for item in itens_entrada],
         'itens_posteriormente': [item.to_dict() for item in itens_posteriormente]
     })
+
+
+@admin_bp.route('/usuarios/<int:user_id>/itens-recebidos/relatorio', methods=['GET'])
+def gerar_relatorio_itens_usuario(user_id):
+    """Gerar relatório em PDF com os itens recebidos do usuário"""
+    usuario = User.query.get_or_404(user_id)
+
+    itens_entrada = ItemRecebido.query.filter_by(
+        id_usuario=user_id,
+        tipo_recebimento='entrada'
+    ).order_by(ItemRecebido.data_criacao.asc()).all()
+
+    itens_posteriormente = ItemRecebido.query.filter_by(
+        id_usuario=user_id,
+        tipo_recebimento='posteriormente'
+    ).order_by(ItemRecebido.data_criacao.asc()).all()
+
+    try:
+        from io import BytesIO
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        from reportlab.pdfgen import canvas
+    except Exception:
+        return jsonify({'success': False, 'message': 'Dependência reportlab não instalada. Rode: pip install reportlab'}), 500
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    left = 18 * mm
+    right = width - 18 * mm
+    top = height - 18 * mm
+    y = top
+
+    def ensure_space(current_y, needed_height):
+        if current_y - needed_height < 28 * mm:
+            pdf.showPage()
+            return top
+        return current_y
+
+    def draw_wrapped_text(text, x, current_y, max_width, font_name='Times-Roman', font_size=10, leading=13):
+        pdf.setFont(font_name, font_size)
+        words = text.split()
+        lines = []
+        current = ''
+        for word in words:
+            candidate = f'{current} {word}'.strip()
+            if stringWidth(candidate, font_name, font_size) <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        for line in lines:
+            pdf.drawString(x, current_y, line)
+            current_y -= leading
+        return current_y
+
+    def draw_section_title(title, current_y):
+        current_y = ensure_space(current_y, 16)
+        pdf.setFont('Times-Bold', 11)
+        pdf.drawString(left, current_y, title)
+        return current_y - 12
+
+    def draw_items_table(current_y, itens):
+        if not itens:
+            current_y = ensure_space(current_y, 12)
+            pdf.setFont('Times-Roman', 10)
+            pdf.drawString(left, current_y, 'Nenhum item nesta categoria.')
+            return current_y - 14
+
+        # Preparar dados da tabela
+        table_data = [['Item', 'Data e Hora']]
+        for item in itens:
+            table_data.append([
+                item.descricao_item,
+                item.data_criacao.strftime('%d/%m/%Y %H:%M:%S') if item.data_criacao else ''
+            ])
+
+        # Dimensões das colunas
+        col_widths = [100 * mm, 50 * mm]
+        row_height = 14
+        header_height = 16
+        
+        # Calcular altura total da tabela
+        total_height = header_height + (len(table_data) - 1) * row_height
+        current_y = ensure_space(current_y, total_height + 4)
+        
+        # Desenhar cabeçalho
+        pdf.setFont('Times-Bold', 9)
+        pdf.setFillColorRGB(0.94, 0.94, 0.94)  # Cor cinza claro
+        header_y = current_y
+        
+        # Desenhar fundo do cabeçalho
+        pdf.rect(left, header_y - header_height, sum(col_widths), header_height, fill=1, stroke=1)
+        
+        # Desenhar textos do cabeçalho
+        pdf.setFillColorRGB(0, 0, 0)
+        col_x = left
+        for i, header in enumerate(table_data[0]):
+            pdf.drawString(col_x + 2, header_y - 12, header)
+            col_x += col_widths[i]
+        
+        # Desenhar linhas de dados
+        pdf.setFont('Times-Roman', 9)
+        data_y = header_y - header_height
+        
+        for row_idx, row in enumerate(table_data[1:]):
+            col_x = left
+            for col_idx, cell in enumerate(row):
+                # Desenhar célula
+                pdf.rect(col_x, data_y - row_height, col_widths[col_idx], row_height, fill=0, stroke=1)
+                # Desenhar texto
+                pdf.drawString(col_x + 2, data_y - 10, str(cell))
+                col_x += col_widths[col_idx]
+            
+            data_y -= row_height
+        
+        return data_y - 6
+
+    pdf.setTitle('Itens do Usuário')
+    pdf.setFont('Times-Bold', 14)
+    pdf.drawCentredString(width / 2, y, 'ITENS DO USUÁRIO')
+    y -= 18
+
+    cargo = getattr(usuario, 'cargo', '') or getattr(usuario, 'cargo_funcao', '') or ''
+    cpf_cnpj = getattr(usuario, 'cpf', '') or getattr(usuario, 'cnpj', '') or ''
+    data_admissao = usuario.data_admissao.strftime('%d/%m/%Y') if getattr(usuario, 'data_admissao', None) else ''
+
+    campos = [
+        ('Nome', usuario.username or ''),
+        ('CPF/CNPJ', cpf_cnpj),
+        ('Cargo/Função', cargo),
+        ('Data de Admissão', data_admissao),
+    ]
+
+    pdf.setFont('Times-Roman', 10)
+    for label, value in campos:
+        y = ensure_space(y, 13)
+        pdf.drawString(left, y, f'{label}:')
+        pdf.line(left + 35 * mm, y - 1.5, right, y - 1.5)
+        if value:
+            pdf.drawString(left + 37 * mm, y + 0.5, str(value))
+        y -= 13
+
+    y -= 6
+    y = draw_section_title('Itens Recebidos na Entrada', y)
+    y = draw_items_table(y, itens_entrada)
+
+    y = draw_section_title('Itens Recebidos Posteriormente', y)
+    y = draw_items_table(y, itens_posteriormente)
+
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'itens_usuario_{usuario.id}.pdf'
+    )
 
 
 @admin_bp.route('/usuarios/<int:user_id>/itens-recebidos/adicionar', methods=['POST'])
@@ -653,15 +825,19 @@ def listar_termo_entrega(user_id):
             'termo': termo_data
         })
 
+    termo_data = termo.to_dict()
+    # Campo de input type="date" precisa de formato YYYY-MM-DD.
+    termo_data['data_admissao'] = termo.data_admissao.strftime("%Y-%m-%d") if termo.data_admissao else ''
+
     return jsonify({
         'success': True,
-        'termo': termo.to_dict()
+        'termo': termo_data
     })
 
 
 @admin_bp.route('/usuarios/<int:user_id>/termo-entrega/atualizar', methods=['POST'])
 def atualizar_termo_entrega(user_id):
-    """Atualizar informações do Termo de Entrega"""
+    """Atualizar informações do Termo de Entrega (apenas se não foi gerado ainda)"""
     usuario = User.query.get_or_404(user_id)
     termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
@@ -680,14 +856,35 @@ def atualizar_termo_entrega(user_id):
             data_admissao=usuario.data_admissao
         )
         db.session.add(termo)
+    
+    # Verificar se termo já foi gerado/assinado - se sim, não permite mais edição
+    if termo.assinado:
+        return jsonify({
+            'success': False,
+            'message': 'Termo já foi gerado e assinado. Não é possível fazer alterações. Novos equipamentos criarão um ADITIVO ao termo.',
+            'termo_assinado': True
+        }), 400
 
     # Atualizar informações do termo
     termo.empresa = request.form.get('empresa', termo.empresa or '').strip()
     termo.cnpj = request.form.get('cnpj', termo.cnpj or '').strip()
     termo.endereco = request.form.get('endereco', termo.endereco or '').strip()
     termo.cargo_funcao = request.form.get('cargo_funcao', termo.cargo_funcao or '').strip()
+    termo.cpf_cnpj = request.form.get('cpf_cnpj', termo.cpf_cnpj or '').strip()
     termo.departamento = request.form.get('departamento', termo.departamento or '').strip()
     termo.local_trabalho = request.form.get('local_trabalho', termo.local_trabalho or '').strip()
+
+    data_admissao_str = request.form.get('data_admissao', '').strip()
+    if data_admissao_str:
+        try:
+            termo.data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Data de admissão inválida. Use o formato AAAA-MM-DD.'
+            }), 400
+    else:
+        termo.data_admissao = None
 
     observacoes = request.form.get('observacoes', '').strip()
     termo.observacoes = observacoes
@@ -709,7 +906,7 @@ def atualizar_termo_entrega(user_id):
 
 @admin_bp.route('/usuarios/<int:user_id>/termo-entrega/equipamentos/adicionar', methods=['POST'])
 def adicionar_equipamento_termo(user_id):
-    """Adicionar equipamento ao Termo de Entrega"""
+    """Adicionar equipamento ao Termo de Entrega (ou criar aditivo se termo já foi assinado)"""
     usuario = User.query.get_or_404(user_id)
     termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
@@ -732,7 +929,7 @@ def adicionar_equipamento_termo(user_id):
     descricao = request.form.get('descricao', '').strip()
     marca = request.form.get('marca', '').strip()
     modelo = request.form.get('modelo', '').strip()
-    estado = request.form.get('estado', 'Bom').strip()
+    estado = request.form.get('estado', 'Novo').strip()
 
     if not descricao:
         return jsonify({
@@ -750,7 +947,7 @@ def adicionar_equipamento_termo(user_id):
         'marca': marca,
         'modelo': modelo,
         'estado': estado,
-        'data_entrega': datetime.now(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y %H:%M:%S")
+        'data_entrega': datetime.now(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y")
     }
     equipamentos.append(novo_equipamento)
 
@@ -758,16 +955,20 @@ def adicionar_equipamento_termo(user_id):
     termo.equipamentos = json.dumps(equipamentos)
     db.session.commit()
 
+    # Se termo já foi assinado, avisar que criará aditivo na próxima geração
+    criar_aditivo = termo.assinado
+
     registrar_evento(
         tipo_evento='equipamento_adicionado_termo',
-        descricao=f'Equipamento "{descricao}" adicionado ao Termo de Entrega de "{usuario.username}"',
+        descricao=f'Equipamento "{descricao}" adicionado ao Termo de Entrega de "{usuario.username}"' + (' (será em ADITIVO)' if criar_aditivo else ''),
         usuario_responsavel=current_user.username
     )
 
     return jsonify({
         'success': True,
-        'message': 'Equipamento adicionado com sucesso!',
-        'equipamento': novo_equipamento
+        'message': 'Equipamento adicionado com sucesso!' + (' Um ADITIVO será criado na próxima geração.' if criar_aditivo else ''),
+        'equipamento': novo_equipamento,
+        'criar_aditivo': criar_aditivo
     })
 
 
@@ -858,204 +1059,399 @@ def assinar_termo_entrega(user_id):
 
 @admin_bp.route('/usuarios/<int:user_id>/termo-entrega/exportar', methods=['POST'])
 def exportar_termo_pdf(user_id):
-    """Gerar arquivo .pdf do Termo preenchido e salvar em uploads/documentos"""
-    usuario = User.query.get_or_404(user_id)
-    termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
-
-    # Use data from termo if present, otherwise from usuario
-    dados = termo.to_dict() if termo else {
-        'empresa': usuario.empresa or '',
-        'cnpj': usuario.cnpj or '',
-        'endereco': usuario.endereco or '',
-        'nome_colaborador': usuario.username,
-        'cargo_funcao': usuario.cargo or '',
-        'cpf_cnpj': usuario.cpf or '',
-        'data_admissao': usuario.data_admissao.strftime("%d/%m/%Y") if usuario.data_admissao else '',
-        'departamento': usuario.departamento or '',
-        'local_trabalho': usuario.local_trabalho or '',
-        'equipamentos': []
-    }
-
+    """Gerar arquivo .pdf do Termo ou Aditivo COMPLETO preenchido e salvar em uploads/documentos"""
     try:
-        from reportlab.lib import colors
-        from reportlab.lib.enums import TA_CENTER
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-        from reportlab.lib.units import mm
-        from reportlab.pdfbase.pdfmetrics import stringWidth
-        from reportlab.platypus import Paragraph, Table, TableStyle
-        from reportlab.pdfgen import canvas
-    except Exception:
-        return jsonify({'success': False, 'message': 'Dependência reportlab não instalada. Rode: pip install reportlab'}), 500
+        usuario = User.query.get_or_404(user_id)
+        termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
-    import os
-    from datetime import datetime
-    from textwrap import wrap
+        dados = termo.to_dict() if termo else {
+            'empresa': usuario.empresa or '',
+            'cnpj': usuario.cnpj or '',
+            'endereco': usuario.endereco or '',
+            'nome_colaborador': usuario.username,
+            'cargo_funcao': usuario.cargo or '',
+            'cpf_cnpj': usuario.cpf or '',
+            'data_admissao': usuario.data_admissao.strftime("%d/%m/%Y") if usuario.data_admissao else '',
+            'departamento': usuario.departamento or '',
+            'local_trabalho': usuario.local_trabalho or '',
+            'equipamentos': []
+        }
 
-    equipamentos = dados.get('equipamentos') or []
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.units import mm
+            from reportlab.pdfbase.pdfmetrics import stringWidth
+            from reportlab.pdfgen import canvas
+        except Exception:
+            return jsonify({'success': False, 'message': 'Dependência reportlab não instalada.'}), 500
 
-    def draw_wrapped_text(pdf, text, x, y, max_width, font_name='Times-Roman', font_size=10, leading=13):
-        pdf.setFont(font_name, font_size)
-        words = text.split()
-        lines = []
-        current = ''
-        for word in words:
-            candidate = f'{current} {word}'.strip()
-            if stringWidth(candidate, font_name, font_size) <= max_width:
-                current = candidate
-            else:
-                if current:
-                    lines.append(current)
-                current = word
-        if current:
-            lines.append(current)
-        for line in lines:
-            pdf.drawString(x, y, line)
-            y -= leading
-        return y
+        import os
 
-    # Salvar arquivo em static/uploads/documentos
-    pasta = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos'))
-    os.makedirs(pasta, exist_ok=True)
-    nome_arquivo = f'termo_{usuario.id}.pdf'
-    caminho = os.path.join(pasta, nome_arquivo)
+        equipamentos = dados.get('equipamentos') or []
+        pasta = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos'))
+        os.makedirs(pasta, exist_ok=True)
 
-    pdf = canvas.Canvas(caminho, pagesize=A4)
-    width, height = A4
-    left = 18 * mm
-    right = width - 18 * mm
-    top = height - 18 * mm
-    y = top
+        eh_aditivo = termo and termo.assinado
+        numero_aditivo = 0
+        
+        if eh_aditivo:
+            aditivos_existentes = DocumentoUsuario.query.filter(
+                DocumentoUsuario.id_usuario == user_id,
+                DocumentoUsuario.nome_documento.like('Aditivo ao Termo%')
+            ).count()
+            numero_aditivo = aditivos_existentes + 1
+            nome_arquivo = f'termo_{usuario.id}_aditivo_{numero_aditivo}.pdf'
+            caminho = os.path.join(pasta, nome_arquivo)
+            titulo = 'ADITIVO AO TERMO DE ENTREGA E RESPONSABILIDADE'
+            nome_doc = f'Aditivo ao Termo de Entrega #{numero_aditivo}'
+            descricao_doc = f'Aditivo #{numero_aditivo} ao Termo de Entrega'
+        else:
+            nome_arquivo = f'termo_{usuario.id}.pdf'
+            caminho = os.path.join(pasta, nome_arquivo)
+            titulo = 'TERMO DE ENTREGA E RESPONSABILIDADE'
+            nome_doc = 'Termo de Entrega'
+            descricao_doc = 'Termo de Entrega e Responsabilidade'
 
-    pdf.setTitle('Termo de Entrega e Responsabilidade')
+        pdf = canvas.Canvas(caminho, pagesize=A4)
+        width, height = A4
+        left = 18 * mm
+        right = width - 18 * mm
+        top = height - 18 * mm
+        y = top
+        bottom_margin = 18 * mm
 
-    pdf.setFont('Times-Bold', 11)
-    title = 'TERMO DE ENTREGA E RESPONSABILIDADE PELO USO DE EQUIPAMENTOS DA EMPRESA'
-    pdf.drawCentredString(width / 2, y, title)
-    y -= 22
+        pdf.setTitle(titulo)
 
-    pdf.setFont('Times-Roman', 10)
+        def ensure_page(current_y, space_needed=50):
+            """Verifica se há espaço na página; se não, cria nova página"""
+            if current_y < bottom_margin + space_needed:
+                pdf.showPage()
+                return top
+            return current_y
 
-    campos = [
-        ('Empresa', dados.get('empresa', '')),
-        ('CNPJ', dados.get('cnpj', '')),
-        ('Endereço', dados.get('endereco', '')),
-        ('Colaborador', dados.get('nome_colaborador', '')),
-        ('Cargo/Função (se aplicável)', dados.get('cargo_funcao', '')),
-        ('CPF/CNPJ', dados.get('cpf_cnpj', '')),
-        ('Data de Admissão (se aplicável)', dados.get('data_admissao', '')),
-        ('Departamento (se aplicável)', dados.get('departamento', '')),
-        ('Local de trabalho (se aplicável)', dados.get('local_trabalho', '')),
-    ]
+        def draw_paragraph(text, current_y, font_size=9, font_name='Times-Roman'):
+            """Desenha parágrafo com quebra de linhas automática"""
+            pdf.setFont(font_name, font_size)
+            words = text.split()
+            lines = []
+            current = ''
+            max_width = right - left - 4
+            
+            for word in words:
+                candidate = f'{current} {word}'.strip()
+                if stringWidth(candidate, font_name, font_size) <= max_width:
+                    current = candidate
+                else:
+                    if current:
+                        lines.append(current)
+                    current = word
+            if current:
+                lines.append(current)
+            
+            for line in lines:
+                current_y = ensure_page(current_y, 15)
+                pdf.drawString(left + 2, current_y, line)
+                current_y -= font_size + 3
+            
+            return current_y
 
-    label_x = left
-    value_x = left + 47 * mm
-    line_x1 = value_x
-    line_x2 = right - 1 * mm
-    for label, value in campos:
-        pdf.drawString(label_x, y, f'{label}:')
-        pdf.line(line_x1, y - 1.5, line_x2, y - 1.5)
-        if value:
-            pdf.drawString(value_x + 2, y + 0.5, str(value))
-        y -= 13
+        def draw_section_title(title, current_y):
+            """Desenha título de seção com formatação"""
+            current_y = ensure_page(current_y, 20)
+            pdf.setFont('Times-Bold', 11)
+            pdf.drawString(left, current_y, title)
+            current_y -= 16
+            return current_y
 
-    y -= 6
-    pdf.setFont('Times-Bold', 10)
-    pdf.drawString(left, y, '1. OBJETO')
-    y -= 12
-    pdf.setFont('Times-Roman', 10)
-    y = draw_wrapped_text(
-        pdf,
-        'O presente Termo tem por objeto formalizar a entrega, posse e responsabilidade do colaborador quanto ao uso, guarda, conservação e devolução dos equipamentos, dispositivos, acessórios e demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais.',
-        left,
-        y,
-        right - left,
-        font_size=9.5,
-        leading=12
-    ) - 8
+        # ===== CABEÇALHO =====
+        pdf.setFont('Times-Bold', 13)
+        y = ensure_page(y)
+        pdf.drawCentredString(width / 2, y, titulo)
+        y -= 18
 
-    pdf.setFont('Times-Bold', 10)
-    pdf.drawString(left, y, '2. EQUIPAMENTOS ENTREGUES')
-    y -= 12
-    pdf.setFont('Times-Roman', 10)
-    pdf.drawString(left, y, 'A empresa declara ter fornecido os seguintes itens ao colaborador, elencado no preâmbulo:')
-    y -= 20
+        # Linha de separação
+        pdf.setLineWidth(0.5)
+        pdf.line(left, y, right, y)
+        y -= 8
 
-    data = [['Equipamento / Acessório', 'Marca', 'Modelo', 'Estado', 'Data\nEntrega', 'Valor\nAproximado']]
-    for eq in equipamentos[:8]:
-        data.append([
-            eq.get('descricao', ''),
-            eq.get('marca', ''),
-            eq.get('modelo', ''),
-            eq.get('estado', ''),
-            eq.get('data_entrega', ''),
-            ''
-        ])
+        # Informações da empresa e colaborador em formato de tabela
+        pdf.setFont('Times-Roman', 9)
+        campos = [
+            ('Empresa:', dados.get('empresa', ''), 'CNPJ:', dados.get('cnpj', '')),
+            ('Endereço:', dados.get('endereco', ''), 'Colaborador:', dados.get('nome_colaborador', '')),
+            ('Cargo/Função:', dados.get('cargo_funcao', ''), 'CPF:', dados.get('cpf_cnpj', '')),
+            ('Data de Admissão:', dados.get('data_admissao', ''), 'Departamento:', dados.get('departamento', '')),
+            ('Local de Trabalho:', dados.get('local_trabalho', ''), '', ''),
+        ]
 
-    while len(data) < 9:
-        data.append(['', '', '', '', '', ''])
+        col1_x = left
+        col2_x = left + 95 * mm
 
-    table = Table(data, colWidths=[30 * mm, 24 * mm, 24 * mm, 22 * mm, 20 * mm, 20 * mm])
-    table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
-        ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Times-Roman'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('TOPPADDING', (0, 0), (-1, -1), 1.5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
-    ]))
+        for campo1_label, campo1_valor, campo2_label, campo2_valor in campos:
+            y = ensure_page(y, 15)
+            
+            if campo1_label:
+                pdf.setFont('Times-Bold', 8)
+                pdf.drawString(col1_x, y, campo1_label)
+                pdf.setFont('Times-Roman', 8)
+                pdf.drawString(col1_x + 28 * mm, y, str(campo1_valor)[:40])
+                pdf.line(col1_x + 28 * mm, y - 1, col1_x + 75 * mm, y - 1)
+            
+            if campo2_label:
+                pdf.setFont('Times-Bold', 8)
+                pdf.drawString(col2_x, y, campo2_label)
+                pdf.setFont('Times-Roman', 8)
+                pdf.drawString(col2_x + 28 * mm, y, str(campo2_valor)[:40])
+                pdf.line(col2_x + 28 * mm, y - 1, col2_x + 75 * mm, y - 1)
+            
+            y -= 12
 
-    tw, th = table.wrapOn(pdf, width - 2 * left, y)
-    table.drawOn(pdf, left, y - th)
-    y = y - th - 15
+        y -= 6
 
-    pdf.setFont('Times-Bold', 10)
-    pdf.drawString(left, y, '3. CHECKLIST DE ENTREGA')
-    y -= 13
-    pdf.setFont('Times-Roman', 10)
-    y = draw_wrapped_text(
-        pdf,
-        'Considerando o disposto na cláusula anterior, o colaborador declara, nesta data e por meio do checklist abaixo colacionado, ter recebido, na presente data, os seguintes itens de propriedade da empresa, para uso exclusivamente profissional:',
-        left,
-        y,
-        right - left,
-        font_size=9.5,
-        leading=12
-    )
+        # ===== SEÇÃO 1: OBJETO =====
+        y = draw_section_title('1. OBJETO', y)
+        texto_objeto = ('O presente Aditivo tem por objeto formalizar a entrega adicional de equipamentos, dispositivos e acessórios e demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais.' if eh_aditivo else 'O presente Termo tem por objeto formalizar a entrega, posse e responsabilidade do colaborador quanto ao uso, guarda, conservação e devolução dos equipamentos, dispositivos, acessórios e demais bens de propriedade da empresa.')
+        y = draw_paragraph(texto_objeto, y, font_size=9)
+        y -= 8
 
-    pdf.showPage()
-    pdf.save()
+        # ===== SEÇÃO 2: EQUIPAMENTOS =====
+        y = draw_section_title(('2. ITENS ADICIONAIS ENTREGUES' if eh_aditivo else '2. EQUIPAMENTOS ENTREGUES'), y)
+        texto_eqs = ('Os seguintes itens adicionais foram entregues ao colaborador:' if eh_aditivo else 'Os seguintes itens foram entregues ao colaborador:')
+        y = draw_paragraph(texto_eqs, y, font_size=9)
+        y -= 10
 
-    tamanho = os.path.getsize(caminho)
+        if equipamentos:
+            data = [['Equipamento / Acessório', 'Marca', 'Modelo', 'Estado', 'Entrega']]
+            for eq in equipamentos:
+                data.append([
+                    eq.get('descricao', '')[:24],
+                    eq.get('marca', '')[:14],
+                    eq.get('modelo', '')[:14],
+                    eq.get('estado', '')[:12],
+                    eq.get('data_entrega', '')[:10]
+                ])
+            
+            # Completa com linhas em branco
+            while len(data) < 8:
+                data.append(['', '', '', '', ''])
 
-    usuario_enviador = getattr(current_user, 'username', None) or getattr(current_user, 'name', None) or 'sistema'
+            y = ensure_page(y, 100)
+            
+            # Desenhar tabela manualmente
+            col_widths = [48 * mm, 24 * mm, 24 * mm, 22 * mm, 22 * mm]
+            row_height = 18
+            header_height = 20
+            
+            # Desenhar cabeçalho
+            pdf.setFont('Times-Bold', 9)
+            pdf.setFillColorRGB(0.827, 0.827, 0.827)  # Cor cinza (#d3d3d3)
+            header_y = y
+            
+            pdf.rect(left, header_y - header_height, sum(col_widths), header_height, fill=1, stroke=1)
+            pdf.setFillColorRGB(0, 0, 0)
+            
+            col_x = left
+            for i, header in enumerate(data[0]):
+                pdf.drawCentredString(col_x + col_widths[i] / 2, header_y - 12, header)
+                col_x += col_widths[i]
+            
+            # Desenhar linhas de dados
+            pdf.setFont('Times-Roman', 8)
+            data_y = header_y - header_height
+            
+            for row in data[1:]:
+                col_x = left
+                for col_idx, cell in enumerate(row):
+                    pdf.rect(col_x, data_y - row_height, col_widths[col_idx], row_height, fill=0, stroke=1)
+                    pdf.drawString(col_x + 2, data_y - 10, str(cell))
+                    col_x += col_widths[col_idx]
+                data_y -= row_height
+            
+            y = data_y - 10
+        else:
+            y = draw_paragraph('Nenhum equipamento registrado.', y, font_size=9)
+            y -= 8
 
-    # Criar ou atualizar registro DocumentoUsuario
-    novo_doc = DocumentoUsuario.query.filter_by(
-        id_usuario=usuario.id,
-        nome_documento='Termo de Entrega'
-    ).first()
+        # ===== SEÇÃO 3: CHECKLIST =====
+        y = draw_section_title(('3. CHECKLIST DE ITENS ADICIONAIS' if eh_aditivo else '3. CHECKLIST DE ENTREGA'), y)
+        texto_checklist = 'O colaborador declara ter recebido os seguintes itens:'
+        y = draw_paragraph(texto_checklist, y, font_size=9)
+        
+        if equipamentos:
+            y -= 6
+            for eq in equipamentos[:8]:
+                y = ensure_page(y, 12)
+                pdf.setFont('Times-Roman', 8)
+                pdf.drawString(left + 4, y, f'☐ {eq.get("descricao", "")} - {eq.get("marca", "")}/{eq.get("modelo", "")}')
+                y -= 9
 
-    if not novo_doc:
+        y -= 8
+
+        # ===== SEÇÃO 4: RESPONSABILIDADES =====
+        y = draw_section_title('4. RESPONSABILIDADES DO COLABORADOR', y)
+        responsabilidades = [
+            'I. Zelar pela integridade física e funcional dos equipamentos, utilizando-os com diligência e cuidado, exclusivamente para atividades profissionais.',
+            'II. Utilizar os equipamentos de forma adequada, abstendo-se de práticas que possam ocasionar danos.',
+            'III. Não compartilhar, ceder ou permitir o uso dos equipamentos por terceiros não autorizados.',
+            'IV. Não instalar softwares ou aplicações sem autorização da empresa.',
+            'V. Observar rigorosamente as políticas internas de segurança da informação e proteção de dados.'
+        ]
+        
+        for resp in responsabilidades:
+            y = draw_paragraph(resp, y, font_size=8)
+            y -= 4
+
+        y -= 6
+
+        # ===== SEÇÃO 5: POLÍTICAS =====
+        y = draw_section_title('5. POLÍTICAS DE USO E SEGURANÇA DIGITAL', y)
+        politicas = [
+            'I. Utilizar equipamentos em conformidade com as normas internas da empresa.',
+            'II. Observar as diretrizes relativas à segurança da informação e proteção de dados.',
+            'III. Não copiar, reproduzir ou compartilhar informações corporativas sem autorização.',
+            'IV. Adotar boas práticas de segurança digital, incluindo proteção de senhas e bloqueio de dispositivos.',
+            'V. Não acessar ou armazenar conteúdos impróprios que comprometam a segurança corporativa.'
+        ]
+        
+        for politica in politicas:
+            y = draw_paragraph(politica, y, font_size=8)
+            y -= 4
+
+        y -= 6
+
+        # ===== SEÇÃO 6: DEVOLUÇÃO =====
+        y = draw_section_title('6. CONDIÇÕES DE DEVOLUÇÃO', y)
+        texto_dev = 'Os equipamentos deverão ser devolvidos em condições compatíveis com o uso regular. Constatados danos ou ausência de itens, a empresa procederá à apuração de responsabilidade. Eventual ressarcimento será limitado ao valor de reparo ou reposição do bem.'
+        y = draw_paragraph(texto_dev, y, font_size=8)
+        y -= 6
+
+        # ===== SEÇÃO 7: DESCONTO =====
+        y = draw_section_title('7. AUTORIZAÇÃO DE DESCONTO', y)
+        texto_desc = 'O colaborador autoriza expressamente a empresa a proceder ao desconto em folha de pagamento de valores correspondentes à reparação ou reposição dos equipamentos, limitado ao valor efetivamente apurado para o prejuízo comprovado, conforme artigo 462 da CLT.'
+        y = draw_paragraph(texto_desc, y, font_size=8)
+        y -= 6
+
+        # ===== SEÇÃO 8: VIGÊNCIA =====
+        y = draw_section_title('8. VIGÊNCIA', y)
+        texto_vig = 'O presente Termo entra em vigor na data de sua assinatura e permanecerá válido por prazo indeterminado, enquanto o colaborador estiver de posse de quaisquer equipamentos fornecidos pela empresa.'
+        y = draw_paragraph(texto_vig, y, font_size=8)
+        y -= 6
+
+        # ===== SEÇÃO 9: ASSINATURA ELETRÔNICA =====
+        y = draw_section_title('9. ASSINATURA ELETRÔNICA', y)
+        texto_ass = 'Este documento poderá ser firmado por meio de assinatura eletrônica, em conformidade com a Lei Federal nº 14.063/2020, produzindo efeitos válidos e executáveis conforme legislação vigente.'
+        y = draw_paragraph(texto_ass, y, font_size=8)
+        y -= 6
+
+        # ===== SEÇÃO 10: FORO =====
+        y = draw_section_title('10. FORO', y)
+        texto_foro = 'Para dirimir eventuais dúvidas oriundas deste Termo, as partes elegem o foro da comarca do local da prestação de serviços do colaborador.'
+        y = draw_paragraph(texto_foro, y, font_size=8)
+        y -= 6
+
+        # ===== SEÇÃO 11: DECLARAÇÃO FINAL =====
+        y = draw_section_title('11. DECLARAÇÃO FINAL', y)
+        texto_final = 'O colaborador declara que recebeu os equipamentos em perfeitas condições de uso e funcionamento, após conferência, e concorda integralmente com todas as cláusulas e condições estabelecidas neste Termo.'
+        y = draw_paragraph(texto_final, y, font_size=8)
+        y -= 12
+
+        # ===== ASSINATURAS =====
+        y = ensure_page(y, 100)
+        
+        pdf.setFont('Times-Roman', 9)
+        pdf.drawString(left, y, 'Local e Data: ___________________________________')
+        y -= 20
+
+        # Desenhar tabela de assinaturas manualmente
+        sig_col_widths = [85 * mm, 85 * mm]
+        sig_row_height = 50
+        sig_header_height = 16
+        
+        sig_y = y - 60
+        sig_y = ensure_page(sig_y, 100)
+        
+        # Desenhar cabeçalho
+        pdf.setFont('Times-Bold', 9)
+        pdf.setFillColorRGB(1, 1, 1)  # Branco
+        header_y = sig_y
+        
+        pdf.rect(left + 5, header_y - sig_header_height, sum(sig_col_widths), sig_header_height, fill=1, stroke=1)
+        pdf.setFillColorRGB(0, 0, 0)
+        
+        col_x = left + 5
+        for i, header in enumerate(['Colaborador / Terceiro', 'Empresa']):
+            pdf.drawCentredString(col_x + sig_col_widths[i] / 2, header_y - 10, header)
+            col_x += sig_col_widths[i]
+        
+        # Desenhar linha de assinatura
+        pdf.setFont('Times-Roman', 9)
+        data_y = header_y - sig_header_height
+        
+        col_x = left + 5
+        for width in sig_col_widths:
+            pdf.rect(col_x, data_y - sig_row_height, width, sig_row_height, fill=0, stroke=1)
+            pdf.drawCentredString(col_x + width / 2, data_y - (sig_row_height - 10), '_______________________')
+            col_x += width
+
+        pdf.save()
+
+        tamanho = os.path.getsize(caminho)
+        usuario_enviador = getattr(current_user, 'username', None) or 'sistema'
+
+        if termo and not termo.assinado:
+            termo.assinado = True
+            termo.data_assinatura = datetime.now(timezone(timedelta(hours=-3)))
+            db.session.commit()
+
         novo_doc = DocumentoUsuario(
             id_usuario=usuario.id,
-            nome_documento='Termo de Entrega',
+            nome_documento=nome_doc,
             arquivo=nome_arquivo,
             tipo_arquivo='pdf',
             tamanho_arquivo=tamanho,
             usuario_enviador=usuario_enviador,
-            descricao='Termo de Entrega gerado automaticamente'
+            descricao=descricao_doc
         )
         db.session.add(novo_doc)
-    else:
-        novo_doc.arquivo = nome_arquivo
-        novo_doc.tipo_arquivo = 'pdf'
-        novo_doc.tamanho_arquivo = tamanho
-        novo_doc.usuario_enviador = usuario_enviador
-        novo_doc.descricao = 'Termo de Entrega gerado automaticamente'
+        db.session.commit()
 
-    db.session.commit()
+        itens_existentes = ItemRecebido.query.filter_by(id_usuario=user_id).count()
+        tipo_recebimento = 'posteriormente' if itens_existentes > 0 else 'entrada'
+        
+        for eq in equipamentos:
+            descricao = f"{eq.get('descricao', '')} ({eq.get('marca', '')}/{eq.get('modelo', '')})"
+            item_existe = ItemRecebido.query.filter_by(
+                id_usuario=user_id,
+                descricao_item=descricao
+            ).first()
 
-    return jsonify({'success': True, 'message': 'Termo exportado e salvo nos documentos do usuário.', 'documento_id': novo_doc.id_documento})
+            if not item_existe:
+                novo_item = ItemRecebido(
+                    id_usuario=user_id,
+                    descricao_item=descricao,
+                    tipo_recebimento=tipo_recebimento,
+                    usuario_responsavel=usuario_enviador
+                )
+                db.session.add(novo_item)
+
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='termo_entrega_gerado' if not eh_aditivo else 'aditivo_termo_gerado',
+            descricao=f'{"Termo de Entrega" if not eh_aditivo else f"Aditivo #{numero_aditivo}"} do usuário "{usuario.username}" foi gerado',
+            usuario_responsavel=current_user.username
+        )
+
+        mensagem = f'{"Termo" if not eh_aditivo else "Aditivo"} completo exportado e salvo nos documentos do usuário.'
+        return jsonify({'success': True, 'message': mensagem, 'documento_id': novo_doc.id_documento})
+        
+    except Exception as e:
+        import traceback
+        erro_details = traceback.format_exc()
+        registrar_evento(
+            tipo_evento='erro_geracao_pdf',
+            descricao=f'Erro ao gerar PDF para usuário {user_id}: {str(e)}',
+            usuario_responsavel=current_user.username if current_user.is_authenticated else 'sistema'
+        )
+        return jsonify({'success': False, 'message': f'Erro ao gerar PDF: {str(e)}'}), 500

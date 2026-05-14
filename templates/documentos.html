@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% set active_page = 'documentos' %}
+
+{% block title %}Documentos Empresariais{% endblock %}
+{% block page_heading %}Documentos{% endblock %}
+{% block page_subtitle %}Armazene e organize documentos empresariais com segurança.{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Novo Documento</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.upload_documento') }}" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label for="nome_documento" class="form-label">Nome do documento</label>
+                            <input type="text" id="nome_documento" name="nome_documento" class="form-control" required maxlength="255" placeholder="Ex.: Contrato de Fornecedor 2026">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição (opcional)</label>
+                            <textarea id="descricao" name="descricao" class="form-control" rows="3" maxlength="1000" placeholder="Detalhes úteis para identificação do arquivo"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="arquivo" class="form-label">Arquivo</label>
+                            <input type="file" id="arquivo" name="arquivo" class="form-control" required>
+                            <div class="form-text">
+                                Permitidos: {{ allowed_extensions|join(', ') }}.<br>
+                                Tamanho máximo: {{ max_upload_mb }}MB.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>Guardar Documento
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-folder-open me-2 text-primary"></i>Documentos Salvos</h5>
+                    <span class="badge bg-secondary">{{ documentos|length }} documento(s)</span>
+                </div>
+                <div class="card-body">
+                    {% if documentos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Enviado por</th>
+                                        <th>Data</th>
+                                        <th>Tamanho</th>
+                                        <th class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documentos %}
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">{{ doc.nome_documento }}</div>
+                                                <small class="text-muted">.{{ doc.tipo_arquivo }}{% if doc.descricao %} • {{ doc.descricao }}{% endif %}</small>
+                                            </td>
+                                            <td>{{ doc.usuario_enviador }}</td>
+                                            <td>{{ doc.data_criacao.strftime('%d/%m/%Y %H:%M') if doc.data_criacao else '-' }}</td>
+                                            <td>
+                                                {% if doc.tamanho_arquivo < 1024 %}
+                                                    {{ doc.tamanho_arquivo }} B
+                                                {% elif doc.tamanho_arquivo < 1024 * 1024 %}
+                                                    {{ '%.2f'|format(doc.tamanho_arquivo / 1024) }} KB
+                                                {% else %}
+                                                    {{ '%.2f'|format(doc.tamanho_arquivo / (1024 * 1024)) }} MB
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.download_documento', documento_id=doc.id_documento) }}">
+                                                        <i class="fas fa-download me-1"></i>Baixar
+                                                    </a>
+                                                    <form method="POST" action="{{ url_for('main.excluir_documento', documento_id=doc.id_documento) }}" onsubmit="return confirm('Deseja realmente excluir este documento?');">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash-alt me-1"></i>Excluir
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0" role="alert">
+                            Nenhum documento empresarial foi guardado ainda.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -56,10 +56,18 @@
                     <i class="fas fa-users"></i>
                     <span>Usuários</span>
                 </a>
+                <a class="sidebar-link {% if active_page == 'documentos' %}active{% endif %}" href="{{ url_for('main.documentos') }}">
+                    <i class="fas fa-folder-open"></i>
+                    <span>Documentos</span>
+                </a>
                 {% else %}
                 <a class="sidebar-link {% if active_page == 'chamadas' %}active{% endif %}" href="{{ url_for('main.index', section='chamadas') }}" onclick="navigateToSection('chamadas', '{{ url_for('main.index') }}'); return false;">
                     <i class="fas fa-bell"></i>
                     <span>Chamados</span>
+                </a>
+                <a class="sidebar-link {% if active_page == 'documentos' %}active{% endif %}" href="{{ url_for('main.documentos') }}">
+                    <i class="fas fa-folder-open"></i>
+                    <span>Documentos</span>
                 </a>
                 {% endif %}
                 <a class="sidebar-link {% if active_page == 'perfil' %}active{% endif %}" href="{{ url_for('auth.perfil') }}">

@@ -435,6 +435,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="btnCriarRelatorioItens">
+                        <i class="fas fa-file-pdf"></i> Criar Relatório
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
@@ -501,6 +504,15 @@
             });
         });
 
+        document.getElementById('btnCriarRelatorioItens').addEventListener('click', function() {
+            if (!usuarioSelecionadoItens) {
+                alert('Selecione um usuário primeiro.');
+                return;
+            }
+
+            window.open(`/admin/usuarios/${usuarioSelecionadoItens}/itens-recebidos/relatorio`, '_blank');
+        });
+
         document.querySelectorAll('.btn-documentos').forEach(btn => {
             btn.addEventListener('click', async function() {
                 usuarioSelecionadoDocumentos = this.dataset.userId;
@@ -524,6 +536,7 @@
 
                 let html = '';
 
+
                 // Itens recebidos na entrada
                 html += '<h6 class="mt-4 mb-3"><i class="fas fa-sign-in-alt text-primary"></i> Itens Recebidos na Entrada</h6>';
                 if (data.itens_entrada.length > 0) {
@@ -536,9 +549,6 @@
                                     <small class="text-muted">${item.data_criacao}</small>
                                 </div>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-warning btn-editar-item" data-item-id="${item.id}" data-tipo="${item.tipo_recebimento}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-item" data-item-id="${item.id}">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -563,9 +573,6 @@
                                     <small class="text-muted">${item.data_criacao}</small>
                                 </div>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-warning btn-editar-item" data-item-id="${item.id}" data-tipo="${item.tipo_recebimento}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-item" data-item-id="${item.id}">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -578,26 +585,6 @@
                     html += '<p class="text-muted">Nenhum item nesta categoria.</p>';
                 }
 
-                // Seção para adicionar novo item
-                html += `
-                    <hr class="my-4">
-                    <h6 class="mb-3"><i class="fas fa-plus"></i> Adicionar Novo Item</h6>
-                    <div class="mb-3">
-                        <label for="novoItemDescricao" class="form-label">Descrição do Item</label>
-                        <input type="text" class="form-control" id="novoItemDescricao" placeholder="Ex: Notebook Dell">
-                    </div>
-                    <div class="mb-3">
-                        <label for="novoItemTipo" class="form-label">Tipo de Recebimento</label>
-                        <select class="form-select" id="novoItemTipo">
-                            <option value="entrada">Recebido na Entrada</option>
-                            <option value="posteriormente">Recebido Posteriormente</option>
-                        </select>
-                    </div>
-                    <button type="button" class="btn btn-success btn-sm" id="btnAdicionarItem">
-                        <i class="fas fa-save"></i> Adicionar Item
-                    </button>
-                `;
-
                 document.getElementById('modalItensBody').innerHTML = html;
 
                 // Attach event listeners
@@ -609,8 +596,6 @@
                         }
                     });
                 });
-
-                document.getElementById('btnAdicionarItem').addEventListener('click', adicionarNovoItem);
             } catch (error) {
                 console.error('Erro:', error);
                 document.getElementById('modalItensBody').innerHTML = `<div class="alert alert-danger">Erro ao carregar itens: ${error.message}</div>`;
@@ -720,44 +705,6 @@
             }
             document.getElementById('previewDocumentoBody').innerHTML = '';
         });
-
-        async function adicionarNovoItem() {
-            const descricao = document.getElementById('novoItemDescricao').value.trim();
-            const tipo = document.getElementById('novoItemTipo').value;
-
-            if (!descricao) {
-                alert('Por favor, preencha a descrição do item.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('descricao', descricao);
-            formData.append('tipo', tipo);
-
-            try {
-                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoItens}/itens-recebidos/adicionar`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken()
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Limpar campos
-                    document.getElementById('novoItemDescricao').value = '';
-                    // Recarregar lista
-                    await carregarItensRecebidos(usuarioSelecionadoItens);
-                } else {
-                    alert('Erro: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao adicionar item: ' + error.message);
-            }
-        }
 
         async function deletarItem(itemId) {
             try {
@@ -977,7 +924,10 @@
                         <i class="fas fa-file-pdf"></i> Exportar PDF
                     </button>
                     <button type="button" class="btn btn-warning" id="btnSalvarTermo" style="display: none;">
-                        <i class="fas fa-save"></i> Salvar Alterações
+                        <i class="fas fa-file-signature"></i> Gerar Termo
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnGerarAditivo" style="display: none;">
+                        <i class="fas fa-file-invoice"></i> Gerar Aditivo
                     </button>
                 </div>
             </div>
@@ -1121,6 +1071,20 @@
                 document.getElementById('modalTermoBody').innerHTML = html;
                 document.getElementById('btnSalvarTermo').style.display = 'inline-block';
 
+                // Desabilitar campos se termo já foi assinado
+                const estaAssinado = termo.assinado;
+                if (estaAssinado) {
+                    document.querySelectorAll('#modalTermoBody input, #modalTermoBody textarea').forEach(el => {
+                        el.disabled = true;
+                    });
+                    document.getElementById('btnAdicionarEquipamento').disabled = false;
+                    document.getElementById('btnAdicionarEquipamento').title = 'Adicionar equipamento criará um aditivo ao termo';
+                    document.getElementById('btnSalvarTermo').style.display = 'none';
+                    document.getElementById('btnGerarAditivo').style.display = 'inline-block';
+                } else {
+                    document.getElementById('btnGerarAditivo').style.display = 'none';
+                }
+
                 // Event listeners
                 document.getElementById('btnAdicionarEquipamento').addEventListener('click', abrirFormularioEquipamento);
                 
@@ -1133,8 +1097,9 @@
                     });
                 });
 
-                document.getElementById('btnSalvarTermo').addEventListener('click', salvarTermo);
-                document.getElementById('btnExportarTermo').addEventListener('click', exportarTermo);
+                document.getElementById('btnSalvarTermo').onclick = gerarTermo;
+                document.getElementById('btnGerarAditivo').onclick = gerarAditivo;
+                document.getElementById('btnExportarTermo').onclick = exportarTermo;
 
             } catch (error) {
                 console.error('Erro:', error);
@@ -1165,10 +1130,8 @@
                             <div class="col-md-6">
                                 <label for="eqEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="eqEstado">
-                                    <option value="Bom">Bom</option>
-                                    <option value="Aceitável">Aceitável</option>
-                                    <option value="Ruim">Ruim</option>
-                                    <option value="Necessita Reparo">Necessita Reparo</option>
+                                    <option value="Novo">Novo</option>
+                                    <option value="Recondicionado">Recondicionado</option>
                                 </select>
                             </div>
                         </div>
@@ -1220,6 +1183,11 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    if (data.criar_aditivo) {
+                        alert('✓ Equipamento adicionado!\n\n⚠️ ' + data.message);
+                    } else {
+                        alert('✓ Equipamento adicionado!');
+                    }
                     await carregarTermo(usuarioSelecionadoTermo);
                 } else {
                     alert('Erro: ' + data.message);
@@ -1249,35 +1217,85 @@
             }
         }
 
-        async function salvarTermo() {
+        function setButtonLoading(button, isLoading, loadingText) {
+            if (!button) return;
+
+            if (!button.dataset.originalHtml) {
+                button.dataset.originalHtml = button.innerHTML;
+            }
+
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${loadingText}`;
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalHtml;
+            }
+        }
+
+        function setTermoLoading(isLoading, action = 'gerar') {
+            const btnGerar = document.getElementById('btnSalvarTermo');
+            const btnExportar = document.getElementById('btnExportarTermo');
+            const btnFechar = document.querySelector('#termoEntregaModal [data-bs-dismiss="modal"]');
+
+            if (action === 'exportar') {
+                setButtonLoading(btnExportar, isLoading, 'Exportando...');
+                if (btnGerar) btnGerar.disabled = isLoading;
+            } else {
+                setButtonLoading(btnGerar, isLoading, 'Gerando...');
+                if (btnExportar) btnExportar.disabled = isLoading;
+            }
+
+            if (btnFechar) {
+                btnFechar.disabled = isLoading;
+            }
+        }
+
+        async function gerarTermo() {
             const formData = new FormData();
             formData.append('empresa', document.getElementById('termoEmpresa').value);
             formData.append('cnpj', document.getElementById('termoCNPJ').value);
             formData.append('endereco', document.getElementById('termoEndereco').value);
+            formData.append('cpf_cnpj', document.getElementById('termoCPF').value);
             formData.append('cargo_funcao', document.getElementById('termoCargo').value);
             formData.append('departamento', document.getElementById('termoDepartamento').value);
             formData.append('local_trabalho', document.getElementById('termoLocal').value);
+            formData.append('data_admissao', document.getElementById('termoDataAdmissao').value);
             formData.append('observacoes', document.getElementById('termoObservacoes').value);
 
             try {
-                const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/atualizar`, {
+                setTermoLoading(true, 'gerar');
+                const salvarResponse = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/atualizar`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCsrfToken()
                     },
                     body: formData
                 });
-                const data = await response.json();
+                const salvarData = await salvarResponse.json();
 
-                if (data.success) {
-                    alert('Termo salvo com sucesso!');
-                    await exportarTermoSilencioso();
+                if (salvarData.success) {
+                    const exportacao = await exportarTermoSilencioso();
+                    if (!exportacao.success) {
+                        alert('Termo salvo, mas houve erro ao gerar PDF: ' + (exportacao.message || 'Erro desconhecido'));
+                        return;
+                    }
+
+                    alert('Termo gerado com sucesso e salvo nos Documentos do usuário.');
                     await carregarTermo(usuarioSelecionadoTermo);
+                    setTimeout(() => window.location.reload(), 900);
                 } else {
-                    alert('Erro ao salvar: ' + data.message);
+                    if (salvarData.termo_assinado) {
+                        alert('⚠️ ' + salvarData.message + '\n\nOs novos equipamentos criarão um ADITIVO ao termo original.');
+                        await carregarTermo(usuarioSelecionadoTermo);
+                    } else {
+                        alert('Erro ao salvar informações do termo: ' + salvarData.message);
+                    }
                 }
             } catch (error) {
-                alert('Erro ao salvar termo: ' + error.message);
+                alert('Erro ao gerar termo: ' + error.message);
+            } finally {
+                setTermoLoading(false, 'gerar');
             }
         }
 
@@ -1296,13 +1314,38 @@
             }
         }
 
+        async function gerarAditivo() {
+            // Gerar aditivo sem tentar editar campos
+            try {
+                setTermoLoading(true, 'exportar');
+                const exportacao = await exportarTermoSilencioso();
+                
+                if (exportacao.success) {
+                    alert('✓ Aditivo gerado com sucesso e salvo nos Documentos do usuário.');
+                    await carregarTermo(usuarioSelecionadoTermo);
+                    setTimeout(() => window.location.reload(), 900);
+                } else {
+                    alert('Erro ao gerar aditivo: ' + (exportacao.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                alert('Erro ao gerar aditivo: ' + error.message);
+            } finally {
+                setTermoLoading(false, 'exportar');
+            }
+        }
+
         async function exportarTermo() {
-            const data = await exportarTermoSilencioso();
-            if (data.success) {
-                alert('Documento exportado e salvo nos Documentos do usuário.');
-                setTimeout(() => window.location.reload(), 900);
-            } else {
-                alert('Erro ao exportar: ' + (data.message || 'Erro desconhecido'));
+            try {
+                setTermoLoading(true, 'exportar');
+                const data = await exportarTermoSilencioso();
+                if (data.success) {
+                    alert('Documento exportado e salvo nos Documentos do usuário.');
+                    setTimeout(() => window.location.reload(), 900);
+                } else {
+                    alert('Erro ao exportar: ' + (data.message || 'Erro desconhecido'));
+                }
+            } finally {
+                setTermoLoading(false, 'exportar');
             }
         }
     </script>
