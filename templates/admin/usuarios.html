@@ -956,6 +956,15 @@
 
                 if (!data.success) {
                     document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-warning">Nenhum termo encontrado. Será criado ao atualizar.</div>`;
+                    const btnSalvarTermo = document.getElementById('btnSalvarTermo');
+                    const btnGerarAditivo = document.getElementById('btnGerarAditivo');
+                    if (btnSalvarTermo) {
+                        btnSalvarTermo.style.display = 'inline-block';
+                        btnSalvarTermo.innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
+                    }
+                    if (btnGerarAditivo) {
+                        btnGerarAditivo.style.display = 'none';
+                    }
                     return;
                 }
 
@@ -1042,6 +1051,11 @@
                                                     ${eq.modelo ? '| Modelo: ' + eq.modelo : ''}
                                                     ${eq.estado ? '| Estado: ' + eq.estado : ''}
                                                 </small>
+                                                ${eq.fotos && eq.fotos.length ? `
+                                                    <div class="mt-2">
+                                                        ${eq.fotos.map(f => `<img src="/static/uploads/termos/${f}" style="max-height:60px; margin-right:6px; border:1px solid #ddd; padding:2px;"/>`).join('')}
+                                                    </div>
+                                                ` : ''}
                                             </div>
                                             <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-equipamento" data-eq-id="${eq.id}">
                                                 <i class="fas fa-trash"></i>
@@ -1062,26 +1076,30 @@
                         </div>
                     </div>
 
-                    <div class="alert ${termo.assinado ? 'alert-success' : 'alert-info'}" role="alert">
-                        <i class="fas ${termo.assinado ? 'fa-check-circle' : 'fa-info-circle'}"></i>
-                        <strong>Status:</strong> ${termo.assinado ? `Assinado em ${termo.data_assinatura}` : 'Não assinado'}
+                    <div class="alert ${termo.tem_termo_gerado ? 'alert-success' : 'alert-info'}" role="alert">
+                        <i class="fas ${termo.tem_termo_gerado ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+                        <strong>Status:</strong> ${termo.tem_termo_gerado ? 'Termo já gerado' : 'Ainda não existe termo gerado'}
                     </div>
                 `;
 
                 document.getElementById('modalTermoBody').innerHTML = html;
                 document.getElementById('btnSalvarTermo').style.display = 'inline-block';
 
-                // Desabilitar campos se termo já foi assinado
-                const estaAssinado = termo.assinado;
-                if (estaAssinado) {
+                // Desabilitar campos se o termo já foi gerado
+                const temTermoGerado = !!termo.tem_termo_gerado;
+                if (temTermoGerado) {
                     document.querySelectorAll('#modalTermoBody input, #modalTermoBody textarea').forEach(el => {
                         el.disabled = true;
                     });
                     document.getElementById('btnAdicionarEquipamento').disabled = false;
                     document.getElementById('btnAdicionarEquipamento').title = 'Adicionar equipamento criará um aditivo ao termo';
                     document.getElementById('btnSalvarTermo').style.display = 'none';
+                    document.getElementById('btnSalvarTermo').innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
                     document.getElementById('btnGerarAditivo').style.display = 'inline-block';
+                    document.getElementById('btnGerarAditivo').innerHTML = '<i class="fas fa-file-invoice"></i> Gerar Aditivo';
                 } else {
+                    document.getElementById('btnSalvarTermo').style.display = 'inline-block';
+                    document.getElementById('btnSalvarTermo').innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
                     document.getElementById('btnGerarAditivo').style.display = 'none';
                 }
 
@@ -1131,8 +1149,17 @@
                                 <label for="eqEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="eqEstado">
                                     <option value="Novo">Novo</option>
-                                    <option value="Recondicionado">Recondicionado</option>
+                                    <option value="Seminovo">Seminovo</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3" id="eqFotosRow" style="display:none;">
+                            <div class="col-12">
+                                <label class="form-label">Fotos (apenas para itens "Seminovo")</label>
+                                <div id="eqFotosContainer">
+                                    <!-- file inputs with name="fotos" will be appended here dynamically -->
+                                </div>
+                                <small class="form-text text-muted">Após escolher uma foto, um novo campo será exibido para adicionar outra.</small>
                             </div>
                         </div>
                         <div class="btn-group" role="group">
@@ -1153,6 +1180,41 @@
             document.getElementById('btnCancelarEquipamento').addEventListener('click', () => {
                 document.getElementById('formEquipamento').remove();
             });
+            // show/hide fotos field based on estado
+            const eqEstadoEl = document.getElementById('eqEstado');
+            const fotosRow = document.getElementById('eqFotosRow');
+            const fotosContainer = document.getElementById('eqFotosContainer');
+
+            function ensureFileInputIfNeeded() {
+                if (eqEstadoEl.value === 'Seminovo') {
+                    fotosRow.style.display = 'block';
+                    if (!fotosContainer.querySelector('input[name="fotos"]')) {
+                        addFileInput();
+                    }
+                } else {
+                    fotosRow.style.display = 'none';
+                }
+            }
+
+            eqEstadoEl.addEventListener('change', ensureFileInputIfNeeded);
+            ensureFileInputIfNeeded();
+
+            function addFileInput() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.name = 'fotos';
+                input.accept = 'image/*';
+                input.className = 'form-control mb-2';
+                input.addEventListener('change', function() {
+                    // when a file is chosen, append another empty input to allow more
+                    if (this.files && this.files.length > 0) {
+                        // only add another if there isn't an empty one
+                        const empty = Array.from(fotosContainer.querySelectorAll('input[name="fotos"]')).some(i => !i.files || i.files.length === 0);
+                        if (!empty) addFileInput();
+                    }
+                });
+                fotosContainer.appendChild(input);
+            }
         }
 
         async function adicionarEquipamento() {
@@ -1172,6 +1234,16 @@
             formData.append('modelo', modelo);
             formData.append('estado', estado);
 
+            // append fotos if present (inputs named 'fotos')
+            const fotoInputs = document.querySelectorAll('#eqFotosContainer input[name="fotos"]');
+            if (fotoInputs && fotoInputs.length) {
+                fotoInputs.forEach(inp => {
+                    if (inp.files && inp.files.length > 0) {
+                        formData.append('fotos', inp.files[0]);
+                    }
+                });
+            }
+
             try {
                 const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/equipamentos/adicionar`, {
                     method: 'POST',
@@ -1180,7 +1252,15 @@
                     },
                     body: formData
                 });
-                const data = await response.json();
+                const contentType = response.headers.get('content-type') || '';
+                let data = null;
+
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const responseText = await response.text();
+                    throw new Error(responseText || 'Resposta inválida do servidor.');
+                }
 
                 if (data.success) {
                     if (data.criar_aditivo) {
@@ -1285,7 +1365,7 @@
                     await carregarTermo(usuarioSelecionadoTermo);
                     setTimeout(() => window.location.reload(), 900);
                 } else {
-                    if (salvarData.termo_assinado) {
+                    if (salvarData.termo_gerado) {
                         alert('⚠️ ' + salvarData.message + '\n\nOs novos equipamentos criarão um ADITIVO ao termo original.');
                         await carregarTermo(usuarioSelecionadoTermo);
                     } else {

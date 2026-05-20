@@ -9,6 +9,8 @@ from app.models import User, Historico, DocumentoUsuario, ItemRecebido, TermoEnt
 from app.auth import require_role, require_permission
 from app.auth.security import PasswordValidator, validate_username
 from app.utils import registrar_evento
+from werkzeug.utils import secure_filename
+from uuid import uuid4
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -796,6 +798,11 @@ def listar_termo_entrega(user_id):
     """Recuperar Termo de Entrega e Responsabilidade de um usuário"""
     usuario = User.query.get_or_404(user_id)
     termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
+    termo_documento = DocumentoUsuario.query.filter_by(
+        id_usuario=user_id,
+        nome_documento='Termo de Entrega'
+    ).first()
+    tem_termo_gerado = termo_documento is not None
 
     # If termo doesn't exist, return an empty termo structure (modal will allow creating/updating)
     if not termo:
@@ -817,7 +824,8 @@ def listar_termo_entrega(user_id):
             'data_atualizacao': None,
             'assinado': False,
             'data_assinatura': None,
-            'observacoes': ''
+            'observacoes': '',
+            'tem_termo_gerado': tem_termo_gerado
         }
 
         return jsonify({
@@ -828,6 +836,7 @@ def listar_termo_entrega(user_id):
     termo_data = termo.to_dict()
     # Campo de input type="date" precisa de formato YYYY-MM-DD.
     termo_data['data_admissao'] = termo.data_admissao.strftime("%Y-%m-%d") if termo.data_admissao else ''
+    termo_data['tem_termo_gerado'] = tem_termo_gerado
 
     return jsonify({
         'success': True,
@@ -857,13 +866,11 @@ def atualizar_termo_entrega(user_id):
         )
         db.session.add(termo)
     
-    # Verificar se termo já foi gerado/assinado - se sim, não permite mais edição
-    if termo.assinado:
-        return jsonify({
-            'success': False,
-            'message': 'Termo já foi gerado e assinado. Não é possível fazer alterações. Novos equipamentos criarão um ADITIVO ao termo.',
-            'termo_assinado': True
-        }), 400
+    # Note: allow updating termo fields even if a Termo document exists.
+    termo_documento = DocumentoUsuario.query.filter_by(
+        id_usuario=user_id,
+        nome_documento='Termo de Entrega'
+    ).first()
 
     # Atualizar informações do termo
     termo.empresa = request.form.get('empresa', termo.empresa or '').strip()
@@ -909,6 +916,10 @@ def adicionar_equipamento_termo(user_id):
     """Adicionar equipamento ao Termo de Entrega (ou criar aditivo se termo já foi assinado)"""
     usuario = User.query.get_or_404(user_id)
     termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
+    termo_documento = DocumentoUsuario.query.filter_by(
+        id_usuario=user_id,
+        nome_documento='Termo de Entrega'
+    ).first()
 
     # If termo does not exist, create it so we can add equipment
     if not termo:
@@ -939,24 +950,54 @@ def adicionar_equipamento_termo(user_id):
 
     # Carregar equipamentos existentes
     equipamentos = json.loads(termo.equipamentos) if termo.equipamentos else []
+    ids_existentes = [eq.get('id') for eq in equipamentos if isinstance(eq, dict) and isinstance(eq.get('id'), int)]
+    proximo_id = max(ids_existentes, default=0) + 1
 
     # Adicionar novo equipamento
     novo_equipamento = {
-        'id': (equipamentos[-1]['id'] + 1) if equipamentos else 1,
+        'id': proximo_id,
         'descricao': descricao,
         'marca': marca,
         'modelo': modelo,
         'estado': estado,
         'data_entrega': datetime.now(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y")
     }
+
+    # Marcar o item como termo ou aditivo para a geração correta do PDF
+    novo_equipamento['tipo_documento'] = 'aditivo' if termo_documento else 'termo'
+    novo_equipamento['data_registro'] = datetime.now(timezone(timedelta(hours=-3))).isoformat()
+
+    # Salvar fotos (se houver) em static/uploads/termos
+    saved_fotos = []
+    try:
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'termos')
+        os.makedirs(upload_folder, exist_ok=True)
+        arquivos = request.files.getlist('fotos') if 'fotos' in request.files else []
+        for arquivo in arquivos:
+            if arquivo and arquivo.filename:
+                filename = secure_filename(arquivo.filename)
+                unique_name = f"{int(datetime.now(timezone(timedelta(hours=-3))).timestamp())}_{uuid4().hex}_{filename}"
+                arquivo.save(os.path.join(upload_folder, unique_name))
+                saved_fotos.append(unique_name)
+    except Exception as e:
+        # não bloquear a criação do equipamento por erro no upload; registrar evento
+        registrar_evento(
+            tipo_evento='erro_upload_foto_termo',
+            descricao=f'Erro ao salvar foto do termo para usuário "{usuario.username}": {str(e)}',
+            usuario_responsavel=current_user.username
+        )
+
+    if saved_fotos:
+        novo_equipamento['fotos'] = saved_fotos
+
     equipamentos.append(novo_equipamento)
 
     # Salvar equipamentos atualizados
     termo.equipamentos = json.dumps(equipamentos)
     db.session.commit()
 
-    # Se termo já foi assinado, avisar que criará aditivo na próxima geração
-    criar_aditivo = termo.assinado
+    # Se termo já foi gerado, avisar que criará aditivo na próxima geração
+    criar_aditivo = termo_documento is not None
 
     registrar_evento(
         tipo_evento='equipamento_adicionado_termo',
@@ -1018,42 +1059,13 @@ def deletar_equipamento_termo(user_id, eq_id):
 
 @admin_bp.route('/usuarios/<int:user_id>/termo-entrega/assinar', methods=['POST'])
 def assinar_termo_entrega(user_id):
-    """Marcar Termo de Entrega como assinado"""
+    """Rota descontinuada: a geração agora depende apenas do documento salvo."""
     usuario = User.query.get_or_404(user_id)
     termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
-    from datetime import datetime, timezone, timedelta
-
-    # If termo doesn't exist, create it and mark signed
-    if not termo:
-        termo = TermoEntrega(
-            id_usuario=user_id,
-            empresa=usuario.empresa or '',
-            cnpj=usuario.cnpj or '',
-            endereco=usuario.endereco or '',
-            nome_colaborador=usuario.username,
-            cargo_funcao=usuario.cargo or '',
-            cpf_cnpj=usuario.cpf or '',
-            departamento=usuario.departamento or '',
-            local_trabalho=usuario.local_trabalho or '',
-            data_admissao=usuario.data_admissao
-        )
-        db.session.add(termo)
-
-    termo.assinado = True
-    termo.data_assinatura = datetime.now(timezone(timedelta(hours=-3)))
-    db.session.commit()
-
-    registrar_evento(
-        tipo_evento='termo_entrega_assinado',
-        descricao=f'Termo de Entrega do usuário "{usuario.username}" foi assinado',
-        usuario_responsavel=current_user.username
-    )
-
     return jsonify({
-        'success': True,
-        'message': 'Termo marcado como assinado com sucesso!',
-        'termo': termo.to_dict()
+        'success': False,
+        'message': 'A assinatura foi removida do fluxo. Use a geração do Termo ou do Aditivo conforme o documento salvo.'
     })
 
 
@@ -1078,9 +1090,14 @@ def exportar_termo_pdf(user_id):
         pasta = os.path.abspath(os.path.join(current_app.root_path, '..', 'static', 'uploads', 'documentos'))
         os.makedirs(pasta, exist_ok=True)
 
-        eh_aditivo = termo.assinado
+        termo_documento = DocumentoUsuario.query.filter_by(
+            id_usuario=user_id,
+            nome_documento='Termo de Entrega'
+        ).first()
+
+        eh_aditivo = termo_documento is not None
         numero_aditivo = 0
-        
+
         if eh_aditivo:
             aditivos_existentes = DocumentoUsuario.query.filter(
                 DocumentoUsuario.id_usuario == user_id,
@@ -1097,28 +1114,34 @@ def exportar_termo_pdf(user_id):
 
         caminho = os.path.join(pasta, nome_arquivo)
 
-        # Gerar PDF usando TermoService
-        TermoService.gerar_pdf(user_id, caminho)
+        # Gerar PDF usando TermoService (passa flag se é aditivo)
+        TermoService.gerar_pdf(user_id, caminho, eh_aditivo)
 
         tamanho = os.path.getsize(caminho)
         usuario_enviador = getattr(current_user, 'username', None) or 'sistema'
 
-        if termo and not termo.assinado:
-            termo.assinado = True
-            termo.data_assinatura = datetime.now(timezone(timedelta(hours=-3)))
+        # If regenerating the base Termo (not an aditivo) and a Termo document already exists,
+        # overwrite the existing document record instead of creating a duplicate.
+        if not eh_aditivo and termo_documento:
+            termo_documento.arquivo = nome_arquivo
+            termo_documento.tipo_arquivo = 'pdf'
+            termo_documento.tamanho_arquivo = tamanho
+            termo_documento.usuario_enviador = usuario_enviador
+            termo_documento.descricao = descricao_doc
             db.session.commit()
-
-        novo_doc = DocumentoUsuario(
-            id_usuario=usuario.id,
-            nome_documento=nome_doc,
-            arquivo=nome_arquivo,
-            tipo_arquivo='pdf',
-            tamanho_arquivo=tamanho,
-            usuario_enviador=usuario_enviador,
-            descricao=descricao_doc
-        )
-        db.session.add(novo_doc)
-        db.session.commit()
+            novo_doc = termo_documento
+        else:
+            novo_doc = DocumentoUsuario(
+                id_usuario=usuario.id,
+                nome_documento=nome_doc,
+                arquivo=nome_arquivo,
+                tipo_arquivo='pdf',
+                tamanho_arquivo=tamanho,
+                usuario_enviador=usuario_enviador,
+                descricao=descricao_doc
+            )
+            db.session.add(novo_doc)
+            db.session.commit()
 
         equipamentos = []
         if termo.equipamentos:
@@ -1126,6 +1149,17 @@ def exportar_termo_pdf(user_id):
                 equipamentos = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
             except:
                 equipamentos = []
+
+        if eh_aditivo:
+            equipamentos_aditivo = [
+                eq for eq in equipamentos
+                if eq.get('tipo_documento') == 'aditivo'
+            ]
+            # Compatibilidade com registros antigos: se ainda não existir marcação,
+            # mantém o comportamento anterior apenas quando não houver itens marcados.
+            if not equipamentos_aditivo and not any('tipo_documento' in eq for eq in equipamentos):
+                equipamentos_aditivo = equipamentos
+            equipamentos = equipamentos_aditivo
 
         itens_existentes = ItemRecebido.query.filter_by(id_usuario=user_id).count()
         tipo_recebimento = 'posteriormente' if itens_existentes > 0 else 'entrada'

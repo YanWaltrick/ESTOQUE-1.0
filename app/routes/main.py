@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from app import estoque
 from app.database import db
-from app.models import DocumentoUsuario
+from app.models import DocumentoUsuario, TermoEntrega
 from app.utils import registrar_evento
 
 main_bp = Blueprint('main', __name__)
@@ -170,6 +170,7 @@ def excluir_documento(documento_id):
             os.remove(caminho_arquivo)
 
         nome_documento = documento.nome_documento
+
         db.session.delete(documento)
         db.session.commit()
 

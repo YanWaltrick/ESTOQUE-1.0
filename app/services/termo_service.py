@@ -2,6 +2,8 @@ import json
 from io import BytesIO
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.platypus import Image as RLImage
+from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
@@ -12,11 +14,14 @@ from reportlab.platypus.tables import Table
 from reportlab.lib.units import cm
 
 from app.models import TermoEntrega, User
+from flask import current_app
+import os
+import re
 
 
 class TermoService:
     @staticmethod
-    def gerar_pdf(usuario_id, nome_arquivo=None):
+    def gerar_pdf(usuario_id, nome_arquivo=None, aditivo=False):
         usuario = User.query.get(usuario_id)
         if not usuario:
             raise ValueError(f"Usuário {usuario_id} não encontrado")
@@ -114,26 +119,202 @@ class TermoService:
 
         elements = []
 
+        # Se solicitado gerar ADITIVO, montar conteúdo específico e finalizar
+        if aditivo:
+            title = "ADITIVO AO TERMO DE ENTREGA RESPONSABILIDADE PELO USO DE EQUIPAMENTOS DA EMPRESA"
+            elements.append(Paragraph(title, style_title))
+
+            # Apenas sobrescrever os dados; manter o texto do documento como está
+            campos = [
+                f"Empresa:  {valor_texto(termo.empresa, usuario.empresa)}",
+                f"CNPJ: {valor_texto(termo.cnpj, usuario.cnpj)}",
+                f"Endereço: {valor_texto(termo.endereco, usuario.endereco)}",
+                f"Colaborador: {valor_texto(termo.nome_colaborador, usuario.username)}",
+                f"Cargo/Função (se aplicável): {valor_texto(termo.cargo_funcao, usuario.cargo)}",
+                f"CPF/CNPJ: {valor_texto(termo.cpf_cnpj, usuario.cpf)}",
+                f"Data de Admissão (se aplicável): {valor_data(termo.data_admissao or usuario.data_admissao)}",
+                f"Departamento (se aplicável): {valor_texto(termo.departamento, usuario.departamento)}",
+                f"Local de trabalho (se aplicável): {valor_texto(termo.local_trabalho, usuario.local_trabalho)}",
+            ]
+
+            for campo in campos:
+                elements.append(Paragraph(campo, style_normal))
+
+            texto1 = """
+<b>1. OBJETO</b><br/><br/>
+
+O presente aditivo tem por objeto formalizar a entrega adicional de equipamentos, dispositivos e acessórios e demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais, assim como e responsabilidade do colaborador referente aos mesmos, complementando o Termo de Responsabilidade anteriormente assinado pelas partes acima qualificadas.
+"""
+
+            elements.append(Paragraph(texto1, style_normal))
+
+            elements.append(Paragraph("<b>2. ITENS ADICIONAIS ENTREGUES</b>", style_section))
+
+            texto2 = """
+A empresa declara ter fornecido os seguintes itens adicionais ao colaborador, elencado no preâmbulo:
+"""
+
+            elements.append(Paragraph(texto2, style_normal))
+
+            # Montar a tabela com os itens já gravados no termo
+            equipamentos_aditivo = []
+            if termo and termo.equipamentos:
+                try:
+                    equipamentos_aditivo = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
+                except Exception:
+                    equipamentos_aditivo = []
+
+            if equipamentos_aditivo:
+                table_data = [["Equipamento / Acessório", "Marca", "Modelo", "Estado", "Data Entrega", "Valor Aproximado"]]
+                for equipamento in equipamentos_aditivo:
+                    table_data.append([
+                        valor_texto(equipamento.get('descricao', '')),
+                        valor_texto(equipamento.get('marca', '')),
+                        valor_texto(equipamento.get('modelo', '')),
+                        valor_texto(equipamento.get('estado', '')),
+                        valor_texto(equipamento.get('data_entrega', '')),
+                        valor_texto(equipamento.get('valor', '')),
+                    ])
+            else:
+                table_data = [
+                    ["Equipamento / Acessório", "Marca", "Modelo", "Estado", "Data Entrega", "Valor Aproximado"],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                ]
+
+            table = Table(table_data, colWidths=[5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3*cm])
+            table.setStyle(TableStyle([
+                ('GRID', (0,0), (-1,-1), 1, colors.black),
+                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
+                ('BOTTOMPADDING', (0,0), (-1,0), 8),
+                ('TOPPADDING', (0,1), (-1,-1), 10),
+                ('BOTTOMPADDING', (0,1), (-1,-1), 10),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ]))
+
+            elements.append(table)
+            elements.append(Spacer(1, 20))
+
+            # Coletar e inserir fotos dos equipamentos, como no Termo principal
+            all_imgs = []
+            if equipamentos_aditivo:
+                usable_width = A4[0] - (2 * 2 * cm)
+                usable_height = A4[1] - (2 * 2 * cm)
+                header_approx = 14 + 12
+                spacing = 50
+                per_page = 3
+
+                available_for_images = usable_height - header_approx
+                target_h = int((available_for_images - (per_page - 1) * spacing) / per_page)
+                if target_h <= 0:
+                    target_h = int(available_for_images / per_page)
+
+                max_width_px = int(usable_width)
+                target_h_px = int(target_h)
+
+                for equipamento in equipamentos_aditivo:
+                    fotos = equipamento.get('fotos') or []
+                    if not fotos:
+                        continue
+
+                    for foto in fotos:
+                        try:
+                            img_path = os.path.join(current_app.root_path, 'static', 'uploads', 'termos', foto)
+                            if not os.path.exists(img_path):
+                                continue
+
+                            with PILImage.open(img_path) as pil_img:
+                                pil_img = pil_img.convert('RGB')
+                                pil_img.thumbnail((max_width_px, target_h_px), PILImage.LANCZOS)
+
+                                buf = BytesIO()
+                                pil_img.save(buf, format='JPEG', quality=85, dpi=(72,72))
+                                buf.seek(0)
+
+                                w_pt, h_pt = pil_img.size
+                                img = RLImage(buf, width=w_pt, height=h_pt)
+                                all_imgs.append(img)
+                        except Exception:
+                            continue
+
+            if all_imgs:
+                elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                elements.append(Spacer(1, 12))
+                for img in all_imgs:
+                    elements.append(img)
+                    elements.append(Spacer(1, 50))
+
+            # Construir e retornar
+            if nome_arquivo:
+                out_doc = SimpleDocTemplate(
+                    nome_arquivo,
+                    pagesize=A4,
+                    rightMargin=2*cm,
+                    leftMargin=2*cm,
+                    topMargin=2*cm,
+                    bottomMargin=2*cm
+                )
+                out_doc.build(elements)
+                return nome_arquivo
+            else:
+                buffer = BytesIO()
+                out_doc = SimpleDocTemplate(
+                    buffer,
+                    pagesize=A4,
+                    rightMargin=2*cm,
+                    leftMargin=2*cm,
+                    topMargin=2*cm,
+                    bottomMargin=2*cm
+                )
+                out_doc.build(elements)
+                buffer.seek(0)
+                return buffer
+
+        # Use verbatim template provided by user: replace underscore sequences with values when available
         title = "TERMO DE ENTREGA E RESPONSABILIDADE PELO USO DE EQUIPAMENTOS DA EMPRESA"
         elements.append(Paragraph(title, style_title))
 
-        campos = [
-            f"Empresa:  {valor_texto(termo.empresa, usuario.empresa)}",
-            f"CNPJ:  {valor_texto(termo.cnpj, usuario.cnpj)}",
-            f"Endereço:  {valor_texto(termo.endereco, usuario.endereco)}",
-            f"Colaborador: {valor_texto(termo.nome_colaborador, usuario.username)}",
-            f"Cargo/Função (se aplicável):  {valor_texto(termo.cargo_funcao, usuario.cargo)}",
-            f"CPF/CNPJ:  {valor_texto(termo.cpf_cnpj, usuario.cpf)}",
-            f"Data de Admissão  (se aplicável): {valor_data(termo.data_admissao or usuario.data_admissao)}",
-            f"Departamento (se aplicável): {valor_texto(termo.departamento, usuario.departamento)}",
-            f"Local de trabalho (se aplicável): {valor_texto(termo.local_trabalho, usuario.local_trabalho)}"
+        # Template lines (exact text from user) with underscores for blanks
+        campos_template = [
+            "Empresa:  _________________________________________________",
+            "CNPJ:  ____________________________________________________",
+            "Endereço:  _________________________________________________",
+            "Colaborador: _______________________________________________",
+            "Cargo/Função (se aplicável):  __________________________________",
+            "CPF/CNPJ:  ________________________________________________",
+            "Data de Admissão  (se aplicável): _______________________________",
+            "Departamento (se aplicável): ___________________________________",
+            "Local de trabalho (se aplicável): ________________________________"
         ]
 
-        for campo in campos:
-            elements.append(Paragraph(campo, style_normal))
+        valores = [
+            valor_texto(termo.empresa, usuario.empresa),
+            valor_texto(termo.cnpj, usuario.cnpj),
+            valor_texto(termo.endereco, usuario.endereco),
+            valor_texto(termo.nome_colaborador, usuario.username),
+            valor_texto(termo.cargo_funcao, usuario.cargo),
+            valor_texto(termo.cpf_cnpj, usuario.cpf),
+            valor_data(termo.data_admissao or usuario.data_admissao),
+            valor_texto(termo.departamento, usuario.departamento),
+            valor_texto(termo.local_trabalho, usuario.local_trabalho)
+        ]
+
+        for tpl, val in zip(campos_template, valores):
+            if val and val != '':
+                # replace first contiguous underscore sequence with the value
+                new_line = re.sub(r'_{2,}', lambda m: val, tpl, count=1)
+            else:
+                new_line = tpl
+            elements.append(Paragraph(new_line, style_normal))
 
         texto = """
-<b>1. OBJETO</b><br/>
+<b>1. OBJETO</b><br/><br/>
+
 O presente Termo tem por objeto formalizar a entrega, posse e responsabilidade do colaborador quanto ao uso, guarda, conservação e devolução dos equipamentos, dispositivos, acessórios e demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais.
 """
 
@@ -153,15 +334,61 @@ A empresa declara ter fornecido os seguintes itens ao colaborador, elencado no p
             ('GRID', (0,0), (-1,-1), 1, colors.black),
             ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
             ('FONTSIZE', (0,0), (-1,-1), 9),
             ('BOTTOMPADDING', (0,0), (-1,0), 8),
             ('TOPPADDING', (0,1), (-1,-1), 10),
             ('BOTTOMPADDING', (0,1), (-1,-1), 10),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]))
 
         elements.append(table)
+
+        # Coletar fotos de todos os equipamentos para inserir por último no PDF
+        all_imgs = []
+        if equipamentos:
+            # Área útil da página (em pontos)
+            usable_width = A4[0] - (doc.leftMargin + doc.rightMargin)
+            usable_height = A4[1] - (doc.topMargin + doc.bottomMargin)
+
+            # Estimativa de espaço ocupado pelo título/pequeno espaçamento (pontos)
+            header_approx = 14 + 12
+            spacing = 50  # espaçamento entre imagens (pontos)
+            per_page = 3  # queremos 3 linhas por página
+
+            available_for_images = usable_height - header_approx
+            target_h = int((available_for_images - (per_page - 1) * spacing) / per_page)
+            if target_h <= 0:
+                target_h = int(available_for_images / per_page)
+
+            max_width_px = int(usable_width)
+            target_h_px = int(target_h)
+
+            for equipamento in equipamentos:
+                fotos = equipamento.get('fotos') or []
+                if not fotos:
+                    continue
+
+                for foto in fotos:
+                    try:
+                        img_path = os.path.join(current_app.root_path, 'static', 'uploads', 'termos', foto)
+                        if not os.path.exists(img_path):
+                            continue
+
+                        with PILImage.open(img_path) as pil_img:
+                            pil_img = pil_img.convert('RGB')
+
+                            # Redimensionar preservando proporção para caber na altura alvo e largura útil
+                            pil_img.thumbnail((max_width_px, target_h_px), PILImage.LANCZOS)
+
+                            buf = BytesIO()
+                            pil_img.save(buf, format='JPEG', quality=85, dpi=(72, 72))
+                            buf.seek(0)
+
+                            w_pt, h_pt = pil_img.size
+                            img = RLImage(buf, width=w_pt, height=h_pt)
+                            all_imgs.append(img)
+                    except Exception:
+                        continue
+
         elements.append(Spacer(1, 20))
 
         checklist = """
@@ -297,6 +524,14 @@ ________________________________
 """
 
         elements.append(Paragraph(texto_final, style_normal))
+
+        # Inserir todas as fotos coletadas por último, com espaçamento de 50 pontos entre elas
+        if 'all_imgs' in locals() and all_imgs:
+            elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+            elements.append(Spacer(1, 12))
+            for img in all_imgs:
+                elements.append(img)
+                elements.append(Spacer(1, 50))
 
         doc.build(elements)
 
