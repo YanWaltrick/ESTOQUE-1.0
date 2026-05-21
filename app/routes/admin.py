@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
 from flask_login import login_required, current_user
+from sqlalchemy import case
 from app.database import db
 from app.models import User, Historico, DocumentoUsuario, ItemRecebido, TermoEntrega
 from app.auth import require_role, require_permission
@@ -32,7 +33,11 @@ def listar_usuarios():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    usuarios_page = User.query.paginate(page=page, per_page=per_page)
+    usuarios_page = User.query.order_by(
+        case((User.tipo_contrato == 'CLT', 0), else_=1),
+        User.ativo.desc(),
+        User.username.asc()
+    ).paginate(page=page, per_page=per_page)
     
     return render_template('admin/usuarios.html', usuarios=usuarios_page)
 
@@ -45,6 +50,7 @@ def criar_usuario():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         role = request.form.get('role', 'usuario')
+        tipo_contrato = request.form.get('tipo_contrato', 'CLT').strip().upper()
         area = request.form.get('area', '').strip()
         localizacao = request.form.get('localizacao', '').strip()
         empresa = request.form.get('empresa', '').strip()
@@ -85,12 +91,17 @@ def criar_usuario():
         if role not in ['admin', 'usuario']:
             flash('Role inválido. Escolha entre admin ou usuario.', 'error')
             return redirect(url_for('admin.criar_usuario'))
+
+        if tipo_contrato not in ['CLT', 'PJ']:
+            flash('Tipo de contrato inválido. Escolha entre CLT ou PJ.', 'error')
+            return redirect(url_for('admin.criar_usuario'))
         
         # Criar novo usuário
         novo_usuario = User(
             username=username,
             password=PasswordValidator.hash_password(password),
             role=role,
+            tipo_contrato=tipo_contrato,
             area=area,
             localizacao=localizacao,
             empresa=empresa,
@@ -147,6 +158,7 @@ def editar_usuario(user_id):
     
     if request.method == 'POST':
         role = request.form.get('role', usuario.role)
+        tipo_contrato = request.form.get('tipo_contrato', usuario.tipo_contrato).strip().upper()
         area = request.form.get('area', usuario.area).strip()
         localizacao = request.form.get('localizacao', usuario.localizacao).strip()
         empresa = request.form.get('empresa', usuario.empresa).strip()
@@ -172,8 +184,13 @@ def editar_usuario(user_id):
         if role not in ['admin', 'usuario']:
             flash('Role inválido. Escolha entre admin ou usuario.', 'error')
             return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+        if tipo_contrato not in ['CLT', 'PJ']:
+            flash('Tipo de contrato inválido. Escolha entre CLT ou PJ.', 'error')
+            return redirect(url_for('admin.editar_usuario', user_id=user_id))
         
         usuario.role = role
+        usuario.tipo_contrato = tipo_contrato
         usuario.area = area
         usuario.localizacao = localizacao
         usuario.empresa = empresa
@@ -190,7 +207,7 @@ def editar_usuario(user_id):
         
         registrar_evento(
             tipo_evento='usuario_editado',
-            descricao=f'Usuário "{usuario.username}" editado - role: "{role}", ativo: {ativo}',
+            descricao=f'Usuário "{usuario.username}" editado - role: "{role}", tipo: "{tipo_contrato}", ativo: {ativo}',
             usuario_responsavel=current_user.username
         )
         

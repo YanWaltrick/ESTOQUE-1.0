@@ -58,6 +58,14 @@
                                                 <div class="form-text">Você pode cadastrar um username comum ou um email válido.</div>
                                             </div>
                                             <div class="mb-3">
+                                                <label for="tipo_contrato" class="form-label">Tipo de Contrato</label>
+                                                <select class="form-select" id="tipo_contrato" name="tipo_contrato" required>
+                                                    <option value="CLT">CLT</option>
+                                                    <option value="PJ">PJ</option>
+                                                </select>
+                                                <div class="form-text">Esse campo define a divisão da lista de usuários.</div>
+                                            </div>
+                                            <div class="mb-3">
                                                 <label for="password" class="form-label">Senha</label>
                                                 <input type="password" class="form-control" id="password" name="password" required>
                                             </div>
@@ -359,6 +367,12 @@
             const colaboradores = usuariosFiltrados
                 .filter(user => user.role !== 'admin')
                 .sort((a, b) => {
+                    const tipoA = (a.tipo_contrato || 'CLT').toUpperCase();
+                    const tipoB = (b.tipo_contrato || 'CLT').toUpperCase();
+                    if (tipoA !== tipoB) {
+                        return tipoA === 'CLT' ? -1 : 1;
+                    }
+
                     const areaA = (a.area || '').trim().toLowerCase() || 'sem área';
                     const areaB = (b.area || '').trim().toLowerCase() || 'sem área';
                     if (areaA === areaB) {
@@ -376,22 +390,32 @@
             }
 
             if (colaboradores.length > 0) {
-                const grupos = {};
-                colaboradores.forEach(user => {
-                    const area = (user.area || '').trim() || 'Sem área';
-                    if (!grupos[area]) {
-                        grupos[area] = [];
-                    }
-                    grupos[area].push(user);
-                });
+                ['CLT', 'PJ'].forEach(tipo => {
+                    const grupoTipo = colaboradores.filter(user => (user.tipo_contrato || 'CLT').toUpperCase() === tipo);
+                    if (!grupoTipo.length) return;
 
-                Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })).forEach(area => {
-                    const areaHeader = document.createElement('div');
-                    areaHeader.className = 'mb-2 mt-4';
-                    areaHeader.innerHTML = `<h6 class="text-uppercase text-secondary">Área: ${escapeHtml(area)}</h6>`;
-                    lista.appendChild(areaHeader);
+                    const tipoHeader = document.createElement('div');
+                    tipoHeader.className = 'mb-2 mt-4';
+                    tipoHeader.innerHTML = `<h6 class="text-uppercase text-secondary">${tipo}</h6>`;
+                    lista.appendChild(tipoHeader);
 
-                    grupos[area].forEach(user => lista.appendChild(renderUsuarioItem(user)));
+                    const grupos = {};
+                    grupoTipo.forEach(user => {
+                        const area = (user.area || '').trim() || 'Sem área';
+                        if (!grupos[area]) {
+                            grupos[area] = [];
+                        }
+                        grupos[area].push(user);
+                    });
+
+                    Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })).forEach(area => {
+                        const areaHeader = document.createElement('div');
+                        areaHeader.className = 'mb-2 mt-3';
+                        areaHeader.innerHTML = `<small class="text-muted text-uppercase">Área: ${escapeHtml(area)}</small>`;
+                        lista.appendChild(areaHeader);
+
+                        grupos[area].forEach(user => lista.appendChild(renderUsuarioItem(user)));
+                    });
                 });
             }
         }
@@ -410,9 +434,10 @@
                         }
                     </div>
                     <div>
-                        <strong class="d-block">${escapeHtml(user.username)}</strong>
+                        <strong class="d-block">${escapeHtml(user.tipo_contrato || 'CLT')} - ${escapeHtml(user.username)}</strong>
                         <small class="text-muted">
                             ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
+                            ${user.role !== 'admin' ? '| ' + escapeHtml(user.tipo_contrato || 'CLT') : ''}
                             ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.area || 'Sem área') : ''}
                             ${user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : ''}
                         </small>
@@ -442,7 +467,7 @@
             usuarios.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.username} (${user.role}${user.area ? ' - ' + user.area : ''}${user.localizacao ? ' - ' + user.localizacao : ''})`;
+                option.textContent = `${user.tipo_contrato || 'CLT'} - ${user.username} (${user.role}${user.area ? ' - ' + user.area : ''}${user.localizacao ? ' - ' + user.localizacao : ''})`;
                 resetSelect.appendChild(option);
             });
 
@@ -481,6 +506,7 @@
                 username: formData.get('username'),
                 password: formData.get('password'),
                 role: formData.get('role'),
+                tipo_contrato: formData.get('tipo_contrato') || 'CLT',
                 area: formData.get('area') || '',
                 localizacao: formData.get('localizacao') || '',
                 empresa: formData.get('empresa') || '',

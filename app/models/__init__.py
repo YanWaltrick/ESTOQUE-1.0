@@ -18,6 +18,9 @@ class User(db.Model, UserMixin):
     
     # RBAC - Roles: 'admin', 'usuario'
     role = db.Column(db.String(50), nullable=False, default='usuario')
+
+    # Tipo de contrato/vínculo
+    tipo_contrato = db.Column(db.String(10), nullable=False, default='CLT')
     
     # Informações do usuário
     area = db.Column(db.String(255), nullable=False, default='')
@@ -49,11 +52,12 @@ class User(db.Model, UserMixin):
     # Relacionamentos
     chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
-    def __init__(self, username, password, role='usuario', area='', localizacao='', empresa='', cnpj='', 
+    def __init__(self, username, password, role='usuario', tipo_contrato='CLT', area='', localizacao='', empresa='', cnpj='', 
                  endereco='', cargo='', cpf='', data_admissao=None, departamento='', local_trabalho=''):
         self.username = username
         self.password = password  # Já deve vir em hash
         self.role = role
+        self.tipo_contrato = (tipo_contrato or 'CLT').strip().upper()
         self.area = area.strip() if area else ''
         self.localizacao = localizacao.strip() if localizacao else ''
         self.empresa = empresa.strip() if empresa else ''
@@ -139,6 +143,7 @@ class User(db.Model, UserMixin):
             'id': self.id,
             'username': self.username,
             'role': self.role,
+            'tipo_contrato': self.tipo_contrato,
             'area': self.area,
             'localizacao': self.localizacao,
             'empresa': self.empresa,

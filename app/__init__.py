@@ -161,6 +161,7 @@ def _ensure_schema_columns():
     inspector = inspect(db.engine)
     migrations = [
         ('users', 'foto_perfil', 'VARCHAR(255)'),
+        ('users', 'tipo_contrato', "VARCHAR(10) DEFAULT 'CLT'"),
         ('users', 'ultimo_login', 'DATETIME'),
         ('users', 'tentativas_login_falhas', 'INTEGER DEFAULT 0'),
         ('users', 'bloqueado_ate', 'DATETIME'),

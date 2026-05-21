@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 import app
+from sqlalchemy import case
 from app.auth import require_role
 from app.auth.security import PasswordValidator, validate_username
 from app.database import db
@@ -67,7 +68,11 @@ def validar_dados_produto(dados, atualizar=False):
 def get_users():
     """Retorna lista de todos os usuários"""
     try:
-        usuarios = User.query.order_by(User.username).all()
+        usuarios = User.query.order_by(
+            case((User.tipo_contrato == 'CLT', 0), else_=1),
+            User.ativo.desc(),
+            User.username.asc()
+        ).all()
         return jsonify([usuario.to_dict() for usuario in usuarios])
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
@@ -378,6 +383,7 @@ def criar_usuario_api():
         role = (dados.get('role') or 'usuario').strip()
         if role == 'user':
             role = 'usuario'
+        tipo_contrato = (dados.get('tipo_contrato') or 'CLT').strip().upper()
         area = (dados.get('area') or '').strip()
         localizacao = (dados.get('localizacao') or '').strip()
         empresa = (dados.get('empresa') or '').strip()
@@ -412,10 +418,14 @@ def criar_usuario_api():
         if role not in ['admin', 'usuario']:
             return jsonify({'erro': 'Role inválido. Escolha entre admin ou usuario.'}), 400
 
+        if tipo_contrato not in ['CLT', 'PJ']:
+            return jsonify({'erro': 'Tipo de contrato inválido. Escolha entre CLT ou PJ.'}), 400
+
         novo_usuario = User(
             username=username,
             password=PasswordValidator.hash_password(password),
             role=role,
+            tipo_contrato=tipo_contrato,
             area=area,
             localizacao=localizacao,
             empresa=empresa,
