@@ -14,9 +14,10 @@ from reportlab.platypus.tables import Table
 from reportlab.lib.units import cm
 
 from app.models import TermoEntrega, User
-from flask import current_app
+from flask import current_app, url_for
 import os
 import re
+import shutil
 
 
 class TermoService:
@@ -117,6 +118,82 @@ class TermoService:
             spaceAfter=8
         )
 
+        style_foto_link = ParagraphStyle(
+            'FotoLink',
+            parent=styles['BodyText'],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#0d6efd'),
+            spaceAfter=4,
+        )
+
+        def _foto_url_publica(nome_foto: str) -> str:
+            try:
+                return url_for('static', filename=f'uploads/termos/{nome_foto}', _external=True)
+            except Exception:
+                return f'/static/uploads/termos/{nome_foto}'
+
+        def _resolver_caminho_foto(nome_foto: str):
+            caminhos = [
+                os.path.join(current_app.static_folder, 'uploads', 'termos', nome_foto),
+                os.path.join(current_app.root_path, 'static', 'uploads', 'termos', nome_foto),
+            ]
+
+            destino = caminhos[0]
+            for caminho in caminhos:
+                if os.path.exists(caminho):
+                    if caminho != destino:
+                        os.makedirs(os.path.dirname(destino), exist_ok=True)
+                        try:
+                            shutil.copy2(caminho, destino)
+                        except Exception:
+                            pass
+                    return destino
+
+            return None
+
+        def _bloco_foto(nome_foto: str):
+            img_path = _resolver_caminho_foto(nome_foto)
+            if not img_path:
+                return None
+
+            with PILImage.open(img_path) as pil_img:
+                largura_original, altura_original = pil_img.size
+
+            max_largura = A4[0] - (2 * cm)
+            max_altura = 8.5 * cm
+            fator = min(max_largura / largura_original, max_altura / altura_original, 1)
+            largura_final = largura_original * fator
+            altura_final = altura_original * fator
+
+            img = RLImage(img_path)
+            img.drawWidth = largura_final
+            img.drawHeight = altura_final
+            img.hAlign = 'CENTER'
+
+            foto_url = _foto_url_publica(nome_foto)
+            link = Paragraph(
+                f'<link href="{foto_url}">{foto_url}</link>',
+                style_foto_link,
+            )
+
+            return KeepTogether([
+                link,
+                Spacer(1, 4),
+                img,
+                Spacer(1, 18),
+            ])
+
+        def _coletar_blocos_fotos(lista_equipamentos):
+            blocos = []
+            for equipamento in lista_equipamentos or []:
+                fotos = equipamento.get('fotos') or []
+                for foto in fotos:
+                    bloco = _bloco_foto(foto)
+                    if bloco:
+                        blocos.append(bloco)
+            return blocos
+
         elements = []
 
         # Se solicitado gerar ADITIVO, montar conteúdo específico e finalizar
@@ -200,54 +277,12 @@ A empresa declara ter fornecido os seguintes itens adicionais ao colaborador, el
             elements.append(table)
             elements.append(Spacer(1, 20))
 
-            # Coletar e inserir fotos dos equipamentos, como no Termo principal
-            all_imgs = []
-            if equipamentos_aditivo:
-                usable_width = A4[0] - (2 * 2 * cm)
-                usable_height = A4[1] - (2 * 2 * cm)
-                header_approx = 14 + 12
-                spacing = 50
-                per_page = 3
+            blocos_fotos = _coletar_blocos_fotos(equipamentos_aditivo)
 
-                available_for_images = usable_height - header_approx
-                target_h = int((available_for_images - (per_page - 1) * spacing) / per_page)
-                if target_h <= 0:
-                    target_h = int(available_for_images / per_page)
-
-                max_width_px = int(usable_width)
-                target_h_px = int(target_h)
-
-                for equipamento in equipamentos_aditivo:
-                    fotos = equipamento.get('fotos') or []
-                    if not fotos:
-                        continue
-
-                    for foto in fotos:
-                        try:
-                            img_path = os.path.join(current_app.root_path, 'static', 'uploads', 'termos', foto)
-                            if not os.path.exists(img_path):
-                                continue
-
-                            with PILImage.open(img_path) as pil_img:
-                                pil_img = pil_img.convert('RGB')
-                                pil_img.thumbnail((max_width_px, target_h_px), PILImage.LANCZOS)
-
-                                buf = BytesIO()
-                                pil_img.save(buf, format='JPEG', quality=85, dpi=(72,72))
-                                buf.seek(0)
-
-                                w_pt, h_pt = pil_img.size
-                                img = RLImage(buf, width=w_pt, height=h_pt)
-                                all_imgs.append(img)
-                        except Exception:
-                            continue
-
-            if all_imgs:
+            if blocos_fotos:
                 elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
                 elements.append(Spacer(1, 12))
-                for img in all_imgs:
-                    elements.append(img)
-                    elements.append(Spacer(1, 50))
+                elements.extend(blocos_fotos)
 
             # Construir e retornar
             if nome_arquivo:
@@ -342,52 +377,7 @@ A empresa declara ter fornecido os seguintes itens ao colaborador, elencado no p
 
         elements.append(table)
 
-        # Coletar fotos de todos os equipamentos para inserir por último no PDF
-        all_imgs = []
-        if equipamentos:
-            # Área útil da página (em pontos)
-            usable_width = A4[0] - (doc.leftMargin + doc.rightMargin)
-            usable_height = A4[1] - (doc.topMargin + doc.bottomMargin)
-
-            # Estimativa de espaço ocupado pelo título/pequeno espaçamento (pontos)
-            header_approx = 14 + 12
-            spacing = 50  # espaçamento entre imagens (pontos)
-            per_page = 3  # queremos 3 linhas por página
-
-            available_for_images = usable_height - header_approx
-            target_h = int((available_for_images - (per_page - 1) * spacing) / per_page)
-            if target_h <= 0:
-                target_h = int(available_for_images / per_page)
-
-            max_width_px = int(usable_width)
-            target_h_px = int(target_h)
-
-            for equipamento in equipamentos:
-                fotos = equipamento.get('fotos') or []
-                if not fotos:
-                    continue
-
-                for foto in fotos:
-                    try:
-                        img_path = os.path.join(current_app.root_path, 'static', 'uploads', 'termos', foto)
-                        if not os.path.exists(img_path):
-                            continue
-
-                        with PILImage.open(img_path) as pil_img:
-                            pil_img = pil_img.convert('RGB')
-
-                            # Redimensionar preservando proporção para caber na altura alvo e largura útil
-                            pil_img.thumbnail((max_width_px, target_h_px), PILImage.LANCZOS)
-
-                            buf = BytesIO()
-                            pil_img.save(buf, format='JPEG', quality=85, dpi=(72, 72))
-                            buf.seek(0)
-
-                            w_pt, h_pt = pil_img.size
-                            img = RLImage(buf, width=w_pt, height=h_pt)
-                            all_imgs.append(img)
-                    except Exception:
-                        continue
+        blocos_fotos = _coletar_blocos_fotos(equipamentos)
 
         elements.append(Spacer(1, 20))
 
@@ -525,13 +515,11 @@ ________________________________
 
         elements.append(Paragraph(texto_final, style_normal))
 
-        # Inserir todas as fotos coletadas por último, com espaçamento de 50 pontos entre elas
-        if 'all_imgs' in locals() and all_imgs:
+        # Inserir todas as fotos coletadas por último, com link acima de cada imagem
+        if blocos_fotos:
             elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
             elements.append(Spacer(1, 12))
-            for img in all_imgs:
-                elements.append(img)
-                elements.append(Spacer(1, 50))
+            elements.extend(blocos_fotos)
 
         doc.build(elements)
 

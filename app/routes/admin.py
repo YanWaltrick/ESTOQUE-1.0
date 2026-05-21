@@ -970,7 +970,7 @@ def adicionar_equipamento_termo(user_id):
     # Salvar fotos (se houver) em static/uploads/termos
     saved_fotos = []
     try:
-        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'termos')
+        upload_folder = os.path.join(current_app.static_folder, 'uploads', 'termos')
         os.makedirs(upload_folder, exist_ok=True)
         arquivos = request.files.getlist('fotos') if 'fotos' in request.files else []
         for arquivo in arquivos:

@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from app import estoque
 from app.database import db
-from app.models import DocumentoUsuario, TermoEntrega
+from app.models import DocumentoUsuario, TermoEntrega, User
 from app.utils import registrar_evento
 
 main_bp = Blueprint('main', __name__)
@@ -41,6 +41,10 @@ def admin():
 @login_required
 def documentos():
     """Tela de documentos empresariais."""
+    usuarios = []
+    if current_user.is_admin:
+        usuarios = User.query.filter_by(ativo=True).order_by(User.username.asc()).all()
+
     if current_user.is_admin:
         docs = DocumentoUsuario.query.order_by(DocumentoUsuario.data_criacao.desc()).all()
     else:
@@ -54,6 +58,7 @@ def documentos():
     return render_template(
         'documentos.html',
         documentos=docs,
+        usuarios=usuarios,
         allowed_extensions=sorted(EXTENSOES_PERMITIDAS_DOCUMENTOS),
         max_upload_mb=int(TAMANHO_MAXIMO_DOCUMENTO / (1024 * 1024)),
     )
@@ -62,7 +67,7 @@ def documentos():
 @main_bp.route('/documentos/upload', methods=['POST'])
 @login_required
 def upload_documento():
-    """Upload de documento empresarial para o usuário logado."""
+    """Upload de documento empresarial para um usuário selecionado."""
     if 'arquivo' not in request.files:
         flash('Nenhum arquivo foi enviado.', 'error')
         return redirect(url_for('main.documentos'))
@@ -70,6 +75,19 @@ def upload_documento():
     arquivo = request.files['arquivo']
     nome_documento = request.form.get('nome_documento', '').strip()
     descricao = request.form.get('descricao', '').strip() or None
+    id_usuario_form = request.form.get('id_usuario', '').strip()
+
+    if current_user.is_admin:
+        if not id_usuario_form.isdigit():
+            flash('Selecione um usuário válido para receber o documento.', 'error')
+            return redirect(url_for('main.documentos'))
+
+        usuario_destino = User.query.filter_by(id=int(id_usuario_form), ativo=True).first()
+        if not usuario_destino:
+            flash('Usuário selecionado não encontrado ou está inativo.', 'error')
+            return redirect(url_for('main.documentos'))
+    else:
+        usuario_destino = current_user
 
     if arquivo.filename == '':
         flash('Selecione um arquivo para enviar.', 'error')
@@ -101,14 +119,14 @@ def upload_documento():
         return redirect(url_for('main.documentos'))
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    nome_arquivo_seguro = secure_filename(f'{current_user.id}_{timestamp}_{arquivo.filename}')
+    nome_arquivo_seguro = secure_filename(f'{usuario_destino.id}_{timestamp}_{arquivo.filename}')
     caminho_arquivo = os.path.join(_pasta_documentos(), nome_arquivo_seguro)
 
     try:
         arquivo.save(caminho_arquivo)
 
         novo_documento = DocumentoUsuario(
-            id_usuario=current_user.id,
+            id_usuario=usuario_destino.id,
             nome_documento=nome_documento,
             arquivo=nome_arquivo_seguro,
             tipo_arquivo=extensao,
@@ -121,7 +139,7 @@ def upload_documento():
 
         registrar_evento(
             tipo_evento='documento_empresarial_enviado',
-            descricao=f'Documento "{nome_documento}" enviado por "{current_user.username}"',
+            descricao=f'Documento "{nome_documento}" enviado por "{current_user.username}" para "{usuario_destino.username}"',
             usuario_responsavel=current_user.username,
             detalhes=f'arquivo={nome_arquivo_seguro}; tamanho={tamanho}',
         )

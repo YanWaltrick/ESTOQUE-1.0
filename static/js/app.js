@@ -11,6 +11,8 @@ let tipoChamadoSelecionado = 'Todos';
 let chamadasUsuarioStatus = {};
 let chamadasUsuarioPrimeiroLoad = true;
 
+const PRODUCT_SAVE_NOTICE_KEY = 'estoque_product_save_notice';
+
 const API_BASE = window.location.origin + '/api';
 
 function getCsrfToken() {
@@ -224,6 +226,12 @@ async function fetchAPI(url, options = {}) {
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
+    const productSaveNotice = sessionStorage.getItem(PRODUCT_SAVE_NOTICE_KEY);
+    if (productSaveNotice) {
+        sessionStorage.removeItem(PRODUCT_SAVE_NOTICE_KEY);
+        mostrarSucesso(productSaveNotice, 3500);
+    }
+
     carregarDados();
     configurarEventos();
 
@@ -998,13 +1006,14 @@ function salvarProduto() {
         return data;
     })
     .then(resposta => {
-        mostrarAlerta('Produto ' + (currentProdutoId ? 'atualizado' : 'criado') + ' com sucesso!', 'success');
+        const produtoAcao = currentProdutoId ? 'atualizado' : 'criado';
+        mostrarAlerta('Produto ' + produtoAcao + ' com sucesso!', 'success');
+        sessionStorage.setItem(PRODUCT_SAVE_NOTICE_KEY, 'Produto ' + produtoAcao + ' com sucesso!');
         currentProdutoId = null;
         document.getElementById('prodId').disabled = false;
         bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
         document.getElementById('formProduto').reset();
-        carregarDados();
-        atualizarTabelaProdutos();
+        window.location.reload();
     })
     .catch(error => mostrarErro('Erro ao salvar produto', error));
 }

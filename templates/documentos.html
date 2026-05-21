@@ -28,6 +28,21 @@
                     <form method="POST" action="{{ url_for('main.upload_documento') }}" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                        {% if current_user.is_admin %}
+                        <div class="mb-3">
+                            <label for="id_usuario" class="form-label">Usuário destinatário</label>
+                            <select id="id_usuario" name="id_usuario" class="form-select" required>
+                                <option value="" selected disabled>Selecione um usuário</option>
+                                {% for usuario in usuarios %}
+                                    <option value="{{ usuario.id }}">{{ usuario.username }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Escolha quem vai receber o documento.</div>
+                        </div>
+                        {% else %}
+                        <input type="hidden" name="id_usuario" value="{{ current_user.id }}">
+                        {% endif %}
+
                         <div class="mb-3">
                             <label for="nome_documento" class="form-label">Nome do documento</label>
                             <input type="text" id="nome_documento" name="nome_documento" class="form-control" required maxlength="255" placeholder="Ex.: Contrato de Fornecedor 2026">
@@ -68,6 +83,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Documento</th>
+                                        <th>Usuário</th>
                                         <th>Enviado por</th>
                                         <th>Data</th>
                                         <th>Tamanho</th>
@@ -81,6 +97,7 @@
                                                 <div class="fw-semibold">{{ doc.nome_documento }}</div>
                                                 <small class="text-muted">.{{ doc.tipo_arquivo }}{% if doc.descricao %} • {{ doc.descricao }}{% endif %}</small>
                                             </td>
+                                            <td>{{ doc.usuario.username if doc.usuario else '-' }}</td>
                                             <td>{{ doc.usuario_enviador }}</td>
                                             <td>{{ doc.data_criacao.strftime('%d/%m/%Y %H:%M') if doc.data_criacao else '-' }}</td>
                                             <td>
