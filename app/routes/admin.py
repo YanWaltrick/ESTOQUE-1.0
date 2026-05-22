@@ -32,14 +32,19 @@ def listar_usuarios():
     """Listar todos os usuários"""
     page = request.args.get('page', 1, type=int)
     per_page = 10
+    q = request.args.get('q', '').strip()
     
-    usuarios_page = User.query.order_by(
+    query = User.query
+    if q:
+        query = query.filter(User.username.ilike(f'%{q}%'))
+
+    usuarios_page = query.order_by(
         case((User.tipo_contrato == 'CLT', 0), else_=1),
         User.ativo.desc(),
         User.username.asc()
     ).paginate(page=page, per_page=per_page)
     
-    return render_template('admin/usuarios.html', usuarios=usuarios_page)
+    return render_template('admin/usuarios.html', usuarios=usuarios_page, q=q)
 
 
 @admin_bp.route('/users/create', methods=['GET', 'POST'])
@@ -61,6 +66,13 @@ def criar_usuario():
         data_admissao_str = request.form.get('data_admissao', '').strip()
         departamento = request.form.get('departamento', '').strip()
         local_trabalho = request.form.get('local_trabalho', '').strip()
+        # Campos PJ
+        pj_contratante = request.form.get('pj_contratante', '').strip()
+        pj_contratante_cnpj = request.form.get('pj_contratante_cnpj', '').strip()
+        pj_contratante_endereco = request.form.get('pj_contratante_endereco', '').strip()
+        pj_contratada = request.form.get('pj_contratada', '').strip()
+        pj_contratada_cnpj = request.form.get('pj_contratada_cnpj', '').strip()
+        pj_data_contrato_str = request.form.get('pj_data_contrato', '').strip()
         
         # Converter data_admissao
         data_admissao = None
@@ -70,6 +82,16 @@ def criar_usuario():
                 data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
             except:
                 flash('Erro ao processar a data de admissão.', 'error')
+                return redirect(url_for('admin.criar_usuario'))
+
+        # Converter data do contrato PJ
+        pj_data_contrato = None
+        if pj_data_contrato_str:
+            try:
+                from datetime import datetime
+                pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+            except:
+                flash('Erro ao processar a data do contrato PJ.', 'error')
                 return redirect(url_for('admin.criar_usuario'))
         
         # Validações
@@ -95,6 +117,11 @@ def criar_usuario():
         if tipo_contrato not in ['CLT', 'PJ']:
             flash('Tipo de contrato inválido. Escolha entre CLT ou PJ.', 'error')
             return redirect(url_for('admin.criar_usuario'))
+        # Validação mínima para PJ (opcional campos obrigatórios)
+        if tipo_contrato == 'PJ':
+            if not pj_contratante or not pj_contratante_cnpj:
+                flash('Para contrato PJ, informe Contratante e CNPJ do Contratante.', 'error')
+                return redirect(url_for('admin.criar_usuario'))
         
         # Criar novo usuário
         novo_usuario = User(
@@ -112,6 +139,12 @@ def criar_usuario():
             data_admissao=data_admissao,
             departamento=departamento,
             local_trabalho=local_trabalho
+            ,pj_contratante=pj_contratante,
+            pj_contratante_cnpj=pj_contratante_cnpj,
+            pj_contratante_endereco=pj_contratante_endereco,
+            pj_contratada=pj_contratada,
+            pj_contratada_cnpj=pj_contratada_cnpj,
+            pj_data_contrato=pj_data_contrato
         )
         
         db.session.add(novo_usuario)
@@ -169,6 +202,13 @@ def editar_usuario(user_id):
         data_admissao_str = request.form.get('data_admissao', '').strip()
         departamento = request.form.get('departamento', usuario.departamento).strip()
         local_trabalho = request.form.get('local_trabalho', usuario.local_trabalho).strip()
+        # Campos PJ
+        pj_contratante = request.form.get('pj_contratante', usuario.pj_contratante).strip()
+        pj_contratante_cnpj = request.form.get('pj_contratante_cnpj', usuario.pj_contratante_cnpj).strip()
+        pj_contratante_endereco = request.form.get('pj_contratante_endereco', usuario.pj_contratante_endereco).strip()
+        pj_contratada = request.form.get('pj_contratada', usuario.pj_contratada).strip()
+        pj_contratada_cnpj = request.form.get('pj_contratada_cnpj', usuario.pj_contratada_cnpj).strip()
+        pj_data_contrato_str = request.form.get('pj_data_contrato', '')
         ativo = request.form.get('ativo') == 'on'
         
         # Converter data_admissao
@@ -179,6 +219,16 @@ def editar_usuario(user_id):
                 data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
             except:
                 flash('Erro ao processar a data de admissão.', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+        # Converter data do contrato PJ
+        pj_data_contrato = usuario.pj_data_contrato
+        if pj_data_contrato_str:
+            try:
+                from datetime import datetime
+                pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+            except:
+                flash('Erro ao processar a data do contrato PJ.', 'error')
                 return redirect(url_for('admin.editar_usuario', user_id=user_id))
         
         if role not in ['admin', 'usuario']:
@@ -201,6 +251,13 @@ def editar_usuario(user_id):
         usuario.data_admissao = data_admissao
         usuario.departamento = departamento
         usuario.local_trabalho = local_trabalho
+        # Atualizar campos PJ
+        usuario.pj_contratante = pj_contratante
+        usuario.pj_contratante_cnpj = pj_contratante_cnpj
+        usuario.pj_contratante_endereco = pj_contratante_endereco
+        usuario.pj_contratada = pj_contratada
+        usuario.pj_contratada_cnpj = pj_contratada_cnpj
+        usuario.pj_data_contrato = pj_data_contrato
         usuario.ativo = ativo
         
         db.session.commit()
@@ -958,6 +1015,7 @@ def adicionar_equipamento_termo(user_id):
     marca = request.form.get('marca', '').strip()
     modelo = request.form.get('modelo', '').strip()
     estado = request.form.get('estado', 'Novo').strip()
+    service_tag = request.form.get('service_tag', '').strip()
 
     if not descricao:
         return jsonify({
@@ -977,6 +1035,7 @@ def adicionar_equipamento_termo(user_id):
         'marca': marca,
         'modelo': modelo,
         'estado': estado,
+        'service_tag': service_tag,
         'data_entrega': datetime.now(timezone(timedelta(hours=-3))).strftime("%d/%m/%Y")
     }
 
@@ -990,12 +1049,18 @@ def adicionar_equipamento_termo(user_id):
         upload_folder = os.path.join(current_app.static_folder, 'uploads', 'termos')
         os.makedirs(upload_folder, exist_ok=True)
         arquivos = request.files.getlist('fotos') if 'fotos' in request.files else []
-        for arquivo in arquivos:
+        titulos_fotos = request.form.getlist('fotos_titulos')
+
+        for indice, arquivo in enumerate(arquivos):
             if arquivo and arquivo.filename:
                 filename = secure_filename(arquivo.filename)
                 unique_name = f"{int(datetime.now(timezone(timedelta(hours=-3))).timestamp())}_{uuid4().hex}_{filename}"
                 arquivo.save(os.path.join(upload_folder, unique_name))
-                saved_fotos.append(unique_name)
+                titulo_foto = titulos_fotos[indice].strip() if indice < len(titulos_fotos) and titulos_fotos[indice] else f'Foto {indice + 1}'
+                saved_fotos.append({
+                    'arquivo': unique_name,
+                    'titulo': titulo_foto,
+                })
     except Exception as e:
         # não bloquear a criação do equipamento por erro no upload; registrar evento
         registrar_evento(

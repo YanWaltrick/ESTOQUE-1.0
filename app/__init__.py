@@ -167,6 +167,13 @@ def _ensure_schema_columns():
         ('users', 'bloqueado_ate', 'DATETIME'),
         ('users', 'data_atualizacao', 'DATETIME'),
         ('chamadas', 'foto_anexo', 'VARCHAR(255)'),
+        # Campos PJ adicionados dinamicamente quando ausentes
+        ('users', 'pj_contratante', 'VARCHAR(255)'),
+        ('users', 'pj_contratante_cnpj', 'VARCHAR(18)'),
+        ('users', 'pj_contratante_endereco', 'VARCHAR(500)'),
+        ('users', 'pj_contratada', 'VARCHAR(255)'),
+        ('users', 'pj_contratada_cnpj', 'VARCHAR(18)'),
+        ('users', 'pj_data_contrato', 'DATE'),
     ]
     for table, column, col_type in migrations:
         if table not in inspector.get_table_names():

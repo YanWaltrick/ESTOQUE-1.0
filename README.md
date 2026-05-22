@@ -52,10 +52,21 @@ python app.py
 
 Acesse: http://localhost:5000
 
-### Produção (com Gunicorn)
+### Execução com WSGI no Windows
+```bash
+pip install waitress
+python wsgi.py
+```
+
+Ou diretamente:
+```bash
+waitress-serve --listen=0.0.0.0:5000 wsgi:app
+```
+
+### Produção (Linux)
 ```bash
 pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+gunicorn -w 4 -b 0.0.0.0:5000 wsgi:app
 ```
 
 ## 👤 Login Padrão

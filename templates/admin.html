@@ -52,80 +52,122 @@
                                     </div>
                                     <div class="card-body">
                                         <form id="form-adicionar-usuario">
-                                            <div class="mb-3">
-                                                <label for="username" class="form-label">Nome de Usuário</label>
-                                                <input type="text" class="form-control" id="username" name="username" placeholder="Ex.: usuario123 ou nome@empresa.com" required>
-                                                <div class="form-text">Você pode cadastrar um username comum ou um email válido.</div>
+                                            <!-- Apenas nome e tipo aparecem inicialmente -->
+                                            <div id="initial-fields">
+                                              <div class="mb-3">
+                                                  <label for="username" class="form-label">Nome de Usuário</label>
+                                                  <input type="text" class="form-control" id="username" name="username" placeholder="Ex.: usuario123 ou nome@empresa.com" required>
+                                                  <div class="form-text">Você pode cadastrar um username comum ou um email válido.</div>
+                                              </div>
+
+                                              <div class="mb-3">
+                                                  <label for="tipo_contrato" class="form-label">Tipo de Contrato</label>
+                                                  <select class="form-select" id="tipo_contrato" name="tipo_contrato" required>
+                                                      <option value="" selected disabled>-- Selecione --</option>
+                                                      <option value="CLT">CLT</option>
+                                                      <option value="PJ">PJ</option>
+                                                  </select>
+                                                  <div class="form-text">Esse campo define a divisão da lista de usuários.</div>
+                                              </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label for="tipo_contrato" class="form-label">Tipo de Contrato</label>
-                                                <select class="form-select" id="tipo_contrato" name="tipo_contrato" required>
-                                                    <option value="CLT">CLT</option>
-                                                    <option value="PJ">PJ</option>
-                                                </select>
-                                                <div class="form-text">Esse campo define a divisão da lista de usuários.</div>
+
+                                            <!-- Campos que aparecem somente após selecionar tipo -->
+                                            <div id="common-after-selection" style="display:none;">
+                                              <div class="mb-3" id="password-field" style="display:none;">
+                                                  <label for="password" class="form-label">Senha</label>
+                                                  <input type="password" class="form-control" id="password" name="password" required>
+                                              </div>
+                                              <div class="mb-3" id="role-field" style="display:none;">
+                                                  <label for="role" class="form-label">Tipo de Conta</label>
+                                                  <select class="form-select" id="role" name="role" required>
+                                                      <option value="usuario">Usuário Normal</option>
+                                                      <option value="admin">Administrador</option>
+                                                  </select>
+                                              </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label for="password" class="form-label">Senha</label>
-                                                <input type="password" class="form-control" id="password" name="password" required>
+
+                                            <!-- Campos CLT -->
+                                            <div id="clt-fields" style="display:none;">
+                                                <div class="mb-3">
+                                                    <label for="area" class="form-label">Área da Empresa</label>
+                                                    <input type="text" class="form-control" id="area" name="area" placeholder="Ex.: Financeiro, TI, Compras">
+                                                    <div class="form-text">Informe a área do usuário para organização.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="localizacao" class="form-label">Cidade</label>
+                                                    <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Ex.: São Paulo">
+                                                    <div class="form-text">Informe a cidade do usuário.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="empresa" class="form-label">Empresa</label>
+                                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ex.: Empresa XYZ">
+                                                    <div class="form-text">Nome da empresa.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="cnpj" class="form-label">CNPJ</label>
+                                                    <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="Ex.: 12.345.678/0001-90">
+                                                    <div class="form-text">CNPJ da empresa.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="endereco" class="form-label">Endereço</label>
+                                                    <input type="text" class="form-control" id="endereco" name="endereco" placeholder="Ex.: Rua Principal, 123">
+                                                    <div class="form-text">Endereço completo.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="cargo" class="form-label">Cargo/Função</label>
+                                                    <input type="text" class="form-control" id="cargo" name="cargo" placeholder="Ex.: Gerente de Projetos">
+                                                    <div class="form-text">Cargo ou função do usuário.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="cpf" class="form-label">CPF</label>
+                                                    <input type="text" class="form-control" id="cpf" name="cpf" placeholder="Ex.: 123.456.789-00">
+                                                    <div class="form-text">CPF do usuário.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="data_admissao" class="form-label">Data de Admissão</label>
+                                                    <input type="date" class="form-control" id="data_admissao" name="data_admissao">
+                                                    <div class="form-text">Data de admissão do usuário.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="departamento" class="form-label">Departamento</label>
+                                                    <input type="text" class="form-control" id="departamento" name="departamento" placeholder="Ex.: Financeiro, TI, Operações">
+                                                    <div class="form-text">Departamento do usuário.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="local_trabalho" class="form-label">Local de Trabalho</label>
+                                                    <input type="text" class="form-control" id="local_trabalho" name="local_trabalho" placeholder="Ex.: Matriz, Filial - São Paulo">
+                                                    <div class="form-text">Local de trabalho do usuário.</div>
+                                                </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label for="role" class="form-label">Tipo de Conta</label>
-                                                <select class="form-select" id="role" name="role" required>
-                                                    <option value="usuario">Usuário Normal</option>
-                                                    <option value="admin">Administrador</option>
-                                                </select>
+
+                                            <!-- Campos PJ -->
+                                            <div id="pj-fields" style="display:none; border-left: 3px solid #0d6efd; padding-left:12px; margin-bottom:12px;">
+                                                <div class="mb-3">
+                                                    <label for="pj_contratante" class="form-label">Contratante</label>
+                                                    <input type="text" class="form-control" id="pj_contratante" name="pj_contratante" placeholder="Contratante">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="pj_contratante_cnpj" class="form-label">CNPJ do Contratante</label>
+                                                    <input type="text" class="form-control" id="pj_contratante_cnpj" name="pj_contratante_cnpj" placeholder="CNPJ do Contratante">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="pj_contratante_endereco" class="form-label">Endereço do Contratante</label>
+                                                    <input type="text" class="form-control" id="pj_contratante_endereco" name="pj_contratante_endereco" placeholder="Endereço do Contratante">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="pj_contratada" class="form-label">Contratada</label>
+                                                    <input type="text" class="form-control" id="pj_contratada" name="pj_contratada" placeholder="Contratada">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="pj_contratada_cnpj" class="form-label">CNPJ da Contratada</label>
+                                                    <input type="text" class="form-control" id="pj_contratada_cnpj" name="pj_contratada_cnpj" placeholder="CNPJ da Contratada">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="pj_data_contrato" class="form-label">Data do Contrato</label>
+                                                    <input type="date" class="form-control" id="pj_data_contrato" name="pj_data_contrato">
+                                                </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label for="area" class="form-label">Área da Empresa</label>
-                                                <input type="text" class="form-control" id="area" name="area" placeholder="Ex.: Financeiro, TI, Compras">
-                                                <div class="form-text">Informe a área do usuário para organização.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="localizacao" class="form-label">Cidade</label>
-                                                <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Ex.: São Paulo">
-                                                <div class="form-text">Informe a cidade do usuário.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="empresa" class="form-label">Empresa</label>
-                                                <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ex.: Empresa XYZ">
-                                                <div class="form-text">Nome da empresa.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="cnpj" class="form-label">CNPJ</label>
-                                                <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="Ex.: 12.345.678/0001-90">
-                                                <div class="form-text">CNPJ da empresa.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="endereco" class="form-label">Endereço</label>
-                                                <input type="text" class="form-control" id="endereco" name="endereco" placeholder="Ex.: Rua Principal, 123">
-                                                <div class="form-text">Endereço completo.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="cargo" class="form-label">Cargo/Função</label>
-                                                <input type="text" class="form-control" id="cargo" name="cargo" placeholder="Ex.: Gerente de Projetos">
-                                                <div class="form-text">Cargo ou função do usuário.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="cpf" class="form-label">CPF</label>
-                                                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="Ex.: 123.456.789-00">
-                                                <div class="form-text">CPF do usuário.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="data_admissao" class="form-label">Data de Admissão</label>
-                                                <input type="date" class="form-control" id="data_admissao" name="data_admissao">
-                                                <div class="form-text">Data de admissão do usuário.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="departamento" class="form-label">Departamento</label>
-                                                <input type="text" class="form-control" id="departamento" name="departamento" placeholder="Ex.: Financeiro, TI, Operações">
-                                                <div class="form-text">Departamento do usuário.</div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="local_trabalho" class="form-label">Local de Trabalho</label>
-                                                <input type="text" class="form-control" id="local_trabalho" name="local_trabalho" placeholder="Ex.: Matriz, Filial - São Paulo">
-                                                <div class="form-text">Local de trabalho do usuário.</div>
-                                            </div>
+
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="fas fa-plus"></i> Adicionar Usuário
                                             </button>
@@ -290,6 +332,47 @@
                         </div>
                     </div>
                 </div>
+                                <script>
+                                (function(){
+                                    const tipo = document.getElementById('tipo_contrato');
+                                    const pjFields = document.getElementById('pj-fields');
+                                    const cltFields = document.getElementById('clt-fields');
+                                    const initial = document.getElementById('initial-fields');
+                                    const common = document.getElementById('common-after-selection');
+
+                                    function toggle(){
+                                        const val = (tipo.value||'').toUpperCase();
+                                        const pwd = document.getElementById('password-field');
+                                        const role = document.getElementById('role-field');
+                                        if (val === 'PJ'){
+                                            pjFields.style.display = 'block';
+                                            cltFields.style.display = 'none';
+                                            common.style.display = '';
+                                            if(pwd) pwd.style.display = '';
+                                            if(role) role.style.display = '';
+                                        } else if (val === 'CLT'){
+                                            cltFields.style.display = 'block';
+                                            pjFields.style.display = 'none';
+                                            common.style.display = '';
+                                            if(pwd) pwd.style.display = '';
+                                            if(role) role.style.display = '';
+                                        } else {
+                                            cltFields.style.display = 'none';
+                                            pjFields.style.display = 'none';
+                                            common.style.display = 'none';
+                                            if(pwd) pwd.style.display = 'none';
+                                            if(role) role.style.display = 'none';
+                                        }
+                                    }
+
+                                    if (tipo){
+                                        tipo.addEventListener('change', toggle);
+                                        document.addEventListener('DOMContentLoaded', toggle);
+                                        // initial hide
+                                        toggle();
+                                    }
+                                })();
+                                </script>
             </div>
         </div>
     </div>

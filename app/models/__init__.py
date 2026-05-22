@@ -35,6 +35,13 @@ class User(db.Model, UserMixin):
     data_admissao = db.Column(db.Date, nullable=True)
     departamento = db.Column(db.String(255), nullable=False, default='')
     local_trabalho = db.Column(db.String(255), nullable=False, default='')
+    # Campos específicos para contratação PJ
+    pj_contratante = db.Column(db.String(255), nullable=True, default='')
+    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default='')
+    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default='')
+    pj_contratada = db.Column(db.String(255), nullable=True, default='')
+    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default='')
+    pj_data_contrato = db.Column(db.Date, nullable=True)
     
     # Status e auditoria
     ativo = db.Column(db.Boolean, default=True, nullable=False)  # Se usuário está ativo/bloqueado
@@ -53,7 +60,8 @@ class User(db.Model, UserMixin):
     chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
     def __init__(self, username, password, role='usuario', tipo_contrato='CLT', area='', localizacao='', empresa='', cnpj='', 
-                 endereco='', cargo='', cpf='', data_admissao=None, departamento='', local_trabalho=''):
+                 endereco='', cargo='', cpf='', data_admissao=None, departamento='', local_trabalho='',
+                 pj_contratante='', pj_contratante_cnpj='', pj_contratante_endereco='', pj_contratada='', pj_contratada_cnpj='', pj_data_contrato=None):
         self.username = username
         self.password = password  # Já deve vir em hash
         self.role = role
@@ -68,6 +76,13 @@ class User(db.Model, UserMixin):
         self.data_admissao = data_admissao
         self.departamento = departamento.strip() if departamento else ''
         self.local_trabalho = local_trabalho.strip() if local_trabalho else ''
+        # Atribuir campos PJ
+        self.pj_contratante = pj_contratante.strip() if pj_contratante else ''
+        self.pj_contratante_cnpj = pj_contratante_cnpj.strip() if pj_contratante_cnpj else ''
+        self.pj_contratante_endereco = pj_contratante_endereco.strip() if pj_contratante_endereco else ''
+        self.pj_contratada = pj_contratada.strip() if pj_contratada else ''
+        self.pj_contratada_cnpj = pj_contratada_cnpj.strip() if pj_contratada_cnpj else ''
+        self.pj_data_contrato = pj_data_contrato
         self.ativo = True
         self.tentativas_login_falhas = 0
 
@@ -154,6 +169,12 @@ class User(db.Model, UserMixin):
             'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
             'departamento': self.departamento,
             'local_trabalho': self.local_trabalho,
+            'pj_contratante': self.pj_contratante,
+            'pj_contratante_cnpj': self.pj_contratante_cnpj,
+            'pj_contratante_endereco': self.pj_contratante_endereco,
+            'pj_contratada': self.pj_contratada,
+            'pj_contratada_cnpj': self.pj_contratada_cnpj,
+            'pj_data_contrato': self.pj_data_contrato.strftime("%d/%m/%Y") if self.pj_data_contrato else None,
             'ativo': self.ativo,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'ultimo_login': self.ultimo_login.strftime("%d/%m/%Y %H:%M:%S") if self.ultimo_login else "Nunca",

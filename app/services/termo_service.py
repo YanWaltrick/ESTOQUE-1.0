@@ -7,7 +7,7 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
-    KeepTogether
+    PageBreak
 )
 
 from reportlab.platypus import Image as RLImage
@@ -164,15 +164,6 @@ class TermoService:
             spaceAfter=8
         )
 
-        style_foto_link = ParagraphStyle(
-            'FotoLink',
-            parent=styles['BodyText'],
-            fontSize=8,
-            leading=10,
-            textColor=colors.HexColor('#0d6efd'),
-            spaceAfter=4,
-        )
-
         # ---------------------------------------------------------
         # FUNÇÕES AUXILIARES
         # ---------------------------------------------------------
@@ -230,7 +221,7 @@ class TermoService:
 
             return None
 
-        def _bloco_foto(nome_foto: str):
+        def _miniatura_foto(nome_foto: str, max_largura: float, max_altura: float):
 
             img_path = _resolver_caminho_foto(nome_foto)
 
@@ -239,9 +230,6 @@ class TermoService:
 
             with PILImage.open(img_path) as pil_img:
                 largura_original, altura_original = pil_img.size
-
-            max_largura = A4[0] - (2 * cm)
-            max_altura = 8.5 * cm
 
             fator = min(
                 max_largura / largura_original,
@@ -258,34 +246,79 @@ class TermoService:
             img.drawHeight = altura_final
             img.hAlign = 'CENTER'
 
-            foto_url = _foto_url_publica(nome_foto)
+            return img
 
-            link = Paragraph(
-                f'<link href="{foto_url}">{foto_url}</link>',
-                style_foto_link,
-            )
-
-            return KeepTogether([
-                link,
-                Spacer(1, 4),
-                img,
-                Spacer(1, 18),
-            ])
-
-        def _coletar_blocos_fotos(lista_equipamentos):
+        def _blocos_fotos_em_uma_pagina(lista_equipamentos):
 
             blocos = []
+            equipamentos_validos = [
+                equipamento for equipamento in (lista_equipamentos or [])
+                if (equipamento.get('fotos') or [])
+            ]
 
-            for equipamento in lista_equipamentos or []:
+            if not equipamentos_validos:
+                return blocos
 
+            colunas = 4
+            largura_util = A4[0] - (4 * cm)
+            largura_coluna = largura_util / colunas
+            max_largura_foto = largura_coluna - (0.25 * cm)
+            max_altura_foto = 3.4 * cm
+
+            for equipamento in equipamentos_validos:
+                nome_item = valor_texto(
+                    equipamento.get('descricao', ''),
+                    'Item sem descrição'
+                )
+                service_tag = valor_texto(equipamento.get('service_tag', ''))
                 fotos = equipamento.get('fotos') or []
 
+                titulo_item = nome_item
+                if service_tag:
+                    titulo_item = f'{nome_item} - ServiceTag: {service_tag}'
+
+                blocos.append(Paragraph(titulo_item, style_section))
+
+                blocos.append(Spacer(1, 3))
+
+                celulas = []
                 for foto in fotos:
+                    if isinstance(foto, dict):
+                        arquivo_foto = foto.get('arquivo') or ''
+                        titulo_foto = valor_texto(foto.get('titulo'), 'Foto')
+                    else:
+                        arquivo_foto = foto
+                        titulo_foto = 'Foto'
 
-                    bloco = _bloco_foto(foto)
+                    miniatura = _miniatura_foto(arquivo_foto, max_largura_foto, max_altura_foto)
+                    if miniatura:
+                        celulas.append([
+                            Paragraph(titulo_foto, style_normal),
+                            Spacer(1, 2),
+                            miniatura,
+                        ])
 
-                    if bloco:
-                        blocos.append(bloco)
+                if celulas:
+                    while len(celulas) % colunas != 0:
+                        celulas.append(Spacer(1, 1))
+
+                    linhas = [celulas[i:i + colunas] for i in range(0, len(celulas), colunas)]
+
+                    tabela_fotos = Table(
+                        linhas,
+                        colWidths=[largura_coluna] * colunas
+                    )
+
+                    tabela_fotos.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 1),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 1),
+                        ('TOPPADDING', (0, 0), (-1, -1), 1),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                    ]))
+
+                    blocos.append(tabela_fotos)
 
             return blocos
 
@@ -476,10 +509,10 @@ Local e Data: _________________________________________________
 
             elements.append(tabela_assinaturas)
 
-            blocos_fotos = _coletar_blocos_fotos(equipamentos)
+            blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
+                elements.append(PageBreak())
                 elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
-                elements.append(Spacer(1, 12))
                 elements.extend(blocos_fotos)
 
             doc.build(elements)
@@ -742,10 +775,10 @@ Local e Data: _________________________________________________
 
         elements.append(tabela_assinaturas)
 
-        blocos_fotos = _coletar_blocos_fotos(equipamentos)
+        blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
         if blocos_fotos:
+            elements.append(PageBreak())
             elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
-            elements.append(Spacer(1, 12))
             elements.extend(blocos_fotos)
 
         doc.build(elements)

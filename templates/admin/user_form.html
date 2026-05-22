@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% set active_page = 'usuarios' %}
+
+{% block title %}{{ 'Criar Usuário' if mode == 'create' else 'Editar Usuário' }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">{{ 'Criar Usuário' if mode == 'create' else 'Editar Usuário' }}</h5>
+          <form method="post" action="{{ url_for('admin.criar_usuario') if mode == 'create' else url_for('admin.editar_usuario', user_id=usuario.id) }}">
+            <div class="mb-3">
+              <label class="form-label">Usuário (username)</label>
+              <input type="text" name="username" class="form-control" required value="{{ usuario.username if usuario else '' }}">
+            </div>
+
+            <!-- Apenas nome e tipo aparecem inicialmente -->
+            <div id="initial-fields">
+              <div class="mb-3">
+                <label class="form-label">Senha</label>
+                <!-- senha ficará oculta até escolha do tipo -->
+                <input type="password" id="password-field" name="password" class="form-control" style="display:none;" {{ 'required' if mode == 'create' else '' }}>
+              </div>
+
+              <div class="mb-3" style="display:none;" id="role-field">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-select">
+                  <option value="usuario" {% if not usuario or usuario.role!='admin' %}selected{% endif %}>Usuário</option>
+                  <option value="admin" {% if usuario and usuario.role=='admin' %}selected{% endif %}>Admin</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Tipo de Contrato</label>
+                <select id="tipo_contrato" name="tipo_contrato" class="form-select" required>
+                  <option value="" disabled {% if not usuario %}selected{% endif %}>-- Selecione --</option>
+                  <option value="CLT" {% if usuario and usuario.tipo_contrato=='CLT' %}selected{% endif %}>CLT</option>
+                  <option value="PJ" {% if usuario and usuario.tipo_contrato=='PJ' %}selected{% endif %}>PJ</option>
+                </select>
+                <small class="text-muted">Escolha CLT ou PJ para preencher os campos específicos.</small>
+              </div>
+            </div>
+
+            <!-- Campos CLT -->
+            <div id="clt-fields" style="display:none; border-left: 3px solid #198754; padding-left: 12px; margin-bottom: 12px;">
+              <h6>Informações CLT</h6>
+              <div class="mb-3">
+                <label class="form-label">Empresa</label>
+                <input type="text" name="empresa" class="form-control" value="{{ usuario.empresa if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">CNPJ</label>
+                <input type="text" name="cnpj" class="form-control" value="{{ usuario.cnpj if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Endereço</label>
+                <input type="text" name="endereco" class="form-control" value="{{ usuario.endereco if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Cargo</label>
+                <input type="text" name="cargo" class="form-control" value="{{ usuario.cargo if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">CPF</label>
+                <input type="text" name="cpf" class="form-control" value="{{ usuario.cpf if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Data de Admissão</label>
+                <input type="date" name="data_admissao" class="form-control" value="{{ usuario.data_admissao.strftime('%Y-%m-%d') if usuario and usuario.data_admissao else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Departamento</label>
+                <input type="text" name="departamento" class="form-control" value="{{ usuario.departamento if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Local de trabalho</label>
+                <input type="text" name="local_trabalho" class="form-control" value="{{ usuario.local_trabalho if usuario else '' }}">
+              </div>
+            </div>
+
+            <!-- Campos PJ -->
+            <div id="pj-fields" style="display: none; border-left: 3px solid #0d6efd; padding-left: 12px; margin-bottom: 12px;">
+              <h6>Informações PJ</h6>
+              <div class="mb-3">
+                <label class="form-label">Contratante</label>
+                <input type="text" name="pj_contratante" class="form-control" value="{{ usuario.pj_contratante if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">CNPJ do Contratante</label>
+                <input type="text" name="pj_contratante_cnpj" class="form-control" value="{{ usuario.pj_contratante_cnpj if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Endereço do Contratante</label>
+                <input type="text" name="pj_contratante_endereco" class="form-control" value="{{ usuario.pj_contratante_endereco if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Contratada</label>
+                <input type="text" name="pj_contratada" class="form-control" value="{{ usuario.pj_contratada if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">CNPJ da Contratada</label>
+                <input type="text" name="pj_contratada_cnpj" class="form-control" value="{{ usuario.pj_contratada_cnpj if usuario else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Data do Contrato</label>
+                <input type="date" name="pj_data_contrato" class="form-control" value="{{ usuario.pj_data_contrato.strftime('%Y-%m-%d') if usuario and usuario.pj_data_contrato else '' }}">
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('admin.listar_usuarios') }}" class="btn btn-secondary">Cancelar</a>
+              <button class="btn btn-primary" type="submit">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+  (function(){
+    const tipo = document.getElementById('tipo_contrato');
+    const pjFields = document.getElementById('pj-fields');
+    const cltFields = document.getElementById('clt-fields');
+    const initial = document.getElementById('initial-fields');
+
+    function toggle(){
+      const val = (tipo.value||'').toUpperCase();
+      const pwd = document.getElementById('password-field');
+      const role = document.getElementById('role-field');
+      if (val === 'PJ'){
+        pjFields.style.display = 'block';
+        cltFields.style.display = 'none';
+        // mostrar senha e role após seleção
+        if(pwd) pwd.style.display = '';
+        if(role) role.style.display = '';
+      } else if (val === 'CLT'){
+        cltFields.style.display = 'block';
+        pjFields.style.display = 'none';
+        if(pwd) pwd.style.display = '';
+        if(role) role.style.display = '';
+      } else {
+        cltFields.style.display = 'none';
+        pjFields.style.display = 'none';
+        if(pwd) pwd.style.display = 'none';
+        if(role) role.style.display = 'none';
+      }
+    }
+
+    tipo.addEventListener('change', toggle);
+    document.addEventListener('DOMContentLoaded', function(){
+      // se em modo editar já existir tipo selecionado, exibir campos apropriados
+      toggle();
+    });
+  })();
+  </script>
+
+{% endblock %}
