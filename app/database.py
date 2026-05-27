@@ -57,7 +57,10 @@ def create_app():
     is_dev = os.getenv('FLASK_ENV') == 'development'
     app.config['SESSION_COOKIE_SECURE'] = False if is_dev else os.getenv('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+    # Em desenvolvimento, usar 'None' para permitir acesso remoto (sem HTTPS)
+    # Em produção com HTTPS, usar 'None' com SESSION_COOKIE_SECURE=True
+    # Para localhost apenas, pode usar 'Lax'
+    app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'None' if is_dev else 'Lax')
 
     # Configuracoes de Email
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')

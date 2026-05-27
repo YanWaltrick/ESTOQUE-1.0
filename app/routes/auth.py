@@ -23,7 +23,9 @@ def url_has_allowed_host_and_scheme(url, allowed_hosts=None):
     Previne open redirect vulnerabilities.
     """
     if allowed_hosts is None:
-        allowed_hosts = ['localhost', '127.0.0.1']
+        # Carregar hosts permitidos da configuração
+        env_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+        allowed_hosts = [host.strip() for host in env_hosts.split(',')]
     
     if not url:
         return False
