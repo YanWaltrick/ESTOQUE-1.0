@@ -780,21 +780,33 @@
         // Atualizar status da chamada (admin)
         async function trocarStatus(chamadaId, status) {
             try {
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                                 document.querySelector('meta[name="csrf-token"]')?.content;
+                
                 const response = await fetch(`/api/chamadas/${chamadaId}/status`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken || '',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: JSON.stringify({ status })
                 });
 
                 if (response.ok) {
                     carregarChamadas();
                 } else {
-                    const err = await response.json();
-                    alert('Erro: ' + (err.erro || 'Falha ao atualizar status'));
+                    let err = {};
+                    try {
+                        err = await response.json();
+                    } catch(e) {
+                        err = { erro: 'Resposta inválida do servidor' };
+                    }
+                    alert('Erro: ' + (err.erro || err.message || 'Falha ao atualizar status'));
                 }
             } catch (error) {
                 console.error('Erro ao atualizar status:', error);
-                alert('Erro ao atualizar status');
+                alert('Erro ao atualizar status: ' + error.message);
             }
         }
 

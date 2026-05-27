@@ -416,18 +416,30 @@ class TermoEntrega(db.Model):
     id_termo = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
-    # Informações da empresa
+    # Informações da empresa (CLT)
     empresa = db.Column(db.String(255), nullable=False, default='')
     cnpj = db.Column(db.String(18), nullable=False, default='')
     endereco = db.Column(db.String(500), nullable=False, default='')
     
-    # Informações do colaborador
+    # Informações do colaborador (CLT)
     nome_colaborador = db.Column(db.String(255), nullable=False, default='')
     cargo_funcao = db.Column(db.String(255), nullable=False, default='')
     cpf_cnpj = db.Column(db.String(18), nullable=False, default='')
     departamento = db.Column(db.String(255), nullable=False, default='')
     local_trabalho = db.Column(db.String(255), nullable=False, default='')
     data_admissao = db.Column(db.Date, nullable=True)
+    
+    # Informações PJ (Contratante)
+    pj_contratante = db.Column(db.String(255), nullable=True, default='')
+    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default='')
+    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default='')
+    
+    # Informações PJ (Contratada)
+    pj_contratada = db.Column(db.String(255), nullable=True, default='')
+    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default='')
+    
+    # Data do Contrato PJ
+    pj_data_contrato = db.Column(db.Date, nullable=True)
     
     # Equipamentos entregues (JSON para flexibilidade)
     equipamentos = db.Column(db.Text, nullable=True, default='[]')  # JSON string
@@ -443,7 +455,9 @@ class TermoEntrega(db.Model):
     usuario = db.relationship('User', backref=db.backref('termos_entrega', lazy=True, cascade='all, delete-orphan'))
 
     def __init__(self, id_usuario, empresa='', cnpj='', endereco='', nome_colaborador='', 
-                 cargo_funcao='', cpf_cnpj='', departamento='', local_trabalho='', data_admissao=None):
+                 cargo_funcao='', cpf_cnpj='', departamento='', local_trabalho='', data_admissao=None,
+                 pj_contratante='', pj_contratante_cnpj='', pj_contratante_endereco='',
+                 pj_contratada='', pj_contratada_cnpj='', pj_data_contrato=None):
         self.id_usuario = id_usuario
         self.empresa = empresa
         self.cnpj = cnpj
@@ -454,6 +468,12 @@ class TermoEntrega(db.Model):
         self.departamento = departamento
         self.local_trabalho = local_trabalho
         self.data_admissao = data_admissao
+        self.pj_contratante = pj_contratante
+        self.pj_contratante_cnpj = pj_contratante_cnpj
+        self.pj_contratante_endereco = pj_contratante_endereco
+        self.pj_contratada = pj_contratada
+        self.pj_contratada_cnpj = pj_contratada_cnpj
+        self.pj_data_contrato = pj_data_contrato
         self.equipamentos = '[]'
         self.assinado = False
 
@@ -472,6 +492,12 @@ class TermoEntrega(db.Model):
             'departamento': self.departamento,
             'local_trabalho': self.local_trabalho,
             'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
+            'pj_contratante': self.pj_contratante,
+            'pj_contratante_cnpj': self.pj_contratante_cnpj,
+            'pj_contratante_endereco': self.pj_contratante_endereco,
+            'pj_contratada': self.pj_contratada,
+            'pj_contratada_cnpj': self.pj_contratada_cnpj,
+            'pj_data_contrato': self.pj_data_contrato.strftime("%d/%m/%Y") if self.pj_data_contrato else None,
             'equipamentos': json.loads(self.equipamentos) if self.equipamentos else [],
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'data_atualizacao': self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_atualizacao else None,

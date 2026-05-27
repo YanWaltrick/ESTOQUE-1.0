@@ -698,35 +698,52 @@ def contar_chamadas_nao_lidas():
 @login_required
 @require_role('admin')
 def atualizar_status_chamada(id_chamada):
+    """Atualiza o status de uma chamada (admin)"""
     try:
-        dados = request.get_json(silent=True) or {}
+        # Validar Content-Type
+        if not request.is_json:
+            return jsonify({'erro': 'Content-Type deve ser application/json'}), 400
+        
+        dados = request.get_json()
+        if not dados:
+            return jsonify({'erro': 'Corpo da requisição vazio'}), 400
+        
         status = (dados.get('status') or '').strip().lower()
-        if status not in ['nova', 'lida', 'analise', 'execucao', 'concluida']:
-            return jsonify({'erro': 'Status inválido'}), 400
+        
+        # Validar status
+        status_validos = ['nova', 'lida', 'analise', 'execucao', 'concluida']
+        if not status or status not in status_validos:
+            return jsonify({'erro': f'Status inválido. Use: {", ".join(status_validos)}'}), 400
 
+        # Buscar chamada
         chamada = Chamada.query.get(id_chamada)
         if not chamada:
             return jsonify({'erro': 'Chamada não encontrada'}), 404
 
+        # Atualizar status
         chamada.status = status
         chamada.lida = status in ['lida', 'analise', 'execucao', 'concluida']
         db.session.commit()
 
+        # Registrar evento
         registrar_evento(
             tipo_evento='chamada_status_alterado',
             descricao=f'Chamada {id_chamada} alterada para status {status}',
             usuario_responsavel=current_user.username
         )
 
-        return jsonify({'mensagem': 'Status atualizado com sucesso'})
+        return jsonify({'mensagem': 'Status atualizado com sucesso', 'novo_status': status}), 200
+        
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao atualizar status: {str(e)}'}), 500
 
 
 @api_bp.route('/chamadas/<int:id_chamada>/ler', methods=['PUT'])
 @login_required
 @require_role('admin')
 def marcar_chamada_como_lida(id_chamada):
+    """Marca uma chamada como lida (admin)"""
     try:
         chamada = Chamada.query.get(id_chamada)
         if not chamada:
@@ -743,6 +760,8 @@ def marcar_chamada_como_lida(id_chamada):
             usuario_responsavel=current_user.username
         )
 
-        return jsonify({'mensagem': 'Chamada marcada como lida'})
+        return jsonify({'mensagem': 'Chamada marcada como lida'}), 200
+        
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao marcar como lida: {str(e)}'}), 500

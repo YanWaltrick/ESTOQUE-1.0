@@ -17,11 +17,23 @@
             </div>
             <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
                 <form class="search-users-form" method="get" action="{{ url_for('admin.listar_usuarios') }}">
-                    <div class="input-group search-users-group">
+                    <input type="hidden" name="tipo" value="{{ tipo or '' }}">
+                    <div class="input-group search-users-group mb-2">
                         <span class="input-group-text search-users-icon">
                             <i class="fas fa-search"></i>
                         </span>
                         <input type="text" name="q" class="form-control search-users-input" placeholder="Buscar usuário..." value="{{ q or '' }}" aria-label="Pesquisar usuários por nome">
+                    </div>
+                    <div class="btn-group contract-filter-group w-100" role="group" aria-label="Filtrar por tipo de contrato">
+                        <button type="submit" class="btn btn-sm {% if not tipo %}btn-primary{% else %}btn-outline-primary{% endif %}" onclick="this.form.tipo.value=''">
+                            TODOS
+                        </button>
+                        <button type="submit" class="btn btn-sm {% if tipo == 'CLT' %}btn-dark{% else %}btn-outline-dark{% endif %}" onclick="this.form.tipo.value='CLT'">
+                            CLT
+                        </button>
+                        <button type="submit" class="btn btn-sm {% if tipo == 'PJ' %}btn-success{% else %}btn-outline-success{% endif %}" onclick="this.form.tipo.value='PJ'">
+                            PJ
+                        </button>
                     </div>
                 </form>
                 <span class="badge bg-dark-subtle text-dark px-3 py-2">Total: {{ usuarios.total }}</span>
@@ -199,6 +211,10 @@
             width: 100%;
         }
 
+        .contract-filter-group .btn {
+            min-width: 92px;
+        }
+
         .search-users-group {
             width: 100%;
         }
@@ -359,7 +375,8 @@
 
         // Função para obter CSRF token
         function getCsrfToken() {
-            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return (meta && meta.getAttribute('content')) || '';
         }
 
         // Botão salvar documento
@@ -810,6 +827,18 @@
                 document.getElementById('detalheDataAdmissao').textContent = usuario.data_admissao || '—';
                 document.getElementById('detalheDepartamento').textContent = usuario.departamento || '—';
                 document.getElementById('detalheLocalTrabalho').textContent = usuario.local_trabalho || '—';
+
+                const possuiPJ = (usuario.tipo_contrato || '').toUpperCase() === 'PJ' || usuario.pj_contratante || usuario.pj_contratada;
+                const pjSection = document.getElementById('detalhePjSection');
+                if (pjSection) {
+                    pjSection.style.display = possuiPJ ? 'block' : 'none';
+                }
+                document.getElementById('detalhePjContratante').textContent = usuario.pj_contratante || '—';
+                document.getElementById('detalhePjContratanteCnpj').textContent = usuario.pj_contratante_cnpj || '—';
+                document.getElementById('detalhePjContratanteEndereco').textContent = usuario.pj_contratante_endereco || '—';
+                document.getElementById('detalhePjContratada').textContent = usuario.pj_contratada || '—';
+                document.getElementById('detalhePjContratadaCnpj').textContent = usuario.pj_contratada_cnpj || '—';
+                document.getElementById('detalhePjDataContrato').textContent = usuario.pj_data_contrato || '—';
                 
                 // Abrir modal
                 const modal = new bootstrap.Modal(document.getElementById('detalheUsuarioModal'));
@@ -926,7 +955,48 @@
                         </div>
                     </div>
 
-                    <!-- Seção 4: Datas do Sistema -->
+                        <!-- Seção 3: Dados PJ -->
+                        <div class="card mb-3 border-start border-warning border-4" id="detalhePjSection" style="display: none;">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-briefcase text-warning"></i> Dados PJ</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="fw-bold text-muted small">Contratante</label>
+                                        <p class="mb-0" id="detalhePjContratante">—</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fw-bold text-muted small">CNPJ do Contratante</label>
+                                        <p class="mb-0" id="detalhePjContratanteCnpj">—</p>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <label class="fw-bold text-muted small">Endereço do Contratante</label>
+                                        <p class="mb-0" id="detalhePjContratanteEndereco">—</p>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="fw-bold text-muted small">Contratada</label>
+                                        <p class="mb-0" id="detalhePjContratada">—</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fw-bold text-muted small">CNPJ da Contratada</label>
+                                        <p class="mb-0" id="detalhePjContratadaCnpj">—</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label class="fw-bold text-muted small">Data do Contrato</label>
+                                        <p class="mb-0" id="detalhePjDataContrato">—</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção 4: Datas do Sistema -->
                     <div class="card border-start border-secondary border-4">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><i class="fas fa-calendar text-secondary"></i> Datas do Sistema</h6>
@@ -998,85 +1068,172 @@
             try {
                 const response = await fetch(`/admin/usuarios/${userId}/termo-entrega`);
                 const data = await response.json();
-
-                if (!data.success) {
-                    document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-warning">Nenhum termo encontrado. Será criado ao atualizar.</div>`;
-                    const btnSalvarTermo = document.getElementById('btnSalvarTermo');
-                    const btnGerarAditivo = document.getElementById('btnGerarAditivo');
-                    if (btnSalvarTermo) {
-                        btnSalvarTermo.style.display = 'inline-block';
-                        btnSalvarTermo.innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
-                    }
-                    if (btnGerarAditivo) {
-                        btnGerarAditivo.style.display = 'none';
-                    }
+                if (!data || data.success === false) {
+                    document.getElementById('modalTermoBody').innerHTML = '<div class="alert alert-warning mb-0">Nenhum termo encontrado.</div>';
+                    document.getElementById('btnSalvarTermo').style.display = 'inline-block';
+                    document.getElementById('btnGerarAditivo').style.display = 'none';
+                    document.getElementById('btnExportarTermo').style.display = 'none';
                     return;
                 }
 
-                const termo = data.termo;
-                let html = `
-                    <div class="card border-start border-warning border-4 mb-3">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-building text-warning"></i> Informações da Empresa</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="termoEmpresa" class="form-label"><strong>Empresa</strong></label>
-                                    <input type="text" class="form-control" id="termoEmpresa" value="${termo.empresa || ''}" placeholder="Nome da Empresa">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="termoCNPJ" class="form-label"><strong>CNPJ</strong></label>
-                                    <input type="text" class="form-control" id="termoCNPJ" value="${termo.cnpj || ''}" placeholder="00.000.000/0000-00">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <label for="termoEndereco" class="form-label"><strong>Endereço</strong></label>
-                                    <input type="text" class="form-control" id="termoEndereco" value="${termo.endereco || ''}" placeholder="Rua, número, complemento...">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                const termo = data.termo || {};
 
-                    <div class="card border-start border-info border-4 mb-3">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-user text-info"></i> Informações do Colaborador</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="termoNome" class="form-label"><strong>Nome</strong></label>
-                                    <input type="text" class="form-control" id="termoNome" value="${termo.nome_colaborador || ''}" placeholder="Nome do Colaborador" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="termoCPF" class="form-label"><strong>CPF</strong></label>
-                                    <input type="text" class="form-control" id="termoCPF" value="${termo.cpf_cnpj || ''}" placeholder="000.000.000-00">
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="termoCargo" class="form-label"><strong>Cargo/Função</strong></label>
-                                    <input type="text" class="form-control" id="termoCargo" value="${termo.cargo_funcao || ''}" placeholder="Ex: Analista de TI">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="termoDepartamento" class="form-label"><strong>Departamento</strong></label>
-                                    <input type="text" class="form-control" id="termoDepartamento" value="${termo.departamento || ''}" placeholder="Ex: Tecnologia da Informação">
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="termoLocal" class="form-label"><strong>Local de Trabalho</strong></label>
-                                    <input type="text" class="form-control" id="termoLocal" value="${termo.local_trabalho || ''}" placeholder="Local">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="termoDataAdmissao" class="form-label"><strong>Data de Admissão</strong></label>
-                                    <input type="date" class="form-control" id="termoDataAdmissao" value="${termo.data_admissao || ''}">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                try {
+                    const userResp = await fetch(`/api/users/${userId}`);
+                    if (userResp.ok) {
+                        const userJson = await userResp.json();
+                        termo.pj_contratante = termo.pj_contratante || userJson.pj_contratante || '';
+                        termo.pj_contratante_cnpj = termo.pj_contratante_cnpj || userJson.pj_contratante_cnpj || '';
+                        termo.pj_contratante_endereco = termo.pj_contratante_endereco || userJson.pj_contratante_endereco || '';
+                        termo.pj_contratada = termo.pj_contratada || userJson.pj_contratada || '';
+                        termo.pj_contratada_cnpj = termo.pj_contratada_cnpj || userJson.pj_contratada_cnpj || '';
+                        termo.pj_data_contrato = termo.pj_data_contrato || userJson.pj_data_contrato || '';
+                        termo.tipo_contrato = termo.tipo_contrato || userJson.tipo_contrato || '';
+                    }
+                } catch (userError) {
+                    console.warn('Não foi possível buscar dados complementares do usuário:', userError);
+                }
 
+                const tipoContrato = (termo.tipo_contrato || '').toString().toUpperCase();
+                const isPJ = tipoContrato === 'PJ' || !!termo.pj_contratante || !!termo.pj_contratada;
+                const equipamentos = Array.isArray(termo.equipamentos) ? termo.equipamentos : [];
+
+                const equipamentosHtml = equipamentos.length > 0 ? `
+                    <div class="list-group">
+                        ${equipamentos.map(eq => `
+                            <div class="list-group-item d-flex justify-content-between align-items-center" data-eq-id="${eq.id}">
+                                <div class="flex-grow-1">
+                                    <p class="mb-1"><strong>${eq.descricao || ''}</strong></p>
+                                    <small class="text-muted">
+                                        ${eq.marca ? 'Marca: ' + eq.marca : ''}
+                                        ${eq.modelo ? '| Modelo: ' + eq.modelo : ''}
+                                        ${eq.estado ? '| Estado: ' + eq.estado : ''}
+                                    </small>
+                                    ${eq.fotos && eq.fotos.length ? `
+                                        <div class="mt-2">
+                                            ${eq.fotos.map(f => `<img src="/static/uploads/termos/${f}" alt="Foto do equipamento" style="max-height:60px; margin-right:6px; border:1px solid #ddd; padding:2px;">`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-equipamento" data-eq-id="${eq.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p class="text-muted mb-0">Nenhum equipamento registrado.</p>';
+
+                let html = '';
+
+                if (isPJ) {
+                    html = `
+                        <div class="card border-start border-primary border-4 mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-briefcase text-primary"></i> Informações PJ</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="pjContratante" class="form-label"><strong>Contratante</strong></label>
+                                        <input type="text" class="form-control" id="pjContratante" value="${termo.pj_contratante || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="pjContratanteCnpj" class="form-label"><strong>CNPJ do Contratante</strong></label>
+                                        <input type="text" class="form-control" id="pjContratanteCnpj" value="${termo.pj_contratante_cnpj || ''}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <label for="pjContratanteEndereco" class="form-label"><strong>Endereço do Contratante</strong></label>
+                                        <input type="text" class="form-control" id="pjContratanteEndereco" value="${termo.pj_contratante_endereco || ''}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="pjContratada" class="form-label"><strong>Contratada</strong></label>
+                                        <input type="text" class="form-control" id="pjContratada" value="${termo.pj_contratada || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="pjContratadaCnpj" class="form-label"><strong>CNPJ da Contratada</strong></label>
+                                        <input type="text" class="form-control" id="pjContratadaCnpj" value="${termo.pj_contratada_cnpj || ''}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="pjDataContrato" class="form-label"><strong>Data do Contrato</strong></label>
+                                        <input type="date" class="form-control" id="pjDataContrato" value="${termo.pj_data_contrato || ''}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html = `
+                        <div class="card border-start border-warning border-4 mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-building text-warning"></i> Informações da Empresa</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="termoEmpresa" class="form-label"><strong>Empresa</strong></label>
+                                        <input type="text" class="form-control" id="termoEmpresa" value="${termo.empresa || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="termoCNPJ" class="form-label"><strong>CNPJ</strong></label>
+                                        <input type="text" class="form-control" id="termoCNPJ" value="${termo.cnpj || ''}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label for="termoEndereco" class="form-label"><strong>Endereço</strong></label>
+                                        <input type="text" class="form-control" id="termoEndereco" value="${termo.endereco || ''}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-start border-info border-4 mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-user text-info"></i> Informações do Colaborador</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="termoNome" class="form-label"><strong>Nome</strong></label>
+                                        <input type="text" class="form-control" id="termoNome" value="${termo.nome_colaborador || ''}" readonly>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="termoCPF" class="form-label"><strong>CPF</strong></label>
+                                        <input type="text" class="form-control" id="termoCPF" value="${termo.cpf_cnpj || ''}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="termoCargo" class="form-label"><strong>Cargo/Função</strong></label>
+                                        <input type="text" class="form-control" id="termoCargo" value="${termo.cargo_funcao || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="termoDepartamento" class="form-label"><strong>Departamento</strong></label>
+                                        <input type="text" class="form-control" id="termoDepartamento" value="${termo.departamento || ''}">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="termoLocal" class="form-label"><strong>Local de Trabalho</strong></label>
+                                        <input type="text" class="form-control" id="termoLocal" value="${termo.local_trabalho || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="termoDataAdmissao" class="form-label"><strong>Data de Admissão</strong></label>
+                                        <input type="date" class="form-control" id="termoDataAdmissao" value="${termo.data_admissao || ''}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
                     <div class="card border-start border-success border-4 mb-3">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h6 class="mb-0"><i class="fas fa-laptop text-success"></i> Equipamentos Entregues</h6>
@@ -1084,32 +1241,7 @@
                                 <i class="fas fa-plus"></i> Adicionar
                             </button>
                         </div>
-                        <div class="card-body" id="equipamentosContainer">
-                            ${termo.equipamentos && termo.equipamentos.length > 0 ? `
-                                <div class="list-group">
-                                    ${termo.equipamentos.map(eq => `
-                                        <div class="list-group-item d-flex justify-content-between align-items-center" data-eq-id="${eq.id}">
-                                            <div class="flex-grow-1">
-                                                <p class="mb-1"><strong>${eq.descricao}</strong></p>
-                                                <small class="text-muted">
-                                                    ${eq.marca ? 'Marca: ' + eq.marca : ''} 
-                                                    ${eq.modelo ? '| Modelo: ' + eq.modelo : ''}
-                                                    ${eq.estado ? '| Estado: ' + eq.estado : ''}
-                                                </small>
-                                                ${eq.fotos && eq.fotos.length ? `
-                                                    <div class="mt-2">
-                                                        ${eq.fotos.map(f => `<img src="/static/uploads/termos/${f}" style="max-height:60px; margin-right:6px; border:1px solid #ddd; padding:2px;"/>`).join('')}
-                                                    </div>
-                                                ` : ''}
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-equipamento" data-eq-id="${eq.id}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `<p class="text-muted mb-0">Nenhum equipamento registrado.</p>`}
-                        </div>
+                        <div class="card-body" id="equipamentosContainer">${equipamentosHtml}</div>
                     </div>
 
                     <div class="card border-start border-secondary border-4 mb-3">
@@ -1129,28 +1261,25 @@
 
                 document.getElementById('modalTermoBody').innerHTML = html;
                 document.getElementById('btnSalvarTermo').style.display = 'inline-block';
+                document.getElementById('btnExportarTermo').style.display = 'inline-block';
 
-                // Desabilitar campos se o termo já foi gerado
-                const temTermoGerado = !!termo.tem_termo_gerado;
-                if (temTermoGerado) {
+                if (termo.tem_termo_gerado) {
                     document.querySelectorAll('#modalTermoBody input, #modalTermoBody textarea').forEach(el => {
                         el.disabled = true;
                     });
-                    document.getElementById('btnAdicionarEquipamento').disabled = false;
-                    document.getElementById('btnAdicionarEquipamento').title = 'Adicionar equipamento criará um aditivo ao termo';
+                    const btnAdicionar = document.getElementById('btnAdicionarEquipamento');
+                    if (btnAdicionar) {
+                        btnAdicionar.disabled = false;
+                        btnAdicionar.title = 'Adicionar equipamento criará um aditivo ao termo';
+                    }
                     document.getElementById('btnSalvarTermo').style.display = 'none';
-                    document.getElementById('btnSalvarTermo').innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
                     document.getElementById('btnGerarAditivo').style.display = 'inline-block';
-                    document.getElementById('btnGerarAditivo').innerHTML = '<i class="fas fa-file-invoice"></i> Gerar Aditivo';
+                    document.getElementById('btnExportarTermo').style.display = 'inline-block';
                 } else {
-                    document.getElementById('btnSalvarTermo').style.display = 'inline-block';
-                    document.getElementById('btnSalvarTermo').innerHTML = '<i class="fas fa-file-signature"></i> Gerar Termo';
                     document.getElementById('btnGerarAditivo').style.display = 'none';
                 }
 
-                // Event listeners
                 document.getElementById('btnAdicionarEquipamento').addEventListener('click', abrirFormularioEquipamento);
-                
                 document.querySelectorAll('.btn-deletar-equipamento').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const eqId = this.dataset.eqId;
@@ -1166,7 +1295,10 @@
 
             } catch (error) {
                 console.error('Erro:', error);
-                document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-danger">Erro ao carregar termo: ${error.message}</div>`;
+                document.getElementById('modalTermoBody').innerHTML = `<div class="alert alert-danger mb-0">Erro ao carregar termo: ${error.message}</div>`;
+                document.getElementById('btnSalvarTermo').style.display = 'none';
+                document.getElementById('btnGerarAditivo').style.display = 'none';
+                document.getElementById('btnExportarTermo').style.display = 'none';
             }
         }
 
@@ -1403,16 +1535,32 @@
         }
 
         async function gerarTermo() {
+            const getValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+
+            const isPJMode = !!document.getElementById('pjContratante');
             const formData = new FormData();
-            formData.append('empresa', document.getElementById('termoEmpresa').value);
-            formData.append('cnpj', document.getElementById('termoCNPJ').value);
-            formData.append('endereco', document.getElementById('termoEndereco').value);
-            formData.append('cpf_cnpj', document.getElementById('termoCPF').value);
-            formData.append('cargo_funcao', document.getElementById('termoCargo').value);
-            formData.append('departamento', document.getElementById('termoDepartamento').value);
-            formData.append('local_trabalho', document.getElementById('termoLocal').value);
-            formData.append('data_admissao', document.getElementById('termoDataAdmissao').value);
-            formData.append('observacoes', document.getElementById('termoObservacoes').value);
+            formData.append('empresa', getValue('termoEmpresa'));
+            formData.append('cnpj', getValue('termoCNPJ'));
+            formData.append('endereco', getValue('termoEndereco'));
+            formData.append('cpf_cnpj', getValue('termoCPF'));
+            formData.append('cargo_funcao', getValue('termoCargo'));
+            formData.append('departamento', getValue('termoDepartamento'));
+            formData.append('local_trabalho', getValue('termoLocal'));
+            formData.append('data_admissao', getValue('termoDataAdmissao'));
+            formData.append('observacoes', getValue('termoObservacoes'));
+
+            // Campos PJ (se presentes no modal)
+            if (isPJMode) {
+                formData.append('pj_contratante', getValue('pjContratante'));
+                formData.append('pj_contratante_cnpj', getValue('pjContratanteCnpj'));
+                formData.append('pj_contratante_endereco', getValue('pjContratanteEndereco'));
+                formData.append('pj_contratada', getValue('pjContratada'));
+                formData.append('pj_contratada_cnpj', getValue('pjContratadaCnpj'));
+                formData.append('pj_data_contrato', getValue('pjDataContrato'));
+            }
 
             try {
                 setTermoLoading(true, 'gerar');
@@ -1450,13 +1598,15 @@
             }
         }
 
-        async function exportarTermoSilencioso() {
+        async function exportarTermoSilencioso(aditivo = false) {
             try {
                 const response = await fetch(`/admin/usuarios/${usuarioSelecionadoTermo}/termo-entrega/exportar`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCsrfToken()
-                    }
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ aditivo: aditivo })
                 });
 
                 return await response.json();
@@ -1469,7 +1619,7 @@
             // Gerar aditivo sem tentar editar campos
             try {
                 setTermoLoading(true, 'exportar');
-                const exportacao = await exportarTermoSilencioso();
+                const exportacao = await exportarTermoSilencioso(true);
                 
                 if (exportacao.success) {
                     alert('✓ Aditivo gerado com sucesso e salvo nos Documentos do usuário.');

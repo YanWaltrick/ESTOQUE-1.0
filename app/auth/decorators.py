@@ -51,8 +51,13 @@ def require_role(*allowed_roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
+            from flask import request
+            
             # Se não está autenticado
             if not current_user.is_authenticated:
+                # Verificar se é uma requisição AJAX/JSON
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Autenticação necessária'}), 401
                 flash('Por favor, faça login para acessar questa página.', 'error')
                 return redirect(url_for('auth.login'))
             
@@ -61,11 +66,11 @@ def require_role(*allowed_roles):
             
             # Verificar se o role do usuário está na lista de permitidos
             if current_user.role not in roles:
-                flash(f'Acesso negado. Você precisa ser {" ou ".join(roles)}.', 'error')
-                # Se é uma requisição AJAX, retornar JSON
-                from flask import request
+                # Se é uma requisição AJAX/JSON, retornar JSON
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado'}), 403
+                    return jsonify({'error': 'Acesso negado. Privilégios insuficientes.'}), 403
+                
+                flash(f'Acesso negado. Você precisa ser {" ou ".join(roles)}.', 'error')
                 abort(403)
             
             return f(*args, **kwargs)
@@ -87,8 +92,13 @@ def require_permission(permission):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
+            from flask import request
+            
             # Se não está autenticado
             if not current_user.is_authenticated:
+                # Verificar se é uma requisição AJAX/JSON
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Autenticação necessária'}), 401
                 flash('Por favor, faça login para acessar esta página.', 'error')
                 return redirect(url_for('auth.login'))
             
@@ -97,10 +107,11 @@ def require_permission(permission):
             
             # Verificar se tem a permissão
             if permission not in permissions:
-                flash(f'Acesso negado. Você não tem permissão para: {permission}', 'error')
-                from flask import request
+                # Se é uma requisição AJAX/JSON, retornar JSON
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado'}), 403
+                    return jsonify({'error': 'Acesso negado. Permissão insuficiente.'}), 403
+                
+                flash(f'Acesso negado. Você não tem permissão para: {permission}', 'error')
                 abort(403)
             
             return f(*args, **kwargs)

@@ -472,7 +472,13 @@ function showSection(section) {
     
     // Mostrar seção selecionada
     const sectionId = section + '-section';
-    document.getElementById(sectionId).style.display = 'block';
+    const sectionEl = document.getElementById(sectionId);
+    if (sectionEl) {
+        sectionEl.style.display = 'block';
+    } else {
+        // seção não encontrada nesta página — somente log para debugging
+        console.debug('Seção não encontrada:', sectionId);
+    }
     
     // Atualizar subtab ativa
     updateDashboardSubtabActive(section);

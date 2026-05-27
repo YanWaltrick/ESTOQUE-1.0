@@ -11,6 +11,7 @@
         <div class="card-body">
           <h5 class="card-title">{{ 'Criar Usuário' if mode == 'create' else 'Editar Usuário' }}</h5>
           <form method="post" action="{{ url_for('admin.criar_usuario') if mode == 'create' else url_for('admin.editar_usuario', user_id=usuario.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
               <label class="form-label">Usuário (username)</label>
               <input type="text" name="username" class="form-control" required value="{{ usuario.username if usuario else '' }}">

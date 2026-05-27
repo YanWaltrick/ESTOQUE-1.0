@@ -24,6 +24,22 @@ def before_admin_request():
     pass
 
 
+def _listar_usuarios_paginados(page=1, per_page=10, q='', tipo=''):
+    query = User.query
+
+    if q:
+        query = query.filter(User.username.ilike(f'%{q}%'))
+
+    if tipo in {'CLT', 'PJ'}:
+        query = query.filter(User.tipo_contrato == tipo)
+
+    return query.order_by(
+        case((User.tipo_contrato == 'CLT', 0), else_=1),
+        User.ativo.desc(),
+        User.username.asc()
+    ).paginate(page=page, per_page=per_page)
+
+
 # ============ GERENCIAMENTO DE USUÁRIOS ============
 
 @admin_bp.route('/users', methods=['GET'])
@@ -33,18 +49,11 @@ def listar_usuarios():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     q = request.args.get('q', '').strip()
-    
-    query = User.query
-    if q:
-        query = query.filter(User.username.ilike(f'%{q}%'))
+    tipo = request.args.get('tipo', '').strip().upper()
 
-    usuarios_page = query.order_by(
-        case((User.tipo_contrato == 'CLT', 0), else_=1),
-        User.ativo.desc(),
-        User.username.asc()
-    ).paginate(page=page, per_page=per_page)
-    
-    return render_template('admin/usuarios.html', usuarios=usuarios_page, q=q)
+    usuarios_page = _listar_usuarios_paginados(page=page, per_page=per_page, q=q, tipo=tipo)
+
+    return render_template('admin/usuarios.html', usuarios=usuarios_page, q=q, tipo=tipo)
 
 
 @admin_bp.route('/users/create', methods=['GET', 'POST'])
@@ -151,18 +160,33 @@ def criar_usuario():
         db.session.flush()  # Gera o ID sem fazer commit
         
         # Criar automaticamente Termo de Entrega e Responsabilidade
-        termo = TermoEntrega(
-            id_usuario=novo_usuario.id,
-            empresa=empresa,
-            cnpj=cnpj,
-            endereco=endereco,
-            nome_colaborador=username,
-            cargo_funcao=cargo,
-            cpf_cnpj=cpf,
-            departamento=departamento,
-            local_trabalho=local_trabalho,
-            data_admissao=data_admissao
-        )
+        if tipo_contrato == 'CLT':
+            # Para CLT, usar dados da empresa
+            termo = TermoEntrega(
+                id_usuario=novo_usuario.id,
+                empresa=empresa,
+                cnpj=cnpj,
+                endereco=endereco,
+                nome_colaborador=username,
+                cargo_funcao=cargo,
+                cpf_cnpj=cpf,
+                departamento=departamento,
+                local_trabalho=local_trabalho,
+                data_admissao=data_admissao
+            )
+        else:  # PJ
+            # Para PJ, usar dados do contrato PJ
+            termo = TermoEntrega(
+                id_usuario=novo_usuario.id,
+                nome_colaborador=username,
+                pj_contratante=pj_contratante,
+                pj_contratante_cnpj=pj_contratante_cnpj,
+                pj_contratante_endereco=pj_contratante_endereco,
+                pj_contratada=pj_contratada,
+                pj_contratada_cnpj=pj_contratada_cnpj,
+                pj_data_contrato=pj_data_contrato
+            )
+        
         db.session.add(termo)
         db.session.commit()
         
@@ -271,7 +295,7 @@ def editar_usuario(user_id):
         flash(f'Usuário "{usuario.username}" atualizado com sucesso.', 'success')
         return redirect(url_for('admin.listar_usuarios'))
     
-    return render_template('admin/user_edit.html', usuario=usuario)
+    return render_template('admin/user_form.html', mode='edit', usuario=usuario)
 
 
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
@@ -403,8 +427,13 @@ def dashboard():
 @admin_bp.route('/usuarios', methods=['GET'])
 def usuarios_pagina():
     """Página exclusiva com lista visual de usuários."""
-    usuarios = User.query.order_by(User.ativo.desc(), User.role.desc(), User.username.asc()).all()
-    return render_template('admin/usuarios.html', usuarios=usuarios)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    q = request.args.get('q', '').strip()
+    tipo = request.args.get('tipo', '').strip().upper()
+
+    usuarios_page = _listar_usuarios_paginados(page=page, per_page=per_page, q=q, tipo=tipo)
+    return render_template('admin/usuarios.html', usuarios=usuarios_page, q=q, tipo=tipo)
 
 
 # ============ GERENCIAMENTO DE DOCUMENTOS ============
@@ -884,6 +913,7 @@ def listar_termo_entrega(user_id):
             'id': None,
             'id_usuario': usuario.id,
             'usuario': usuario.username,
+            'tipo_contrato': usuario.tipo_contrato or 'CLT',
             'empresa': usuario.empresa or '',
             'cnpj': usuario.cnpj or '',
             'endereco': usuario.endereco or '',
@@ -893,6 +923,12 @@ def listar_termo_entrega(user_id):
             'departamento': usuario.departamento or '',
             'local_trabalho': usuario.local_trabalho or '',
             'data_admissao': usuario.data_admissao.strftime("%Y-%m-%d") if usuario.data_admissao else None,
+            'pj_contratante': usuario.pj_contratante or '',
+            'pj_contratante_cnpj': usuario.pj_contratante_cnpj or '',
+            'pj_contratante_endereco': usuario.pj_contratante_endereco or '',
+            'pj_contratada': usuario.pj_contratada or '',
+            'pj_contratada_cnpj': usuario.pj_contratada_cnpj or '',
+            'pj_data_contrato': usuario.pj_data_contrato.strftime("%Y-%m-%d") if usuario.pj_data_contrato else None,
             'equipamentos': [],
             'data_criacao': None,
             'data_atualizacao': None,
@@ -910,6 +946,13 @@ def listar_termo_entrega(user_id):
     termo_data = termo.to_dict()
     # Campo de input type="date" precisa de formato YYYY-MM-DD.
     termo_data['data_admissao'] = termo.data_admissao.strftime("%Y-%m-%d") if termo.data_admissao else ''
+    termo_data['tipo_contrato'] = usuario.tipo_contrato or termo_data.get('tipo_contrato') or 'CLT'
+    termo_data['pj_contratante'] = usuario.pj_contratante or ''
+    termo_data['pj_contratante_cnpj'] = usuario.pj_contratante_cnpj or ''
+    termo_data['pj_contratante_endereco'] = usuario.pj_contratante_endereco or ''
+    termo_data['pj_contratada'] = usuario.pj_contratada or ''
+    termo_data['pj_contratada_cnpj'] = usuario.pj_contratada_cnpj or ''
+    termo_data['pj_data_contrato'] = usuario.pj_data_contrato.strftime("%Y-%m-%d") if usuario.pj_data_contrato else ''
     termo_data['tem_termo_gerado'] = tem_termo_gerado
 
     return jsonify({
@@ -926,18 +969,30 @@ def atualizar_termo_entrega(user_id):
 
     # If termo doesn't exist, create it
     if not termo:
-        termo = TermoEntrega(
-            id_usuario=user_id,
-            empresa=request.form.get('empresa', usuario.empresa or ''),
-            cnpj=request.form.get('cnpj', usuario.cnpj or ''),
-            endereco=request.form.get('endereco', usuario.endereco or ''),
-            nome_colaborador=usuario.username,
-            cargo_funcao=request.form.get('cargo_funcao', usuario.cargo or ''),
-            cpf_cnpj=request.form.get('cpf_cnpj', usuario.cpf or ''),
-            departamento=request.form.get('departamento', usuario.departamento or ''),
-            local_trabalho=request.form.get('local_trabalho', usuario.local_trabalho or ''),
-            data_admissao=usuario.data_admissao
-        )
+        if usuario.tipo_contrato == 'PJ':
+            termo = TermoEntrega(
+                id_usuario=user_id,
+                nome_colaborador=usuario.username,
+                pj_contratante=usuario.pj_contratante or '',
+                pj_contratante_cnpj=usuario.pj_contratante_cnpj or '',
+                pj_contratante_endereco=usuario.pj_contratante_endereco or '',
+                pj_contratada=usuario.pj_contratada or '',
+                pj_contratada_cnpj=usuario.pj_contratada_cnpj or '',
+                pj_data_contrato=usuario.pj_data_contrato
+            )
+        else:
+            termo = TermoEntrega(
+                id_usuario=user_id,
+                empresa=request.form.get('empresa', usuario.empresa or ''),
+                cnpj=request.form.get('cnpj', usuario.cnpj or ''),
+                endereco=request.form.get('endereco', usuario.endereco or ''),
+                nome_colaborador=usuario.username,
+                cargo_funcao=request.form.get('cargo_funcao', usuario.cargo or ''),
+                cpf_cnpj=request.form.get('cpf_cnpj', usuario.cpf or ''),
+                departamento=request.form.get('departamento', usuario.departamento or ''),
+                local_trabalho=request.form.get('local_trabalho', usuario.local_trabalho or ''),
+                data_admissao=usuario.data_admissao
+            )
         db.session.add(termo)
     
     # Note: allow updating termo fields even if a Termo document exists.
@@ -954,6 +1009,24 @@ def atualizar_termo_entrega(user_id):
     termo.cpf_cnpj = request.form.get('cpf_cnpj', termo.cpf_cnpj or '').strip()
     termo.departamento = request.form.get('departamento', termo.departamento or '').strip()
     termo.local_trabalho = request.form.get('local_trabalho', termo.local_trabalho or '').strip()
+    
+    # Atualizar campos PJ no Termo
+    pj_contratante = request.form.get('pj_contratante', '').strip()
+    pj_contratante_cnpj = request.form.get('pj_contratante_cnpj', '').strip()
+    pj_contratante_endereco = request.form.get('pj_contratante_endereco', '').strip()
+    pj_contratada = request.form.get('pj_contratada', '').strip()
+    pj_contratada_cnpj = request.form.get('pj_contratada_cnpj', '').strip()
+    
+    if pj_contratante:
+        termo.pj_contratante = pj_contratante
+    if pj_contratante_cnpj:
+        termo.pj_contratante_cnpj = pj_contratante_cnpj
+    if pj_contratante_endereco:
+        termo.pj_contratante_endereco = pj_contratante_endereco
+    if pj_contratada:
+        termo.pj_contratada = pj_contratada
+    if pj_contratada_cnpj:
+        termo.pj_contratada_cnpj = pj_contratada_cnpj
 
     data_admissao_str = request.form.get('data_admissao', '').strip()
     if data_admissao_str:
@@ -966,9 +1039,33 @@ def atualizar_termo_entrega(user_id):
             }), 400
     else:
         termo.data_admissao = None
-
+    
+    pj_data_contrato_str = request.form.get('pj_data_contrato', '').strip()
+    if pj_data_contrato_str:
+        try:
+            termo.pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
     observacoes = request.form.get('observacoes', '').strip()
     termo.observacoes = observacoes
+
+    # Atualizar campos PJ no usuário (se fornecidos pelo modal)
+    if pj_contratante:
+        usuario.pj_contratante = pj_contratante
+    if pj_contratante_cnpj:
+        usuario.pj_contratante_cnpj = pj_contratante_cnpj
+    if pj_contratante_endereco:
+        usuario.pj_contratante_endereco = pj_contratante_endereco
+    if pj_contratada:
+        usuario.pj_contratada = pj_contratada
+    if pj_contratada_cnpj:
+        usuario.pj_contratada_cnpj = pj_contratada_cnpj
+    if pj_data_contrato_str:
+        try:
+            usuario.pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+        except Exception:
+            pass
 
     db.session.commit()
 
@@ -1158,6 +1255,10 @@ def exportar_termo_pdf(user_id):
         import os
         from app.services.termo_service import TermoService
         
+        # Aceitar parâmetro aditivo do POST
+        dados_json = request.get_json(silent=True) or {}
+        forcar_aditivo = dados_json.get('aditivo', False)
+        
         usuario = User.query.get_or_404(user_id)
         termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
 
@@ -1177,7 +1278,18 @@ def exportar_termo_pdf(user_id):
             nome_documento='Termo de Entrega'
         ).first()
 
-        eh_aditivo = termo_documento is not None
+        equipamentos = []
+        if termo.equipamentos:
+            try:
+                equipamentos = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
+            except Exception:
+                equipamentos = []
+
+        tem_tipo_documento = any('tipo_documento' in eq for eq in equipamentos)
+        tem_equipamento_aditivo = any(eq.get('tipo_documento') == 'aditivo' for eq in equipamentos)
+
+        # Se forcar_aditivo é True, sempre criar aditivo, caso contrário usar lógica de detecção
+        eh_aditivo = forcar_aditivo or tem_equipamento_aditivo or (termo_documento is not None and not tem_tipo_documento)
         numero_aditivo = 0
 
         if eh_aditivo:
@@ -1224,13 +1336,6 @@ def exportar_termo_pdf(user_id):
             )
             db.session.add(novo_doc)
             db.session.commit()
-
-        equipamentos = []
-        if termo.equipamentos:
-            try:
-                equipamentos = json.loads(termo.equipamentos) if isinstance(termo.equipamentos, str) else termo.equipamentos
-            except:
-                equipamentos = []
 
         if eh_aditivo:
             equipamentos_aditivo = [
