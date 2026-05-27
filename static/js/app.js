@@ -690,7 +690,11 @@ async function carregarChamadasUsuario() {
             if (!chamadasUsuarioPrimeiroLoad) {
                 const anterior = chamadasUsuarioStatus[chamada.id];
                 if (anterior && anterior !== chamada.status && chamada.status !== 'lida') {
-                    mostrarAlerta(`Atualização: a chamada "${escapeHtml(chamada.mensagem.substring(0, 40))}" foi alterada de ${statusLabelMap[anterior] || anterior} para ${statusLabel}.`, 'info');
+                    mostrarNotificacao(
+                        `Atualização: a chamada "${escapeHtml(chamada.mensagem.substring(0, 40))}" foi alterada de ${statusLabelMap[anterior] || anterior} para ${statusLabel}.`,
+                        'info',
+                        5000
+                    );
                 }
             }
 
@@ -988,7 +992,7 @@ function salvarProduto() {
     const localizacao = document.getElementById('prodLocalizacao').value.trim();
     
     if (!id || !nome || !categoria || !preco || !quantidade || minimo === '') {
-        mostrarAlerta('Todos os campos obrigatórios devem ser preenchidos!', 'warning');
+        mostrarAviso('Todos os campos obrigatórios devem ser preenchidos!');
         return;
     }
     
@@ -1013,13 +1017,15 @@ function salvarProduto() {
     })
     .then(resposta => {
         const produtoAcao = currentProdutoId ? 'atualizado' : 'criado';
-        mostrarAlerta('Produto ' + produtoAcao + ' com sucesso!', 'success');
-        sessionStorage.setItem(PRODUCT_SAVE_NOTICE_KEY, 'Produto ' + produtoAcao + ' com sucesso!');
+        mostrarSucesso('Produto ' + produtoAcao + ' com sucesso!');
         currentProdutoId = null;
         document.getElementById('prodId').disabled = false;
-        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalProduto'));
+        if (modalInstance) modalInstance.hide();
         document.getElementById('formProduto').reset();
-        window.location.reload();
+        // Atualiza dados/tabela sem reload para melhorar UX
+        carregarDados();
+        showSection('produtos');
     })
     .catch(error => mostrarErro('Erro ao salvar produto', error));
 }
@@ -1037,7 +1043,7 @@ function deletarProduto(id) {
             return data;
         })
         .then(resposta => {
-            mostrarAlerta('Produto deletado com sucesso!', 'success');
+            mostrarSucesso('Produto deletado com sucesso!');
             carregarDados();
             atualizarTabelaProdutos();
         })
@@ -1069,7 +1075,7 @@ function salvarMovimentacao() {
     const quantidade = parseInt(document.getElementById('movQuantidade').value);
     
     if (!quantidade || quantidade <= 0) {
-        mostrarAlerta('Quantidade deve ser maior que zero!', 'warning');
+        mostrarAviso('Quantidade deve ser maior que zero!');
         return;
     }
     
@@ -1083,8 +1089,9 @@ function salvarMovimentacao() {
     })
     .then(r => r.json())
     .then(resposta => {
-        mostrarAlerta(resposta.mensagem || 'Movimentação realizada com sucesso!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('modalMovimentacao')).hide();
+        mostrarSucesso(resposta.mensagem || 'Movimentação realizada com sucesso!');
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalMovimentacao'));
+        if (modalInstance) modalInstance.hide();
         carregarDados();
         atualizarTabelaProdutos();
     })
@@ -1301,18 +1308,18 @@ function enviarChamada() {
     }
 
     if (!mensagem) {
-        mostrarAlerta('Por favor, digite uma mensagem.', 'warning');
+        mostrarAviso('Por favor, digite uma mensagem.');
         return;
     }
 
     if (foto) {
         const formatosPermitidos = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
         if (!formatosPermitidos.includes(foto.type)) {
-            mostrarAlerta('Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.', 'warning');
+            mostrarAviso('Formato de imagem inválido. Use PNG, JPG, JPEG, GIF ou WEBP.');
             return;
         }
         if (foto.size > 5 * 1024 * 1024) {
-            mostrarAlerta('A foto deve ter no máximo 5MB.', 'warning');
+            mostrarAviso('A foto deve ter no máximo 5MB.');
             return;
         }
     }
