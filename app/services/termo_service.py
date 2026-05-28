@@ -164,6 +164,44 @@ class TermoService:
             spaceAfter=8
         )
 
+        style_item_header = ParagraphStyle(
+            'ItemHeader',
+            parent=styles['Heading3'],
+            fontSize=10,
+            leading=12,
+            textColor=colors.HexColor('#1f2937'),
+            spaceBefore=8,
+            spaceAfter=6
+        )
+
+        style_foto_caption = ParagraphStyle(
+            'FotoCaption',
+            parent=styles['BodyText'],
+            fontSize=8,
+            leading=10,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#4b5563'),
+            spaceAfter=2
+        )
+
+        style_laudo_item = ParagraphStyle(
+            'LaudoItem',
+            parent=styles['Heading3'],
+            fontSize=9,
+            leading=11,
+            textColor=colors.HexColor('#0b5cab'),
+            spaceBefore=8,
+            spaceAfter=4
+        )
+
+        style_meta_value = ParagraphStyle(
+            'MetaValue',
+            parent=styles['BodyText'],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#111827')
+        )
+
         # ---------------------------------------------------------
         # FUNCOES AUXILIARES
         # ---------------------------------------------------------
@@ -259,11 +297,11 @@ class TermoService:
             if not equipamentos_validos:
                 return blocos
 
-            colunas = 4
+            colunas = 2
             largura_util = A4[0] - (4 * cm)
             largura_coluna = largura_util / colunas
-            max_largura_foto = largura_coluna - (0.25 * cm)
-            max_altura_foto = 3.4 * cm
+            max_largura_foto = largura_coluna - (0.8 * cm)
+            max_altura_foto = 4.8 * cm
 
             for equipamento in equipamentos_validos:
                 nome_item = valor_texto(
@@ -277,12 +315,44 @@ class TermoService:
                 if service_tag:
                     titulo_item = f'{nome_item} - ServiceTag: {service_tag}'
 
-                blocos.append(Paragraph(titulo_item, style_section))
+                blocos.append(Paragraph('LAUDO FOTOGRAFICO - ITEM INSPECIONADO', style_laudo_item))
 
-                blocos.append(Spacer(1, 3))
+                meta_table = Table(
+                    [[
+                        Paragraph('<b>ITEM</b>', style_foto_caption),
+                        Paragraph(valor_texto(nome_item, 'N/A'), style_meta_value),
+                        Paragraph('<b>SERVICETAG</b>', style_foto_caption),
+                        Paragraph(valor_texto(service_tag, 'N/A'), style_meta_value),
+                    ], [
+                        Paragraph('<b>QTD. EVIDENCIAS</b>', style_foto_caption),
+                        Paragraph(str(len(fotos)), style_meta_value),
+                        Paragraph('<b>ESTADO</b>', style_foto_caption),
+                        Paragraph(valor_texto(equipamento.get('estado', ''), 'N/A'), style_meta_value),
+                    ]],
+                    colWidths=[
+                        largura_util * 0.20,
+                        largura_util * 0.30,
+                        largura_util * 0.20,
+                        largura_util * 0.30,
+                    ]
+                )
+                meta_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#e8f1fb')),
+                    ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#e8f1fb')),
+                    ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#9bbbe3')),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#c7d8ee')),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+
+                blocos.append(meta_table)
+                blocos.append(Spacer(1, 4))
 
                 celulas = []
-                for foto in fotos:
+                for indice_foto, foto in enumerate(fotos, start=1):
                     if isinstance(foto, dict):
                         arquivo_foto = foto.get('arquivo') or ''
                         titulo_foto = valor_texto(foto.get('titulo'), 'Foto')
@@ -292,15 +362,27 @@ class TermoService:
 
                     miniatura = _miniatura_foto(arquivo_foto, max_largura_foto, max_altura_foto)
                     if miniatura:
-                        celulas.append([
-                            Paragraph(titulo_foto, style_normal),
-                            Spacer(1, 2),
-                            miniatura,
-                        ])
+                        titulo_evidencia = f'{indice_foto:02d} - {titulo_foto}'
+                        card = Table(
+                            [[Paragraph(titulo_evidencia, style_foto_caption)], [miniatura]],
+                            colWidths=[largura_coluna - (0.2 * cm)]
+                        )
+                        card.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fbff')),
+                            ('LINEABOVE', (0, 0), (-1, 0), 1, colors.HexColor('#0b5cab')),
+                            ('BOX', (0, 0), (-1, -1), 0.7, colors.HexColor('#b3c7e6')),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                            ('TOPPADDING', (0, 0), (-1, -1), 6),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ]))
+                        celulas.append(card)
 
                 if celulas:
                     while len(celulas) % colunas != 0:
-                        celulas.append(Spacer(1, 1))
+                        celulas.append('')
 
                     linhas = [celulas[i:i + colunas] for i in range(0, len(celulas), colunas)]
 
@@ -311,14 +393,26 @@ class TermoService:
 
                     tabela_fotos.setStyle(TableStyle([
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 1),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-                        ('TOPPADDING', (0, 0), (-1, -1), 1),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                     ]))
 
                     blocos.append(tabela_fotos)
+                    blocos.append(Spacer(1, 8))
+
+                blocos.append(Table(
+                    [['']],
+                    colWidths=[largura_util]
+                ))
+                blocos[-1].setStyle(TableStyle([
+                    ('LINEBELOW', (0, 0), (-1, -1), 0.8, colors.HexColor('#7ea8d8')),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+
+                blocos.append(Spacer(1, 4))
 
             return blocos
 
@@ -698,7 +792,7 @@ Local e Data: _________________________________________________
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
                 elements.extend(blocos_fotos)
 
             doc.build(elements)
@@ -817,7 +911,7 @@ Local e Data: _________________________________________________
                         blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
                         if blocos_fotos:
                             elements.append(PageBreak())
-                            elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                            elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
                             elements.extend(blocos_fotos)
             '''
         # ADITIVO
@@ -1052,7 +1146,7 @@ Local e Data: _________________________________________________
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS ADICIONAIS', style_section))
+                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS ADICIONAIS', style_section))
                 elements.append(Spacer(1, 12))
                 elements.extend(blocos_fotos)
 
@@ -1328,7 +1422,7 @@ Local e Data: _________________________________________________
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
                 elements.extend(blocos_fotos)
 
             doc.build(elements)
@@ -1594,7 +1688,7 @@ Local e Data: _________________________________________________
         blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
         if blocos_fotos:
             elements.append(PageBreak())
-            elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+            elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
             elements.extend(blocos_fotos)
 
         doc.build(elements)

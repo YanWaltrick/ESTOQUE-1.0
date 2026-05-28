@@ -10,7 +10,7 @@ from sqlalchemy import case
 from app.auth import require_role
 from app.auth.security import PasswordValidator, validate_username
 from app.database import db
-from app.models import User, Chamada, Historico
+from app.models import User, Chamada, Historico, TermoEntrega
 from app.utils import registrar_evento
 
 api_bp = Blueprint('api', __name__)
@@ -393,6 +393,12 @@ def criar_usuario_api():
         cpf = (dados.get('cpf') or '').strip()
         departamento = (dados.get('departamento') or '').strip()
         local_trabalho = (dados.get('local_trabalho') or '').strip()
+        pj_contratante = (dados.get('pj_contratante') or '').strip()
+        pj_contratante_cnpj = (dados.get('pj_contratante_cnpj') or '').strip()
+        pj_contratante_endereco = (dados.get('pj_contratante_endereco') or '').strip()
+        pj_contratada = (dados.get('pj_contratada') or '').strip()
+        pj_contratada_cnpj = (dados.get('pj_contratada_cnpj') or '').strip()
+        pj_data_contrato_str = (dados.get('pj_data_contrato') or '').strip()
         
         # Converter data_admissao
         data_admissao = None
@@ -403,6 +409,14 @@ def criar_usuario_api():
                 data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
             except:
                 return jsonify({'erro': 'Erro ao processar a data de admissão.'}), 400
+
+        pj_data_contrato = None
+        if pj_data_contrato_str:
+            try:
+                from datetime import datetime
+                pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+            except:
+                return jsonify({'erro': 'Erro ao processar a data do contrato PJ.'}), 400
 
         is_valid_user, user_error = validate_username(username)
         if not is_valid_user:
@@ -421,6 +435,10 @@ def criar_usuario_api():
         if tipo_contrato not in ['CLT', 'PJ']:
             return jsonify({'erro': 'Tipo de contrato inválido. Escolha entre CLT ou PJ.'}), 400
 
+        if tipo_contrato == 'PJ':
+            if not pj_contratante or not pj_contratante_cnpj:
+                return jsonify({'erro': 'Para contrato PJ, informe Contratante e CNPJ do Contratante.'}), 400
+
         novo_usuario = User(
             username=username,
             password=PasswordValidator.hash_password(password),
@@ -435,9 +453,43 @@ def criar_usuario_api():
             cpf=cpf,
             data_admissao=data_admissao,
             departamento=departamento,
-            local_trabalho=local_trabalho
+            local_trabalho=local_trabalho,
+            pj_contratante=pj_contratante,
+            pj_contratante_cnpj=pj_contratante_cnpj,
+            pj_contratante_endereco=pj_contratante_endereco,
+            pj_contratada=pj_contratada,
+            pj_contratada_cnpj=pj_contratada_cnpj,
+            pj_data_contrato=pj_data_contrato
         )
         db.session.add(novo_usuario)
+
+        # Criar termo inicial junto com o usuário para manter o fluxo consistente.
+        db.session.flush()
+        if tipo_contrato == 'CLT':
+            termo = TermoEntrega(
+                id_usuario=novo_usuario.id,
+                empresa=empresa,
+                cnpj=cnpj,
+                endereco=endereco,
+                nome_colaborador=username,
+                cargo_funcao=cargo,
+                cpf_cnpj=cpf,
+                departamento=departamento,
+                local_trabalho=local_trabalho,
+                data_admissao=data_admissao
+            )
+        else:
+            termo = TermoEntrega(
+                id_usuario=novo_usuario.id,
+                nome_colaborador=username,
+                pj_contratante=pj_contratante,
+                pj_contratante_cnpj=pj_contratante_cnpj,
+                pj_contratante_endereco=pj_contratante_endereco,
+                pj_contratada=pj_contratada,
+                pj_contratada_cnpj=pj_contratada_cnpj,
+                pj_data_contrato=pj_data_contrato
+            )
+        db.session.add(termo)
         db.session.commit()
 
         registrar_evento(

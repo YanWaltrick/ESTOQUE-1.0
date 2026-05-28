@@ -947,12 +947,15 @@ def listar_termo_entrega(user_id):
     # Campo de input type="date" precisa de formato YYYY-MM-DD.
     termo_data['data_admissao'] = termo.data_admissao.strftime("%Y-%m-%d") if termo.data_admissao else ''
     termo_data['tipo_contrato'] = usuario.tipo_contrato or termo_data.get('tipo_contrato') or 'CLT'
-    termo_data['pj_contratante'] = usuario.pj_contratante or ''
-    termo_data['pj_contratante_cnpj'] = usuario.pj_contratante_cnpj or ''
-    termo_data['pj_contratante_endereco'] = usuario.pj_contratante_endereco or ''
-    termo_data['pj_contratada'] = usuario.pj_contratada or ''
-    termo_data['pj_contratada_cnpj'] = usuario.pj_contratada_cnpj or ''
-    termo_data['pj_data_contrato'] = usuario.pj_data_contrato.strftime("%Y-%m-%d") if usuario.pj_data_contrato else ''
+    termo_data['pj_contratante'] = termo.pj_contratante or usuario.pj_contratante or ''
+    termo_data['pj_contratante_cnpj'] = termo.pj_contratante_cnpj or usuario.pj_contratante_cnpj or ''
+    termo_data['pj_contratante_endereco'] = termo.pj_contratante_endereco or usuario.pj_contratante_endereco or ''
+    termo_data['pj_contratada'] = termo.pj_contratada or usuario.pj_contratada or ''
+    termo_data['pj_contratada_cnpj'] = termo.pj_contratada_cnpj or usuario.pj_contratada_cnpj or ''
+    termo_data['pj_data_contrato'] = (
+        termo.pj_data_contrato.strftime("%Y-%m-%d") if termo.pj_data_contrato else
+        (usuario.pj_data_contrato.strftime("%Y-%m-%d") if usuario.pj_data_contrato else '')
+    )
     termo_data['tem_termo_gerado'] = tem_termo_gerado
 
     return jsonify({
