@@ -166,6 +166,7 @@ def _ensure_schema_columns():
         ('users', 'tentativas_login_falhas', 'INTEGER DEFAULT 0'),
         ('users', 'bloqueado_ate', 'DATETIME'),
         ('users', 'data_atualizacao', 'DATETIME'),
+        ('users', 'email', 'VARCHAR(150)'),
         ('chamadas', 'foto_anexo', 'VARCHAR(255)'),
         # Campos PJ adicionados dinamicamente quando ausentes
         ('users', 'pj_contratante', 'VARCHAR(255)'),

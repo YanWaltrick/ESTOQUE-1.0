@@ -2,18 +2,66 @@ from datetime import datetime, timedelta, timezone
 import os
 import uuid
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
+from flask_mail import Message
 from werkzeug.utils import secure_filename
 import app
 from sqlalchemy import case
 from app.auth import require_role
-from app.auth.security import PasswordValidator, validate_username
-from app.database import db
+from app.auth.security import PasswordValidator, validate_username, validate_email
+from app.database import db, mail
 from app.models import User, Chamada, Historico, TermoEntrega
 from app.utils import registrar_evento
 
 api_bp = Blueprint('api', __name__)
+
+
+def _smtp_configurado() -> bool:
+    return bool(current_app.config.get('MAIL_SERVER') and current_app.config.get('MAIL_DEFAULT_SENDER'))
+
+
+def _notificar_usuario_chamado_concluido(chamada: Chamada) -> tuple[bool, str]:
+    if not _smtp_configurado():
+        return True, ''
+
+    usuario = chamada.usuario
+    if not usuario:
+        return True, ''
+
+    destinatario = None
+    if usuario.email:
+        is_valid, _ = validate_email(usuario.email)
+        if is_valid:
+            destinatario = usuario.email.strip()
+
+    if not destinatario:
+        is_valid_username_email, _ = validate_email(usuario.username)
+        if is_valid_username_email:
+            destinatario = usuario.username.strip()
+
+    if not destinatario:
+        return True, ''
+
+    try:
+        assunto = '[SOMA ASSET] Seu chamado foi concluído'
+        corpo = (
+            'Olá,\n\n'
+            'O seu chamado foi concluído. Veja os detalhes abaixo:\n\n'
+            f'ID do chamado: {chamada.id_chamada}\n'
+            f'Status: {chamada.status}\n'
+            f'Mensagem: {chamada.mensagem}\n\n'
+            'Se precisar de suporte adicional, responda a este e-mail ou abra um novo chamado no sistema.\n\n'
+            'Atenciosamente,\n'
+            'Equipe de TI'
+        )
+        msg = Message(subject=assunto, recipients=[destinatario], body=corpo)
+        mail.send(msg)
+        return True, ''
+    except Exception as e:
+        current_app.logger.error('Falha ao enviar email de conclusão de chamado: %s', str(e))
+        return False, str(e)
+
 
 def validar_dados_produto(dados, atualizar=False):
     erros = []
@@ -391,6 +439,7 @@ def criar_usuario_api():
         endereco = (dados.get('endereco') or '').strip()
         cargo = (dados.get('cargo') or '').strip()
         cpf = (dados.get('cpf') or '').strip()
+        email = (dados.get('email') or '').strip()
         departamento = (dados.get('departamento') or '').strip()
         local_trabalho = (dados.get('local_trabalho') or '').strip()
         pj_contratante = (dados.get('pj_contratante') or '').strip()
@@ -439,6 +488,11 @@ def criar_usuario_api():
             if not pj_contratante or not pj_contratante_cnpj:
                 return jsonify({'erro': 'Para contrato PJ, informe Contratante e CNPJ do Contratante.'}), 400
 
+        if email:
+            is_valid_email, email_error = validate_email(email)
+            if not is_valid_email:
+                return jsonify({'erro': f'Email inválido: {email_error}'}, 400)
+
         novo_usuario = User(
             username=username,
             password=PasswordValidator.hash_password(password),
@@ -451,6 +505,7 @@ def criar_usuario_api():
             endereco=endereco,
             cargo=cargo,
             cpf=cpf,
+            email=email,
             data_admissao=data_admissao,
             departamento=departamento,
             local_trabalho=local_trabalho,
@@ -776,6 +831,10 @@ def atualizar_status_chamada(id_chamada):
         chamada.status = status
         chamada.lida = status in ['lida', 'analise', 'execucao', 'concluida']
         db.session.commit()
+
+        # Enviar email para o usuário quando chamado for concluído
+        if status == 'concluida':
+            _notificar_usuario_chamado_concluido(chamada)
 
         # Registrar evento
         registrar_evento(

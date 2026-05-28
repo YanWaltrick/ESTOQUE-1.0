@@ -8,7 +8,7 @@ from sqlalchemy import case
 from app.database import db
 from app.models import User, Historico, DocumentoUsuario, ItemRecebido, TermoEntrega
 from app.auth import require_role, require_permission
-from app.auth.security import PasswordValidator, validate_username
+from app.auth.security import PasswordValidator, validate_username, validate_email
 from app.utils import registrar_evento
 from werkzeug.utils import secure_filename
 from uuid import uuid4
@@ -72,6 +72,7 @@ def criar_usuario():
         endereco = request.form.get('endereco', '').strip()
         cargo = request.form.get('cargo', '').strip()
         cpf = request.form.get('cpf', '').strip()
+        email = request.form.get('email', '').strip()
         data_admissao_str = request.form.get('data_admissao', '').strip()
         departamento = request.form.get('departamento', '').strip()
         local_trabalho = request.form.get('local_trabalho', '').strip()
@@ -131,6 +132,12 @@ def criar_usuario():
             if not pj_contratante or not pj_contratante_cnpj:
                 flash('Para contrato PJ, informe Contratante e CNPJ do Contratante.', 'error')
                 return redirect(url_for('admin.criar_usuario'))
+
+        if email:
+            is_valid_email, email_error = validate_email(email)
+            if not is_valid_email:
+                flash(f'Erro no email: {email_error}', 'error')
+                return redirect(url_for('admin.criar_usuario'))
         
         # Criar novo usuário
         novo_usuario = User(
@@ -145,10 +152,11 @@ def criar_usuario():
             endereco=endereco,
             cargo=cargo,
             cpf=cpf,
+            email=email,
             data_admissao=data_admissao,
             departamento=departamento,
-            local_trabalho=local_trabalho
-            ,pj_contratante=pj_contratante,
+            local_trabalho=local_trabalho,
+            pj_contratante=pj_contratante,
             pj_contratante_cnpj=pj_contratante_cnpj,
             pj_contratante_endereco=pj_contratante_endereco,
             pj_contratada=pj_contratada,
@@ -223,6 +231,7 @@ def editar_usuario(user_id):
         endereco = request.form.get('endereco', usuario.endereco).strip()
         cargo = request.form.get('cargo', usuario.cargo).strip()
         cpf = request.form.get('cpf', usuario.cpf).strip()
+        email = request.form.get('email', usuario.email).strip()
         data_admissao_str = request.form.get('data_admissao', '').strip()
         departamento = request.form.get('departamento', usuario.departamento).strip()
         local_trabalho = request.form.get('local_trabalho', usuario.local_trabalho).strip()
@@ -259,6 +268,12 @@ def editar_usuario(user_id):
             flash('Role inválido. Escolha entre admin ou usuario.', 'error')
             return redirect(url_for('admin.editar_usuario', user_id=user_id))
 
+        if email:
+            is_valid_email, email_error = validate_email(email)
+            if not is_valid_email:
+                flash(f'Erro no email: {email_error}', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
         if tipo_contrato not in ['CLT', 'PJ']:
             flash('Tipo de contrato inválido. Escolha entre CLT ou PJ.', 'error')
             return redirect(url_for('admin.editar_usuario', user_id=user_id))
@@ -272,6 +287,7 @@ def editar_usuario(user_id):
         usuario.endereco = endereco
         usuario.cargo = cargo
         usuario.cpf = cpf
+        usuario.email = email
         usuario.data_admissao = data_admissao
         usuario.departamento = departamento
         usuario.local_trabalho = local_trabalho
@@ -575,10 +591,18 @@ def download_documento(documento_id):
         return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
     
     try:
+        download_name = f'{documento.nome_documento}.{documento.tipo_arquivo}'
+        if documento.tipo_arquivo.lower() == 'pdf' and documento.usuario:
+            doc_name = documento.nome_documento.lower()
+            if 'aditivo' in doc_name:
+                download_name = f'Aditivo ao Termo de Responsabilidade de {documento.usuario.username}.pdf'
+            elif 'termo' in doc_name:
+                download_name = f'Termo de responsabilidade de {documento.usuario.username}.pdf'
+
         return send_file(
             caminho_arquivo,
             as_attachment=True,
-            download_name=f'{documento.nome_documento}.{documento.tipo_arquivo}',
+            download_name=download_name,
             mimetype='application/octet-stream'
         )
     except Exception as e:

@@ -797,7 +797,7 @@
 
                 const titles = ['Frente', 'Direita', 'Esquerda', 'Em Cima', 'Teclado', 'Inferior'];
                 const currentIndex = fotosContainer.querySelectorAll('input[name="fotos"]').length;
-                const titulo = titles[currentIndex] || `Foto ${currentIndex + 1}`;
+                const titulo = titles[currentIndex] || `Laudo ${currentIndex - titles.length + 1}`;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'mb-2';

@@ -176,8 +176,8 @@ def validate_username(username: str) -> tuple[bool, str]:
             return False, f"Email inválido para nome de usuário: {email_error}"
         return True, ""
 
-    if not re.match(r'^[a-zA-Z0-9_.-]+$', username):
-        return False, "Nome de usuário só pode conter letras, números, ponto, hífen e underscore, ou ser um email válido"
+    if not re.match(r'^[a-zA-Z0-9_.\- ]+$', username):
+        return False, "Nome de usuário só pode conter letras, números, ponto, hífen, underscore e espaços, ou ser um email válido"
     
     return True, ""
 

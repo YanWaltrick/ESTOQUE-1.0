@@ -918,6 +918,230 @@ Local e Data: _________________________________________________
         # =========================================================
 
         if aditivo:
+            if not is_pj:
+                title = "ADITIVO AO TERMO DE ENTREGA RESPONSABILIDADE PELO USO DE EQUIPAMENTOS DA EMPRESA"
+                elements.append(Paragraph(title, style_title))
+
+                campos_template = [
+                    "Empresa: _________________________________________________",
+                    "CNPJ: ____________________________________________________",
+                    "Endereço: _________________________________________________",
+                    "Colaborador: _______________________________________",
+                    "Cargo/Função (se aplicável): __________________________________",
+                    "CPF/CNPJ: ________________________________________________",
+                    "Data de Admissão (se aplicável): _____________________"
+                ]
+
+                valores = [
+                    valor_texto(termo.empresa, usuario.empresa),
+                    valor_texto(termo.cnpj, usuario.cnpj),
+                    valor_texto(termo.endereco, usuario.endereco),
+                    valor_texto(termo.nome_colaborador, usuario.username),
+                    valor_texto(termo.cargo_funcao, usuario.cargo),
+                    valor_texto(termo.cpf_cnpj, usuario.cpf),
+                    valor_data(termo.data_admissao or usuario.data_admissao)
+                ]
+
+                for tpl, val in zip(campos_template, valores):
+                    if val and val != '':
+                        new_line = re.sub(
+                            r'_{2,}',
+                            lambda m: val,
+                            tpl,
+                            count=1
+                        )
+                    else:
+                        new_line = tpl
+
+                    elements.append(Paragraph(new_line, style_normal))
+
+                texto1 = """
+<b>1. OBJETO</b><br/><br/>
+
+O presente aditivo tem por objeto formalizar a entrega adicional de equipamentos, dispositivos e acessórios e
+demais bens de propriedade da empresa, fornecidos para a execução de suas atividades profissionais, assim
+como e responsabilidade do colaborador referente aos mesmos, complementando o Termo de
+Responsabilidade anteriormente assinado pelas partes acima qualificadas.
+"""
+
+                elements.append(Paragraph(texto1, style_normal))
+
+                texto2 = """
+<b>2. RESPONSABILIDADE</b><br/><br/>
+
+O colaborador declara estar ciente de que os equipamentos, dispositivos e acessórios descritos neste Aditivo
+passam a integrar, para todos os fins, o Termo de Responsabilidade anteriormente firmado, submetendo-se
+integralmente às mesmas regras de uso, guarda, conservação, sigilo e devolução ali previstas.<br/><br/>
+
+O colaborador compromete-se a utilizar os itens exclusivamente para fins profissionais, responsabilizando-se
+por eventuais danos decorrentes de dolo ou culpa (negligência, imprudência ou imperícia), tais como: mau
+uso, extravio, perda ou não devolução.<br/><br/>
+
+Parágrafo único. Fica expressamente ressalvado que não serão considerados de responsabilidade do
+colaborador os danos decorrentes do desgaste natural pelo uso regular dos equipamentos, bem como aqueles
+resultantes de caso fortuito ou força maior, devidamente comprovados.
+"""
+
+                elements.append(Paragraph(texto2, style_normal))
+
+                texto3 = """
+<b>3. DEVOLUÇÃO</b><br/><br/>
+
+Os equipamentos e acessórios descritos neste Aditivo deverão ser devolvidos nas mesmas condições
+estabelecidas no Termo de Entrega e Responsabilidade principal, juntamente com os demais bens corporativos,
+quando do desligamento do colaborador ou sempre que solicitado pela empresa.<br/><br/>
+
+Parágrafo primeiro. No ato da devolução, os itens serão submetidos à conferência e inspeção, nos termos
+previstos no Termo principal, para verificação de seu estado de conservação e funcionamento.<br/><br/>
+
+Parágrafo segundo. Eventuais danos, ausência de itens ou irregularidades constatadas serão apurados pela
+empresa, para verificação de responsabilidade do colaborador, observadas as disposições contratuais e legais
+aplicáveis, especialmente o artigo 462 da Consolidação das Leis do Trabalho.
+"""
+
+                elements.append(Paragraph(texto3, style_normal))
+
+                texto4 = """
+<b>4. ASSINATURA ELETRÔNICA</b><br/><br/>
+
+Este documento poderá firmado por meio de assinatura eletrônica avançada ou qualificada, em conformidade com
+a Lei Federal nº 14.063/2020. Nesse sentido, a assinatura deste documento pressupõe declarada, de forma
+inequívoca, a concordância do(s) declarante(s), sendo um compromisso vinculante, válido, eficaz e executável,
+em todos os seus termos, condições e cláusulas, de acordo com o Artigo 10, Parágrafo 2º da Medida Provisória nº
+2.200-2/2001 e do Artigo 6º do Decreto 10.278/2020. Por fim, ainda que algum dos signatários venha a assinar
+digitalmente este documento em local e/ou data diversa da estabelecida, o local e a data de celebração deste
+documento são, para todos os fins, aqueles abaixo indicados, sendo que este documento produzirá efeitos a partir
+da data nele indicada.
+"""
+
+                elements.append(Paragraph(texto4, style_normal))
+
+                elements.append(
+                    Paragraph(
+                        "<b>5. ITENS ADICIONAIS ENTREGUES</b>",
+                        style_section
+                    )
+                )
+
+                texto5 = """
+A empresa declara ter fornecido os seguintes itens adicionais ao colaborador, elencado no preâmbulo:
+"""
+
+                elements.append(Paragraph(texto5, style_normal))
+
+                table = Table(
+                    table_data,
+                    colWidths=[
+                        5 * cm,
+                        2.5 * cm,
+                        2.5 * cm,
+                        2.5 * cm,
+                        2.5 * cm,
+                        3 * cm
+                    ]
+                )
+
+                table.setStyle(TableStyle([
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('TOPPADDING', (0, 1), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+
+                elements.append(table)
+                elements.append(Spacer(1, 20))
+
+                checklist = """
+<b>6. CHECKLIST DE ENTREGA DE EQUIPAMENTOS ADICIONAIS</b><br/><br/>
+
+Considerando o disposto na cláusula anterior, o colaborador declara, nesta data e por meio do checklist abaixo
+colacionado, ter recebido, na presente data, os seguintes itens adicionais de propriedade da empresa, para uso
+exclusivamente profissional, em complemento e sem prejuízo daqueles entregues anteriormente:<br/><br/>
+
+· ☐ Notebook (ServiceTag): ____________________________________<br/>
+· ☐ Fonte de alimentação / Carregador do notebook: ____________________________________<br/>
+· ☐ Monitor externo adicional (ServiceTag): ___________________________________<br/>
+· ☐ Teclado ( ) USB ( ) Sem fio: ____________________________________<br/>
+· ☐ Mouse ( ) USB ( ) Sem fio: ____________________________________<br/>
+· ☐ Mouse Pad: ____________________________________<br/>
+· ☐ Fone de ouvido com microfone (Headset): ____________________________________<br/>
+· ☐ Celular corporativo (Nº de IMEI): ____________________________________<br/>
+· ☐ Chip SIM instalado (Nº da Linha/Operadora): ____________________________________<br/>
+· ☐ Cabo e carregador do celular: ____________________________________<br/>
+· ☐ Adaptadores de vídeo ou Hubs de dados: ____________________________________<br/>
+· ☐ Mochila ou estojo de proteção para transporte: ____________________________________<br/>
+· ☐ Funcionamento do hardware e periféricos testado e validado? ( ) Sim ( ) Não<br/>
+· ☐ Demais acessórios / Outros (especificar): ____________________________________
+"""
+
+                elements.append(Paragraph(checklist, style_normal))
+
+                texto_final = """
+<b>7. DECLARAÇÃO FINAL</b><br/><br/>
+
+O colaborador declara, para todos os fins de direito, que recebeu os equipamentos e/ou acessórios descritos
+neste Aditivo em perfeitas condições de uso e funcionamento, após conferência, comprometendo-se a cumprir
+integralmente todas as obrigações relativas à sua utilização, guarda, conservação e devolução.<br/><br/>
+
+Declara, ainda, que leu, compreendeu e concorda com todas as disposições constantes do presente Aditivo.<br/><br/>
+
+Ficam expressamente ratificadas e mantidas em pleno vigor todas as cláusulas, condições e obrigações
+previstas no Termo de Responsabilidade pelo Uso de Equipamentos anteriormente firmado, o qual permanece
+inalterado em tudo aquilo que não conflitar com o presente instrumento, passando este Aditivo a integrá-lo
+para todos os fins.<br/><br/>
+
+Local e Data: _________________________________________________
+"""
+
+                elements.append(Paragraph(texto_final, style_normal))
+
+                elements.append(Spacer(1, 30))
+
+                tabela_assinaturas = Table(
+                    [
+                        [
+                            "Assinatura do Colaborador",
+                            "Assinatura da Empresa"
+                        ],
+                        [
+                            "________________________________",
+                            "________________________________"
+                        ]
+                    ],
+                    colWidths=[8 * cm, 8 * cm]
+                )
+
+                tabela_assinaturas.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
+                    ('TOPPADDING', (0, 1), (-1, 1), 10),
+                ]))
+
+                elements.append(tabela_assinaturas)
+
+                blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
+                if blocos_fotos:
+                    elements.append(PageBreak())
+                    elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                    elements.append(Spacer(1, 12))
+                    elements.extend(blocos_fotos)
+
+                doc.build(elements)
+
+                if nome_arquivo:
+                    return nome_arquivo
+
+                buffer.seek(0)
+                return buffer
+
             title = "ADITIVO AO TERMO DE ENTREGA E RESPONSABILIDADE PELO USO DE EQUIPAMENTOS"
             elements.append(Paragraph(title, style_title))
 

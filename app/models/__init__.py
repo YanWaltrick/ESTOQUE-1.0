@@ -32,6 +32,7 @@ class User(db.Model, UserMixin):
     endereco = db.Column(db.String(500), nullable=False, default='')
     cargo = db.Column(db.String(255), nullable=False, default='')
     cpf = db.Column(db.String(14), nullable=False, default='')
+    email = db.Column(db.String(150), nullable=True, default='')
     data_admissao = db.Column(db.Date, nullable=True)
     departamento = db.Column(db.String(255), nullable=False, default='')
     local_trabalho = db.Column(db.String(255), nullable=False, default='')
@@ -60,7 +61,7 @@ class User(db.Model, UserMixin):
     chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
     def __init__(self, username, password, role='usuario', tipo_contrato='CLT', area='', localizacao='', empresa='', cnpj='', 
-                 endereco='', cargo='', cpf='', data_admissao=None, departamento='', local_trabalho='',
+                 endereco='', cargo='', cpf='', email='', data_admissao=None, departamento='', local_trabalho='',
                  pj_contratante='', pj_contratante_cnpj='', pj_contratante_endereco='', pj_contratada='', pj_contratada_cnpj='', pj_data_contrato=None):
         self.username = username
         self.password = password  # Já deve vir em hash
@@ -73,6 +74,7 @@ class User(db.Model, UserMixin):
         self.endereco = endereco.strip() if endereco else ''
         self.cargo = cargo.strip() if cargo else ''
         self.cpf = cpf.strip() if cpf else ''
+        self.email = email.strip() if email else ''
         self.data_admissao = data_admissao
         self.departamento = departamento.strip() if departamento else ''
         self.local_trabalho = local_trabalho.strip() if local_trabalho else ''
@@ -169,6 +171,7 @@ class User(db.Model, UserMixin):
             'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
             'departamento': self.departamento,
             'local_trabalho': self.local_trabalho,
+            'email': self.email,
             'pj_contratante': self.pj_contratante,
             'pj_contratante_cnpj': self.pj_contratante_cnpj,
             'pj_contratante_endereco': self.pj_contratante_endereco,
