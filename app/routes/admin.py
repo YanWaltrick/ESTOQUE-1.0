@@ -83,6 +83,7 @@ def criar_usuario():
         pj_contratada = request.form.get('pj_contratada', '').strip()
         pj_contratada_cnpj = request.form.get('pj_contratada_cnpj', '').strip()
         pj_data_contrato_str = request.form.get('pj_data_contrato', '').strip()
+        foto_perfil_file = request.files.get('foto_perfil')
         
         # Converter data_admissao
         data_admissao = None
@@ -166,6 +167,33 @@ def criar_usuario():
         
         db.session.add(novo_usuario)
         db.session.flush()  # Gera o ID sem fazer commit
+
+        if foto_perfil_file and getattr(foto_perfil_file, 'filename', '').strip():
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            filename = foto_perfil_file.filename
+            extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+            if extension not in allowed_extensions:
+                flash('Formato de imagem não permitido. Use PNG, JPG, JPEG, GIF ou WEBP.', 'error')
+                return redirect(url_for('admin.criar_usuario'))
+
+            foto_perfil_file.seek(0, os.SEEK_END)
+            size = foto_perfil_file.tell()
+            foto_perfil_file.seek(0)
+            if size > 2 * 1024 * 1024:
+                flash('Imagem muito grande. Tamanho máximo: 2MB.', 'error')
+                return redirect(url_for('admin.criar_usuario'))
+
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'avatars')
+            os.makedirs(upload_dir, exist_ok=True)
+            safe_name = secure_filename(os.path.splitext(filename)[0]) or 'user'
+            saved_filename = f"user_{novo_usuario.id}_{int(datetime.now().timestamp())}.{extension}"
+            try:
+                foto_perfil_file.save(os.path.join(upload_dir, saved_filename))
+                novo_usuario.foto_perfil = saved_filename
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao salvar imagem de perfil: {str(e)}', 'error')
+                return redirect(url_for('admin.criar_usuario'))
         
         # Criar automaticamente Termo de Entrega e Responsabilidade
         if tipo_contrato == 'CLT':
@@ -242,6 +270,7 @@ def editar_usuario(user_id):
         pj_contratada = request.form.get('pj_contratada', usuario.pj_contratada).strip()
         pj_contratada_cnpj = request.form.get('pj_contratada_cnpj', usuario.pj_contratada_cnpj).strip()
         pj_data_contrato_str = request.form.get('pj_data_contrato', '')
+        foto_perfil_file = request.files.get('foto_perfil')
         ativo = request.form.get('ativo') == 'on'
         
         # Converter data_admissao
@@ -299,7 +328,37 @@ def editar_usuario(user_id):
         usuario.pj_contratada_cnpj = pj_contratada_cnpj
         usuario.pj_data_contrato = pj_data_contrato
         usuario.ativo = ativo
-        
+
+        if foto_perfil_file and getattr(foto_perfil_file, 'filename', '').strip():
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            filename = foto_perfil_file.filename
+            extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+            if extension not in allowed_extensions:
+                flash('Formato de imagem não permitido. Use PNG, JPG, JPEG, GIF ou WEBP.', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+            foto_perfil_file.seek(0, os.SEEK_END)
+            size = foto_perfil_file.tell()
+            foto_perfil_file.seek(0)
+            if size > 2 * 1024 * 1024:
+                flash('Imagem muito grande. Tamanho máximo: 2MB.', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'avatars')
+            os.makedirs(upload_dir, exist_ok=True)
+            name, ext = os.path.splitext(secure_filename(filename))
+            saved_filename = f"user_{usuario.id}_{int(datetime.now().timestamp())}{ext}"
+            try:
+                if usuario.foto_perfil:
+                    old_file = os.path.join(upload_dir, usuario.foto_perfil)
+                    if os.path.exists(old_file):
+                        os.remove(old_file)
+                foto_perfil_file.save(os.path.join(upload_dir, saved_filename))
+                usuario.foto_perfil = saved_filename
+            except Exception as e:
+                flash(f'Erro ao salvar imagem de perfil: {str(e)}', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
         db.session.commit()
         
         registrar_evento(

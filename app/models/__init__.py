@@ -178,6 +178,7 @@ class User(db.Model, UserMixin):
             'pj_contratada': self.pj_contratada,
             'pj_contratada_cnpj': self.pj_contratada_cnpj,
             'pj_data_contrato': self.pj_data_contrato.strftime("%d/%m/%Y") if self.pj_data_contrato else None,
+            'foto_perfil': self.foto_perfil,
             'ativo': self.ativo,
             'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
             'ultimo_login': self.ultimo_login.strftime("%d/%m/%Y %H:%M:%S") if self.ultimo_login else "Nunca",

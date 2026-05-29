@@ -1571,6 +1571,24 @@ label {
     margin-right: 8px;
 }
 
+.admin-users-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.admin-users-layout > [class*="col-"] {
+    width: 100%;
+    max-width: none;
+}
+
+@media (max-width: 991.98px) {
+    .admin-users-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ============================================================================
    CANVASES (GRÁFICOS)
    ============================================================================ */

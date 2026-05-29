@@ -422,7 +422,10 @@ def historico():
 @require_role('admin')
 def criar_usuario_api():
     try:
-        dados = request.get_json(silent=True)
+        if request.content_type and request.content_type.startswith('multipart/form-data'):
+            dados = request.form
+        else:
+            dados = request.get_json(silent=True)
         if not dados:
             return jsonify({'erro': 'JSON inválido ou vazio'}), 400
 
@@ -448,6 +451,7 @@ def criar_usuario_api():
         pj_contratada = (dados.get('pj_contratada') or '').strip()
         pj_contratada_cnpj = (dados.get('pj_contratada_cnpj') or '').strip()
         pj_data_contrato_str = (dados.get('pj_data_contrato') or '').strip()
+        foto_perfil_file = request.files.get('foto_perfil')
         
         # Converter data_admissao
         data_admissao = None
@@ -520,6 +524,26 @@ def criar_usuario_api():
 
         # Criar termo inicial junto com o usuário para manter o fluxo consistente.
         db.session.flush()
+
+        if foto_perfil_file and getattr(foto_perfil_file, 'filename', '').strip():
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            filename = foto_perfil_file.filename
+            extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+            if extension not in allowed_extensions:
+                return jsonify({'erro': 'Formato de imagem não permitido. Use PNG, JPG, JPEG, GIF ou WEBP.'}), 400
+
+            foto_perfil_file.seek(0, os.SEEK_END)
+            size = foto_perfil_file.tell()
+            foto_perfil_file.seek(0)
+            if size > 2 * 1024 * 1024:
+                return jsonify({'erro': 'Imagem muito grande. Tamanho máximo: 2MB.'}), 400
+
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'avatars')
+            os.makedirs(upload_dir, exist_ok=True)
+            safe_filename = secure_filename(f"user_{novo_usuario.id}_{int(datetime.now().timestamp())}.{extension}")
+            foto_perfil_file.save(os.path.join(upload_dir, safe_filename))
+            novo_usuario.foto_perfil = safe_filename
+
         if tipo_contrato == 'CLT':
             termo = TermoEntrega(
                 id_usuario=novo_usuario.id,

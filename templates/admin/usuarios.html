@@ -74,11 +74,11 @@
                                 {% endif %}
                             </div>
                             <div class="text-muted small">
-                                {% if user.area %}
-                                    <span class="me-3"><i class="fas fa-briefcase"></i> {{ user.area }}</span>
+                                {% if user.departamento or user.area %}
+                                    <span class="me-3"><i class="fas fa-briefcase"></i> {{ user.departamento or user.area }}</span>
                                 {% endif %}
-                                {% if user.localizacao %}
-                                    <span class="me-3"><i class="fas fa-map-marker-alt"></i> {{ user.localizacao }}</span>
+                                {% if user.local_trabalho or user.localizacao %}
+                                    <span class="me-3"><i class="fas fa-map-marker-alt"></i> {{ user.local_trabalho or user.localizacao }}</span>
                                 {% endif %}
                                 {% if user.email %}
                                     <span class="me-3"><i class="fas fa-envelope"></i> {{ user.email }}</span>

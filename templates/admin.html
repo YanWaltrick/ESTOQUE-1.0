@@ -42,8 +42,8 @@
 
                 <div class="tab-content" id="adminTabsContent">
                     <div class="tab-pane fade show active" id="tab-usuarios" role="tabpanel" aria-labelledby="tab-usuarios-tab">
-                        <div class="row">
-                            <div class="col-md-6 mb-4">
+                        <div class="row admin-users-layout">
+                            <div class="col-lg-6 col-md-12 mb-4">
                                 <div class="card h-100">
                                     <div class="card-header bg-primary text-white">
                                         <h5 class="card-title mb-0">
@@ -51,7 +51,7 @@
                                         </h5>
                                     </div>
                                     <div class="card-body">
-                                        <form id="form-adicionar-usuario">
+                                        <form id="form-adicionar-usuario" enctype="multipart/form-data">
                                             <!-- Apenas nome e tipo aparecem inicialmente -->
                                             <div id="initial-fields">
                                               <div class="mb-3">
@@ -64,6 +64,12 @@
                                                   <label for="email" class="form-label">E-mail (opcional)</label>
                                                   <input type="email" class="form-control" id="email" name="email" placeholder="Ex.: usuario@empresa.com">
                                                   <div class="form-text">Informe um e-mail válido apenas se quiser notificar este usuário quando um chamado for concluído.</div>
+                                              </div>
+
+                                              <div class="mb-3">
+                                                  <label for="foto_perfil" class="form-label">Foto de Perfil (opcional)</label>
+                                                  <input type="file" class="form-control" id="foto_perfil" name="foto_perfil" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                                                  <div class="form-text">Selecione uma imagem opcional para este usuário.</div>
                                               </div>
 
                                               <div class="mb-3">
@@ -94,21 +100,19 @@
 
                                             <!-- Campos CLT -->
                                             <div id="clt-fields" style="display:none;">
+                                                <!-- Área e Cidade agora são preenchidos automaticamente a partir da seleção de Empresa/Endereço -->
+                                                <input type="hidden" id="area" name="area" value="">
+                                                <input type="hidden" id="localizacao" name="localizacao" value="">
                                                 <div class="mb-3">
-                                                    <label for="area" class="form-label">Área da Empresa</label>
-                                                    <input type="text" class="form-control" id="area" name="area" placeholder="Ex.: Financeiro, TI, Compras">
-                                                    <div class="form-text">Informe a área do usuário para organização.</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="localizacao" class="form-label">Cidade</label>
-                                                    <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Ex.: São Paulo">
-                                                    <div class="form-text">Informe a cidade do usuário.</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="empresa" class="form-label">Empresa</label>
-                                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ex.: Empresa XYZ">
-                                                    <div class="form-text">Nome da empresa.</div>
-                                                </div>
+                                                      <label for="empresa" class="form-label">Empresa</label>
+                                                      <select class="form-select" id="empresa" name="empresa">
+                                                          <option value="" selected>-- Selecione --</option>
+                                                          <option value="Antares Securitizadora de Recebíveis Comerciais S.A.">Antares Securitizadora de Recebíveis Comerciais S.A.</option>
+                                                          <option value="Soma Análise de Créditos e Cobranças">Soma Análise de Créditos e Cobranças</option>
+                                                          <option value="Soma Asset Gestão de Investimento">Soma Asset Gestão de Investimento</option>
+                                                      </select>
+                                                      <div class="form-text">Nome da empresa. Você pode selecionar uma empresa acima para preencher automaticamente o nome, CNPJ e endereço.</div>
+                                                  </div>
                                                 <div class="mb-3">
                                                     <label for="cnpj" class="form-label">CNPJ</label>
                                                     <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="Ex.: 12.345.678/0001-90">
@@ -150,7 +154,12 @@
                                             <div id="pj-fields" style="display:none; border-left: 3px solid #0d6efd; padding-left:12px; margin-bottom:12px;">
                                                 <div class="mb-3">
                                                     <label for="pj_contratante" class="form-label">Contratante</label>
-                                                    <input type="text" class="form-control" id="pj_contratante" name="pj_contratante" placeholder="Contratante">
+                                                    <select class="form-select" id="pj_contratante" name="pj_contratante">
+                                                        <option value="" selected>-- Selecione --</option>
+                                                        <option value="Soma Análise de Créditos e Cobranças">Soma Análise de Créditos e Cobranças</option>
+                                                        <option value="Soma Asset Gestão de Investimento">Soma Asset Gestão de Investimento</option>
+                                                    </select>
+                                                    <div class="form-text">Selecione a PJ para preencher automaticamente o contratante, o CNPJ e o endereço.</div>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label for="pj_contratante_cnpj" class="form-label">CNPJ do Contratante</label>
@@ -182,7 +191,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6 mb-4">
+                            <div class="col-lg-6 col-md-12 mb-4">
                                 <div class="card h-100">
                                     <div class="card-header bg-scheme-dark d-flex justify-content-between align-items-center">
                                         <h5 class="card-title mb-0">
@@ -387,7 +396,7 @@
                                                 .replace(/^(\d{3})(\d)/, '$1.$2')
                                                 .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
                                                 .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
-                                        } else if (input.id === 'cnpj') {
+                                        } else if (input.id === 'cnpj' || input.id === 'pj_contratada_cnpj') {
                                             value = value.slice(0, 14);
                                             value = value
                                                 .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -400,11 +409,15 @@
 
                                     const cpfField = document.getElementById('cpf');
                                     const cnpjField = document.getElementById('cnpj');
+                                    const pjContratadaCnpjField = document.getElementById('pj_contratada_cnpj');
                                     if (cpfField) {
                                         cpfField.addEventListener('input', () => applyCpfCnpjMask(cpfField));
                                     }
                                     if (cnpjField) {
                                         cnpjField.addEventListener('input', () => applyCpfCnpjMask(cnpjField));
+                                    }
+                                    if (pjContratadaCnpjField) {
+                                        pjContratadaCnpjField.addEventListener('input', () => applyCpfCnpjMask(pjContratadaCnpjField));
                                     }
                                 })();
                                 </script>
@@ -470,7 +483,7 @@
             lista.innerHTML = '';
 
             const usuariosFiltrados = filtroCidade
-                ? usuarios.filter(user => (user.localizacao || '').trim().toLowerCase() === filtroCidade.toLowerCase())
+                ? usuarios.filter(user => (user.local_trabalho || user.localizacao || '').trim().toLowerCase() === filtroCidade.toLowerCase())
                 : usuarios;
 
             if (usuariosFiltrados.length === 0) {
@@ -491,8 +504,8 @@
                         return tipoA === 'CLT' ? -1 : 1;
                     }
 
-                    const areaA = (a.area || '').trim().toLowerCase() || 'sem área';
-                    const areaB = (b.area || '').trim().toLowerCase() || 'sem área';
+                    const areaA = ((a.departamento || a.area || '')).trim().toLowerCase() || 'sem área';
+                    const areaB = ((b.departamento || b.area || '')).trim().toLowerCase() || 'sem área';
                     if (areaA === areaB) {
                         return a.username.localeCompare(b.username, 'pt-BR', { sensitivity: 'base' });
                     }
@@ -519,7 +532,7 @@
 
                     const grupos = {};
                     grupoTipo.forEach(user => {
-                        const area = (user.area || '').trim() || 'Sem área';
+                        const area = (user.departamento || user.area || '').trim() || 'Sem área';
                         if (!grupos[area]) {
                             grupos[area] = [];
                         }
@@ -556,9 +569,13 @@
                         <small class="text-muted">
                             ${user.role === 'admin' ? '<i class="fas fa-shield-alt"></i> Admin' : '<i class="fas fa-user"></i> Usuário'}
                             ${user.role !== 'admin' ? '| ' + escapeHtml(user.tipo_contrato || 'CLT') : ''}
-                            ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.area || 'Sem área') : ''}
-                            ${user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : ''}
+                            ${user.role !== 'admin' ? '| Área: ' + escapeHtml(user.departamento || user.area || 'Sem área') : ''}
+                            ${user.local_trabalho ? '| Cidade: ' + escapeHtml(user.local_trabalho) : (user.localizacao ? '| Cidade: ' + escapeHtml(user.localizacao) : '')}
                         </small>
+                        <div class="small text-muted mt-1">
+                            <i class="fas fa-layer-group me-1"></i>${escapeHtml(user.departamento || user.area || '')}
+                            ${user.local_trabalho || user.localizacao ? ' &nbsp; <i class="fas fa-map-marker-alt ms-2 me-1"></i>' + escapeHtml(user.local_trabalho || user.localizacao) : ''}
+                        </div>
                     </div>
                 </div>`;
 
@@ -585,14 +602,16 @@
             usuarios.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.tipo_contrato || 'CLT'} - ${user.username} (${user.role}${user.area ? ' - ' + user.area : ''}${user.localizacao ? ' - ' + user.localizacao : ''})`;
+                const areaLabel = user.departamento || user.area || '';
+                const localLabel = user.local_trabalho || user.localizacao || '';
+                option.textContent = `${user.tipo_contrato || 'CLT'} - ${user.username} (${user.role}${areaLabel ? ' - ' + areaLabel : ''}${localLabel ? ' - ' + localLabel : ''})`;
                 resetSelect.appendChild(option);
             });
 
             const filtroCidades = document.getElementById('select-filtro-cidade');
             if (filtroCidades) {
                 const cidades = Array.from(new Set(usuarios
-                    .map(u => (u.localizacao || '').trim())
+                    .map(u => (u.local_trabalho || u.localizacao || '').trim())
                     .filter(Boolean)
                 )).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
@@ -615,43 +634,79 @@
             return div.innerHTML;
         }
 
+        // Auto-preencher Empresa/CNPJ a partir de seleção
+        (function(){
+            const empresaInput = document.getElementById('empresa');
+            const cnpjInput = document.getElementById('cnpj');
+            const enderecoInput = document.getElementById('endereco');
+            const areaInput = document.getElementById('area');
+            const localizacaoInput = document.getElementById('localizacao');
+            const empresaMap = {
+                'Antares Securitizadora de Recebíveis Comerciais S.A.': ['31.508.560/0001-85', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+                'Soma Análise de Créditos e Cobranças': ['35.073.002/0001-95', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+                'Soma Asset Gestão de Investimento': ['26.760.824/0001-53', 'Rua Funchal, 418, 35º andar Sala 3505, Vila Olímpia – São Paulo/SP']
+            };
+            if (empresaInput) {
+                empresaInput.addEventListener('change', () => {
+                    const value = (empresaInput.value || '').trim();
+                    const data = empresaMap[value];
+                    if (!data) {
+                        if (cnpjInput) cnpjInput.value = '';
+                        if (enderecoInput) enderecoInput.value = '';
+                        return;
+                    }
+                    if (cnpjInput) cnpjInput.value = data[0] || '';
+                    if (enderecoInput) enderecoInput.value = data[1] || '';
+                    // preencher campos ocultos que o backend espera
+                    if (areaInput) areaInput.value = value || '';
+                    if (localizacaoInput) localizacaoInput.value = data[1] || '';
+                });
+            }
+            // quando o endereço for alterado manualmente, atualizar localizacao oculto
+            if (enderecoInput && localizacaoInput) {
+                enderecoInput.addEventListener('input', () => {
+                    localizacaoInput.value = enderecoInput.value || '';
+                });
+            }
+        })();
+
+        // Auto-preencher PJ a partir de seleção
+        (function(){
+            const pjContratanteInput = document.getElementById('pj_contratante');
+            const pjContratanteCnpjInput = document.getElementById('pj_contratante_cnpj');
+            const pjContratanteEnderecoInput = document.getElementById('pj_contratante_endereco');
+            const pjMap = {
+                'Soma Análise de Créditos e Cobranças': ['35.073.002/0001-95', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+                'Soma Asset Gestão de Investimento': ['26.760.824/0001-53', 'Rua Funchal, 418, 35º andar Sala 3505, Vila Olímpia – São Paulo/SP']
+            };
+            if (pjContratanteInput) {
+                pjContratanteInput.addEventListener('change', () => {
+                    const value = (pjContratanteInput.value || '').trim();
+                    const data = pjMap[value];
+                    if (!data) {
+                        if (pjContratanteCnpjInput) pjContratanteCnpjInput.value = '';
+                        if (pjContratanteEnderecoInput) pjContratanteEnderecoInput.value = '';
+                        return;
+                    }
+                    if (pjContratanteCnpjInput) pjContratanteCnpjInput.value = data[0] || '';
+                    if (pjContratanteEnderecoInput) pjContratanteEnderecoInput.value = data[1] || '';
+                });
+            }
+        })();
+
         // Adicionar usuário
         document.getElementById('form-adicionar-usuario').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const formData = new FormData(e.target);
-            const dados = {
-                username: formData.get('username'),
-                email: formData.get('email') || '',
-                password: formData.get('password'),
-                role: formData.get('role'),
-                tipo_contrato: formData.get('tipo_contrato') || 'CLT',
-                area: formData.get('area') || '',
-                localizacao: formData.get('localizacao') || '',
-                empresa: formData.get('empresa') || '',
-                cnpj: formData.get('cnpj') || '',
-                endereco: formData.get('endereco') || '',
-                cargo: formData.get('cargo') || '',
-                cpf: formData.get('cpf') || '',
-                data_admissao: formData.get('data_admissao') || '',
-                departamento: formData.get('departamento') || '',
-                local_trabalho: formData.get('local_trabalho') || '',
-                pj_contratante: formData.get('pj_contratante') || '',
-                pj_contratante_cnpj: formData.get('pj_contratante_cnpj') || '',
-                pj_contratante_endereco: formData.get('pj_contratante_endereco') || '',
-                pj_contratada: formData.get('pj_contratada') || '',
-                pj_contratada_cnpj: formData.get('pj_contratada_cnpj') || '',
-                pj_data_contrato: formData.get('pj_data_contrato') || ''
-            };
 
             try {
                 const response = await fetch('/api/users', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                     },
-                    body: JSON.stringify(dados)
+                    body: formData
                 });
 
                 const result = await response.json();

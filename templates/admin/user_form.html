@@ -10,7 +10,7 @@
       <div class="card">
         <div class="card-body">
           <h5 class="card-title">{{ 'Criar Usuário' if mode == 'create' else 'Editar Usuário' }}</h5>
-          <form method="post" action="{{ url_for('admin.criar_usuario') if mode == 'create' else url_for('admin.editar_usuario', user_id=usuario.id) }}">
+          <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.criar_usuario') if mode == 'create' else url_for('admin.editar_usuario', user_id=usuario.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
               <label class="form-label">Usuário (username)</label>
@@ -22,6 +22,21 @@
               <input type="email" name="email" class="form-control" value="{{ usuario.email if usuario else '' }}" placeholder="Ex.: usuario@empresa.com">
               <div class="form-text">Informe um e-mail válido somente se quiser notificar este usuário quando um chamado for concluído.</div>
             </div>
+
+            <div class="mb-3">
+              <label class="form-label">Foto de Perfil (opcional)</label>
+              <input type="file" name="foto_perfil" class="form-control" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+              <div class="form-text">Selecione uma imagem opcional para este usuário. Tipos permitidos: PNG, JPG, JPEG, GIF, WEBP.</div>
+            </div>
+
+            {% if usuario and usuario.foto_perfil %}
+            <div class="mb-3">
+              <label class="form-label">Foto atual</label>
+              <div>
+                <img src="{{ url_for('static', filename='uploads/avatars/' ~ usuario.foto_perfil) }}" alt="Foto atual" class="img-thumbnail" style="max-width: 120px; max-height: 120px; object-fit: cover;">
+              </div>
+            </div>
+            {% endif %}
 
             <!-- Apenas nome e tipo aparecem inicialmente -->
             <div id="initial-fields">
@@ -55,8 +70,16 @@
               <h6>Informações CLT</h6>
               <div class="mb-3">
                 <label class="form-label">Empresa</label>
-                <input type="text" name="empresa" class="form-control" value="{{ usuario.empresa if usuario else '' }}">
+                <select name="empresa" id="empresa" class="form-select">
+                  <option value="" {% if not usuario or not usuario.empresa %}selected{% endif %}>-- Selecione --</option>
+                  <option value="Antares Securitizadora de Recebíveis Comerciais S.A." {% if usuario and usuario.empresa == 'Antares Securitizadora de Recebíveis Comerciais S.A.' %}selected{% endif %}>Antares Securitizadora de Recebíveis Comerciais S.A.</option>
+                  <option value="Soma Análise de Créditos e Cobranças" {% if usuario and usuario.empresa == 'Soma Análise de Créditos e Cobranças' %}selected{% endif %}>Soma Análise de Créditos e Cobranças</option>
+                  <option value="Soma Asset Gestão de Investimento" {% if usuario and usuario.empresa == 'Soma Asset Gestão de Investimento' %}selected{% endif %}>Soma Asset Gestão de Investimento</option>
+                </select>
               </div>
+              <!-- Área e Cidade são preenchidos automaticamente a partir da empresa/endereço selecionados -->
+              <input type="hidden" name="area" id="area" value="{{ usuario.area if usuario else '' }}">
+              <input type="hidden" name="localizacao" id="localizacao" value="{{ usuario.localizacao if usuario else '' }}">
               <div class="mb-3">
                 <label class="form-label">CNPJ</label>
                 <input type="text" name="cnpj" class="form-control" value="{{ usuario.cnpj if usuario else '' }}">
@@ -92,7 +115,12 @@
               <h6>Informações PJ</h6>
               <div class="mb-3">
                 <label class="form-label">Contratante</label>
-                <input type="text" name="pj_contratante" class="form-control" value="{{ usuario.pj_contratante if usuario else '' }}">
+                <select name="pj_contratante" id="pj_contratante" class="form-select">
+                  <option value="" {% if not usuario or not usuario.pj_contratante %}selected{% endif %}>-- Selecione --</option>
+                  <option value="Soma Análise de Créditos e Cobranças" {% if usuario and usuario.pj_contratante == 'Soma Análise de Créditos e Cobranças' %}selected{% endif %}>Soma Análise de Créditos e Cobranças</option>
+                  <option value="Soma Asset Gestão de Investimento" {% if usuario and usuario.pj_contratante == 'Soma Asset Gestão de Investimento' %}selected{% endif %}>Soma Asset Gestão de Investimento</option>
+                </select>
+                <small class="text-muted">Selecione a PJ para preencher automaticamente o contratante, o CNPJ e o endereço.</small>
               </div>
               <div class="mb-3">
                 <label class="form-label">CNPJ do Contratante</label>
@@ -172,7 +200,7 @@
           .replace(/^(\d{3})(\d)/, '$1.$2')
           .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
           .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
-      } else if (input.name === 'cnpj') {
+      } else if (input.name === 'cnpj' || input.name === 'pj_contratada_cnpj') {
         value = value.slice(0, 14);
         value = value
           .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -185,11 +213,70 @@
 
     const cpfInput = document.querySelector('input[name="cpf"]');
     const cnpjInput = document.querySelector('input[name="cnpj"]');
+    const pjContratadaCnpjInput = document.querySelector('input[name="pj_contratada_cnpj"]');
     if (cpfInput) {
       cpfInput.addEventListener('input', () => applyCpfCnpjMask(cpfInput));
     }
     if (cnpjInput) {
       cnpjInput.addEventListener('input', () => applyCpfCnpjMask(cnpjInput));
+    }
+    if (pjContratadaCnpjInput) {
+      pjContratadaCnpjInput.addEventListener('input', () => applyCpfCnpjMask(pjContratadaCnpjInput));
+    }
+    // Empresa select auto-fill
+    const empresaInput = document.getElementById('empresa');
+    const enderecoInput = document.querySelector('input[name="endereco"]');
+    const empresaMap = {
+      'Antares Securitizadora de Recebíveis Comerciais S.A.': ['31.508.560/0001-85', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+      'Soma Análise de Créditos e Cobranças': ['35.073.002/0001-95', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+      'Soma Asset Gestão de Investimento': ['26.760.824/0001-53', 'Rua Funchal, 418, 35º andar Sala 3505, Vila Olímpia – São Paulo/SP']
+    };
+    if (empresaInput) {
+      empresaInput.addEventListener('change', () => {
+        const value = (empresaInput.value || '').trim();
+        const data = empresaMap[value];
+        if (!data) {
+          if (cnpjInput) cnpjInput.value = '';
+          if (enderecoInput) enderecoInput.value = '';
+          if (document.getElementById('area')) document.getElementById('area').value = '';
+          if (document.getElementById('localizacao')) document.getElementById('localizacao').value = '';
+          return;
+        }
+        if (cnpjInput) cnpjInput.value = data[0] || '';
+        if (enderecoInput) enderecoInput.value = data[1] || '';
+        // preencher os campos ocultos que o backend espera
+        if (document.getElementById('area')) document.getElementById('area').value = value || '';
+        if (document.getElementById('localizacao')) document.getElementById('localizacao').value = data[1] || '';
+      });
+    }
+    // quando o endereço for alterado manualmente, atualizar localizacao oculto
+    const areaInput = document.getElementById('area');
+    const localizacaoInput = document.getElementById('localizacao');
+    if (enderecoInput && localizacaoInput) {
+      enderecoInput.addEventListener('input', () => {
+        localizacaoInput.value = enderecoInput.value || '';
+      });
+    }
+
+    const pjContratanteInput = document.getElementById('pj_contratante');
+    const pjContratanteCnpjInput = document.querySelector('input[name="pj_contratante_cnpj"]');
+    const pjContratanteEnderecoInput = document.querySelector('input[name="pj_contratante_endereco"]');
+    const pjMap = {
+      'Soma Análise de Créditos e Cobranças': ['35.073.002/0001-95', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
+      'Soma Asset Gestão de Investimento': ['26.760.824/0001-53', 'Rua Funchal, 418, 35º andar Sala 3505, Vila Olímpia – São Paulo/SP']
+    };
+    if (pjContratanteInput) {
+      pjContratanteInput.addEventListener('change', () => {
+        const value = (pjContratanteInput.value || '').trim();
+        const data = pjMap[value];
+        if (!data) {
+          if (pjContratanteCnpjInput) pjContratanteCnpjInput.value = '';
+          if (pjContratanteEnderecoInput) pjContratanteEnderecoInput.value = '';
+          return;
+        }
+        if (pjContratanteCnpjInput) pjContratanteCnpjInput.value = data[0] || '';
+        if (pjContratanteEnderecoInput) pjContratanteEnderecoInput.value = data[1] || '';
+      });
     }
   })();
   </script>
