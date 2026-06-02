@@ -42,6 +42,8 @@ cp .env.example .env
 - `DATABASE_URL` (configure seu banco MySQL ou PostgreSQL)
 - `SESSION_COOKIE_SECURE=True`
 - Credenciais de email SMTP
+- `TEAMS_CHANNEL_WEBHOOK_URL` para postar direto em um canal do Teams
+- `APP_PUBLIC_BASE_URL` se quiser exibir imagens do chamado no cartão
 
 ## 🚀 Executar a Aplicação
 
@@ -116,6 +118,24 @@ DATABASE_URL=mysql+pymysql://usuario:senha@localhost:3306/estoque_db
 # 3. Rodar app.py para inicializar tabelas
 python app.py
 ```
+
+## 🔔 Notificações no Teams via webhook do canal
+
+O sistema pode enviar eventos de chamados diretamente para o webhook de um canal do Teams.
+
+### Variáveis necessárias
+- `TEAMS_CHANNEL_WEBHOOK_URL`: URL do webhook do canal no Teams.
+- `POWER_AUTOMATE_WEBHOOK_URL`: mantido só para compatibilidade com integrações antigas.
+- `POWER_AUTOMATE_TIMEOUT_SECONDS`: tempo máximo de espera pela resposta do webhook.
+- `ADMIN_EMAILS`: lista de e-mails dos administradores que devem receber o aviso.
+- `APP_PUBLIC_BASE_URL`: URL pública da aplicação, usada para imagens no cartão do Teams.
+
+### Eventos enviados
+- Criação de chamado.
+- Alteração de status do chamado.
+
+### Payload
+O backend envia um cartão do Teams com os dados do chamado, usuário solicitante, status atual, status anterior e anexo quando houver URL pública disponível.
 
 ## 📁 Estrutura de Diretórios
 

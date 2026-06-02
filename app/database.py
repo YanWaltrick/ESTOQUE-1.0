@@ -70,6 +70,10 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
     app.config['ADMIN_EMAILS'] = os.getenv('ADMIN_EMAILS', '')
+    app.config['TEAMS_CHANNEL_WEBHOOK_URL'] = os.getenv('TEAMS_CHANNEL_WEBHOOK_URL', '')
+    app.config['POWER_AUTOMATE_WEBHOOK_URL'] = os.getenv('POWER_AUTOMATE_WEBHOOK_URL', '')
+    app.config['APP_PUBLIC_BASE_URL'] = os.getenv('APP_PUBLIC_BASE_URL', '')
+    app.config['POWER_AUTOMATE_TIMEOUT_SECONDS'] = int(os.getenv('POWER_AUTOMATE_TIMEOUT_SECONDS', 10))
 
     # Inicializar banco de dados e email
     db.init_app(app)

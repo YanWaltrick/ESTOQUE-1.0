@@ -13,6 +13,7 @@ from app.auth.security import PasswordValidator, validate_username, validate_ema
 from app.database import db, mail
 from app.models import User, Chamada, Historico, TermoEntrega
 from app.utils import registrar_evento
+from app.services import enviar_notificacao_chamada
 
 api_bp = Blueprint('api', __name__)
 
@@ -809,7 +810,20 @@ def criar_chamada():
             usuario_responsavel=current_user.username
         )
 
-        return jsonify({'mensagem': 'Chamada enviada com sucesso'}), 201
+        sucesso_notificacao, erro_notificacao = enviar_notificacao_chamada(chamada, 'chamada_criada')
+        if not sucesso_notificacao:
+            current_app.logger.warning(
+                'Notificação do Teams não enviada para chamada %s: %s',
+                chamada.id_chamada,
+                erro_notificacao,
+            )
+
+        return jsonify({
+            'mensagem': 'Chamada enviada com sucesso',
+            'notificacao_enviada': bool(sucesso_notificacao),
+            'erro_notificacao': erro_notificacao,
+            'id_chamada': chamada.id_chamada,
+        }), 201
     except Exception as e:
         return jsonify({'erro': str(e)}), 400
 
@@ -851,6 +865,8 @@ def atualizar_status_chamada(id_chamada):
         if not chamada:
             return jsonify({'erro': 'Chamada não encontrada'}), 404
 
+        status_anterior = chamada.status
+
         # Atualizar status
         chamada.status = status
         chamada.lida = status in ['lida', 'analise', 'execucao', 'concluida']
@@ -860,6 +876,18 @@ def atualizar_status_chamada(id_chamada):
         if status == 'concluida':
             _notificar_usuario_chamado_concluido(chamada)
 
+        sucesso_notificacao, erro_notificacao = enviar_notificacao_chamada(
+            chamada,
+            'chamada_status_alterado',
+            status_anterior=status_anterior,
+        )
+        if not sucesso_notificacao:
+            current_app.logger.warning(
+                'Notificação do Teams não enviada para chamada %s: %s',
+                chamada.id_chamada,
+                erro_notificacao,
+            )
+
         # Registrar evento
         registrar_evento(
             tipo_evento='chamada_status_alterado',
@@ -867,7 +895,12 @@ def atualizar_status_chamada(id_chamada):
             usuario_responsavel=current_user.username
         )
 
-        return jsonify({'mensagem': 'Status atualizado com sucesso', 'novo_status': status}), 200
+        return jsonify({
+            'mensagem': 'Status atualizado com sucesso',
+            'novo_status': status,
+            'notificacao_enviada': bool(sucesso_notificacao),
+            'erro_notificacao': erro_notificacao,
+        }), 200
         
     except Exception as e:
         db.session.rollback()

@@ -137,6 +137,28 @@ class TermoService:
 
         styles = getSampleStyleSheet()
 
+        def _tint_color(hex_color: str, percent: int):
+            percent = max(0, min(percent, 100)) / 100.0
+            base_color = colors.HexColor(hex_color)
+            return colors.Color(
+                red=(base_color.red * percent) + (1 - percent),
+                green=(base_color.green * percent) + (1 - percent),
+                blue=(base_color.blue * percent) + (1 - percent),
+            )
+
+        black_6 = colors.HexColor('#000000')
+        brown_7562 = colors.HexColor('#bd9a5f')
+
+        black_6_80 = _tint_color('#000000', 80)
+        black_6_60 = _tint_color('#000000', 60)
+        black_6_40 = _tint_color('#000000', 40)
+        black_6_20 = _tint_color('#000000', 20)
+
+        brown_7562_80 = _tint_color('#bd9a5f', 80)
+        brown_7562_60 = _tint_color('#bd9a5f', 60)
+        brown_7562_40 = _tint_color('#bd9a5f', 40)
+        brown_7562_20 = _tint_color('#bd9a5f', 20)
+
         style_title = ParagraphStyle(
             'Title',
             parent=styles['Heading1'],
@@ -160,6 +182,7 @@ class TermoService:
             parent=styles['Heading2'],
             fontSize=11,
             leading=14,
+            textColor=brown_7562,
             spaceBefore=12,
             spaceAfter=8
         )
@@ -180,7 +203,7 @@ class TermoService:
             fontSize=8,
             leading=10,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#4b5563'),
+            textColor=black_6,
             spaceAfter=2
         )
 
@@ -189,7 +212,7 @@ class TermoService:
             parent=styles['Heading3'],
             fontSize=9,
             leading=11,
-            textColor=colors.HexColor('#0b5cab'),
+            textColor=black_6,
             spaceBefore=8,
             spaceAfter=4
         )
@@ -199,7 +222,7 @@ class TermoService:
             parent=styles['BodyText'],
             fontSize=8,
             leading=10,
-            textColor=colors.HexColor('#111827')
+            textColor=black_6
         )
 
         # ---------------------------------------------------------
@@ -337,10 +360,8 @@ class TermoService:
                     ]
                 )
                 meta_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#e8f1fb')),
-                    ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#e8f1fb')),
-                    ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#9bbbe3')),
-                    ('INNERGRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#c7d8ee')),
+                    ('BOX', (0, 0), (-1, -1), 0.9, brown_7562_60),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.65, black_6_40),
                     ('LEFTPADDING', (0, 0), (-1, -1), 5),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 5),
                     ('TOPPADDING', (0, 0), (-1, -1), 4),
@@ -362,15 +383,16 @@ class TermoService:
 
                     miniatura = _miniatura_foto(arquivo_foto, max_largura_foto, max_altura_foto)
                     if miniatura:
-                        titulo_evidencia = f'{indice_foto:02d} - {titulo_foto}'
+                        titulo_evidencia = f'{indice_foto:02d} - {titulo_foto}'.upper()
                         card = Table(
                             [[Paragraph(titulo_evidencia, style_foto_caption)], [miniatura]],
-                            colWidths=[largura_coluna - (0.2 * cm)]
+                            colWidths=[largura_coluna - (0.2 * cm)],
+                            cornerRadii=(6, 6, 6, 6)
                         )
                         card.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fbff')),
-                            ('LINEABOVE', (0, 0), (-1, 0), 1, colors.HexColor('#0b5cab')),
-                            ('BOX', (0, 0), (-1, -1), 0.7, colors.HexColor('#b3c7e6')),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9f6f4')),
+                            ('LINEABOVE', (0, 0), (-1, 0), 1.15, brown_7562),
+                            ('BOX', (0, 0), (-1, -1), 0.85, brown_7562),
                             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                             ('LEFTPADDING', (0, 0), (-1, -1), 6),
@@ -408,7 +430,7 @@ class TermoService:
                     colWidths=[largura_util]
                 ))
                 blocos[-1].setStyle(TableStyle([
-                    ('LINEBELOW', (0, 0), (-1, -1), 0.8, colors.HexColor('#7ea8d8')),
+                    ('LINEBELOW', (0, 0), (-1, -1), 0.8, brown_7562_40),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ]))
 
