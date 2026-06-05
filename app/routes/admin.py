@@ -1374,8 +1374,11 @@ def exportar_termo_pdf(user_id):
         tem_tipo_documento = any('tipo_documento' in eq for eq in equipamentos)
         tem_equipamento_aditivo = any(eq.get('tipo_documento') == 'aditivo' for eq in equipamentos)
 
-        # Se forcar_aditivo é True, sempre criar aditivo, caso contrário usar lógica de detecção
-        eh_aditivo = forcar_aditivo or tem_equipamento_aditivo or (termo_documento is not None and not tem_tipo_documento)
+        # Criar aditivo somente se for explicitamente forçado, ou se houver
+        # equipamentos marcados como 'aditivo' E já existir um Termo salvo.
+        # Isso evita que o primeiro termo seja erroneamente classificado como
+        # aditivo quando equipamentos antigos estiverem marcados.
+        eh_aditivo = forcar_aditivo or (tem_equipamento_aditivo and termo_documento is not None)
         numero_aditivo = 0
 
         if eh_aditivo:

@@ -231,6 +231,16 @@ def init_database():
         print("Garantindo estrutura base do banco...")
         db.create_all()
 
+        # Garantir existência de pastas de upload usadas pela aplicação
+        try:
+            base_static = os.path.join(os.path.dirname(__file__), '..', 'static')
+            uploads_dir = os.path.abspath(os.path.join(base_static, 'uploads'))
+            os.makedirs(uploads_dir, exist_ok=True)
+            for sub in ('avatars', 'chamadas', 'documentos', 'documentos/termos'):
+                os.makedirs(os.path.join(uploads_dir, sub), exist_ok=True)
+        except Exception as _e:
+            print(f"[WARN] Não foi possível garantir pastas de upload: {_e}")
+
         # Garantir que todas as colunas do modelo existam (migrations manuais)
         _ensure_schema_columns()
 

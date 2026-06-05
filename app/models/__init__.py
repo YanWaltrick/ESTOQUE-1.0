@@ -381,6 +381,27 @@ class DocumentoUsuario(db.Model):
         }
 
 
+class DocumentoArquivo(db.Model):
+    """Armazena conteúdo binário de documentos migrados/guardados no banco."""
+    __tablename__ = 'documentos_arquivos'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    filename = db.Column(db.String(255), nullable=False, index=True)
+    content = db.Column(db.LargeBinary, nullable=False)
+    mime_type = db.Column(db.String(100), nullable=True)
+    size = db.Column(db.Integer, nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=now_gmt3)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'mime_type': self.mime_type,
+            'size': self.size,
+            'uploaded_at': self.uploaded_at.strftime('%d/%m/%Y %H:%M:%S') if self.uploaded_at else None,
+        }
+
+
 class ItemRecebido(db.Model):
     """Modelo para itens recebidos por usuários"""
     __tablename__ = 'itens_recebidos'

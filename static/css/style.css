@@ -752,6 +752,33 @@ body.sidebar-is-collapsed .sidebar-backdrop {
 .btn-secondary:hover {
     background-color: #a0854f !important;
     border-color: #a0854f !important;
+    color: #000000 !important;
+}
+
+/* Botão Voltar dourado em cabeçalhos escuros (texto preto legível) */
+.card-header.bg-primary a.btn-secondary,
+.card-header.bg-success a.btn-secondary,
+.card-header.bg-danger a.btn-secondary,
+.modal-header.bg-primary a.btn-secondary {
+    color: #000000 !important;
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+}
+
+.card-header.bg-primary a.btn-secondary:hover,
+.card-header.bg-success a.btn-secondary:hover,
+.card-header.bg-danger a.btn-secondary:hover,
+.modal-header.bg-primary a.btn-secondary:hover {
+    color: #000000 !important;
+    background-color: #a0854f !important;
+    border-color: #a0854f !important;
+}
+
+.card-header.bg-primary a.btn-secondary i,
+.card-header.bg-success a.btn-secondary i,
+.card-header.bg-danger a.btn-secondary i,
+.modal-header.bg-primary a.btn-secondary i {
+    color: #000000 !important;
 }
 
 /* ============================================================================

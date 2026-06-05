@@ -4,10 +4,12 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+import mimetypes
 
 from app import estoque
 from app.database import db
-from app.models import DocumentoUsuario, TermoEntrega, User
+from app.models import DocumentoUsuario, TermoEntrega, User, DocumentoArquivo
+import io
 from app.utils import registrar_evento
 
 main_bp = Blueprint('main', __name__)
@@ -125,6 +127,19 @@ def upload_documento():
     try:
         arquivo.save(caminho_arquivo)
 
+        # também salvar no banco (mantém DB em sincronia)
+        try:
+            with open(caminho_arquivo, 'rb') as f:
+                data = f.read()
+            exists = DocumentoArquivo.query.filter_by(filename=nome_arquivo_seguro, size=tamanho).first()
+            if not exists:
+                novo_blob = DocumentoArquivo(filename=nome_arquivo_seguro, content=data, mime_type=mimetypes.guess_type(caminho_arquivo)[0] or 'application/octet-stream', size=tamanho)
+                db.session.add(novo_blob)
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+            # não é crítico; prosseguir mesmo se falhar salvar no blob
+
         novo_documento = DocumentoUsuario(
             id_usuario=usuario_destino.id,
             nome_documento=nome_documento,
@@ -165,8 +180,16 @@ def download_documento(documento_id):
 
     caminho_arquivo = os.path.join(_pasta_documentos(), documento.arquivo)
     if not os.path.exists(caminho_arquivo):
-        flash('Arquivo não encontrado no servidor.', 'error')
-        return redirect(url_for('main.documentos'))
+        # tentar recuperar do banco
+        blob = DocumentoArquivo.query.filter_by(filename=documento.arquivo).first()
+        if not blob:
+            flash('Arquivo não encontrado no servidor.', 'error')
+            return redirect(url_for('main.documentos'))
+
+        nome_download = f'{documento.nome_documento}.{documento.tipo_arquivo}'
+        bio = io.BytesIO(blob.content)
+        bio.seek(0)
+        return send_file(bio, as_attachment=True, download_name=nome_download, mimetype=blob.mime_type or 'application/octet-stream')
 
     nome_download = f'{documento.nome_documento}.{documento.tipo_arquivo}'
     return send_file(caminho_arquivo, as_attachment=True, download_name=nome_download)
@@ -186,6 +209,13 @@ def excluir_documento(documento_id):
     try:
         if os.path.exists(caminho_arquivo):
             os.remove(caminho_arquivo)
+
+        # remover também do banco de blobs, se existir
+        try:
+            DocumentoArquivo.query.filter_by(filename=documento.arquivo).delete()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
         nome_documento = documento.nome_documento
 
