@@ -137,6 +137,116 @@ def get_user_details(user_id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+
+@api_bp.route('/users/<int:user_id>', methods=['PUT'])
+@login_required
+@require_role('admin')
+def atualizar_usuario_api(user_id):
+    """Atualiza dados de um usuário existente"""
+    try:
+        usuario = User.query.get_or_404(user_id)
+
+        if usuario.id == current_user.id:
+            return jsonify({'erro': 'Você não pode editar sua própria conta aqui. Use a página de perfil.'}), 403
+
+        dados = request.get_json(silent=True)
+        if not dados:
+            return jsonify({'erro': 'JSON inválido ou vazio'}), 400
+
+        role = (dados.get('role') or usuario.role).strip()
+        tipo_contrato = (dados.get('tipo_contrato') or usuario.tipo_contrato).strip().upper()
+        area = (dados.get('area') or '').strip()
+        localizacao = (dados.get('localizacao') or '').strip()
+        empresa = (dados.get('empresa') or '').strip()
+        cnpj = (dados.get('cnpj') or '').strip()
+        endereco = (dados.get('endereco') or '').strip()
+        cargo = (dados.get('cargo') or '').strip()
+        cpf = (dados.get('cpf') or '').strip()
+        email = (dados.get('email') or '').strip()
+        departamento = (dados.get('departamento') or '').strip()
+        local_trabalho = (dados.get('local_trabalho') or '').strip()
+        pj_contratante = (dados.get('pj_contratante') or '').strip()
+        pj_contratante_cnpj = (dados.get('pj_contratante_cnpj') or '').strip()
+        pj_contratante_endereco = (dados.get('pj_contratante_endereco') or '').strip()
+        pj_contratada = (dados.get('pj_contratada') or '').strip()
+        pj_contratada_cnpj = (dados.get('pj_contratada_cnpj') or '').strip()
+        data_admissao_str = (dados.get('data_admissao') or '').strip()
+        pj_data_contrato_str = (dados.get('pj_data_contrato') or '').strip()
+        ativo = dados.get('ativo', usuario.ativo)
+        if isinstance(ativo, str):
+            ativo = ativo.lower() in ('1', 'true', 'on', 'yes', 'ativo')
+
+        if role not in ['admin', 'usuario']:
+            return jsonify({'erro': 'Role inválido. Escolha entre admin ou usuario.'}), 400
+
+        if tipo_contrato not in ['CLT', 'PJ']:
+            return jsonify({'erro': 'Tipo de contrato inválido. Escolha entre CLT ou PJ.'}), 400
+
+        if email:
+            is_valid_email, email_error = validate_email(email)
+            if not is_valid_email:
+                return jsonify({'erro': f'Erro no email: {email_error}'}), 400
+
+        data_admissao = usuario.data_admissao
+        if data_admissao_str:
+            try:
+                data_admissao = datetime.strptime(data_admissao_str, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'erro': 'Erro ao processar a data de admissão.'}), 400
+        else:
+            data_admissao = None
+
+        pj_data_contrato = usuario.pj_data_contrato
+        if pj_data_contrato_str:
+            try:
+                pj_data_contrato = datetime.strptime(pj_data_contrato_str, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'erro': 'Erro ao processar a data do contrato PJ.'}), 400
+        else:
+            pj_data_contrato = None
+
+        if usuario.role == 'admin' and role != 'admin':
+            admin_count = User.query.filter_by(role='admin').count()
+            if admin_count <= 1:
+                return jsonify({'erro': 'Não é possível remover o último administrador.'}), 403
+
+        usuario.role = role
+        usuario.tipo_contrato = tipo_contrato
+        usuario.area = area
+        usuario.localizacao = localizacao
+        usuario.empresa = empresa
+        usuario.cnpj = cnpj
+        usuario.endereco = endereco
+        usuario.cargo = cargo
+        usuario.cpf = cpf
+        usuario.email = email
+        usuario.data_admissao = data_admissao
+        usuario.departamento = departamento
+        usuario.local_trabalho = local_trabalho
+        usuario.pj_contratante = pj_contratante
+        usuario.pj_contratante_cnpj = pj_contratante_cnpj
+        usuario.pj_contratante_endereco = pj_contratante_endereco
+        usuario.pj_contratada = pj_contratada
+        usuario.pj_contratada_cnpj = pj_contratada_cnpj
+        usuario.pj_data_contrato = pj_data_contrato
+        usuario.ativo = bool(ativo)
+
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='usuario_editado',
+            descricao=f'Usuário "{usuario.username}" editado via modal - role: "{role}", tipo: "{tipo_contrato}", ativo: {usuario.ativo}',
+            usuario_responsavel=current_user.username
+        )
+
+        return jsonify({
+            'mensagem': 'Usuário atualizado com sucesso',
+            'usuario': usuario.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
 @api_bp.route('/produtos', methods=['GET'])
 @login_required
 def get_produtos():

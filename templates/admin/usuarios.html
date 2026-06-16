@@ -5,6 +5,27 @@
 {% block page_heading %}Usuários Cadastrados{% endblock %}
 {% block page_subtitle %}Visualize todos os usuários do sistema com foto de perfil, tipo de contrato e nome.{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+<style>
+    .date-range-display .form-control {
+        cursor: pointer;
+        background-color: #fff;
+    }
+    .date-range-picker-inputs {
+        border: 1px solid #dde2e6;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        background: #f8f9fa;
+    }
+    .date-range-display input[readonly] {
+        background-color: #fff;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
@@ -15,7 +36,7 @@
                 </h1>
                 <p class="text-muted mb-0">Lista completa com foto de perfil, tipo de contrato, nome e status.</p>
             </div>
-            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
                 <form class="search-users-form" method="get" action="{{ url_for('admin.listar_usuarios') }}">
                     <input type="hidden" name="tipo" value="{{ tipo or '' }}">
                     <div class="input-group search-users-group mb-2">
@@ -25,6 +46,9 @@
                         <input type="text" name="q" class="form-control search-users-input" placeholder="Buscar usuário..." value="{{ q or '' }}" aria-label="Pesquisar usuários por nome">
                     </div>
                     <div class="btn-group contract-filter-group w-100" role="group" aria-label="Filtrar por tipo de contrato">
+                        <button type="button" id="btn-open-filtro" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFiltroUsuarios">
+                            <i class="fas fa-filter"></i>
+                        </button>
                         <button type="submit" class="btn btn-sm {% if not tipo %}btn-primary{% else %}btn-outline-primary{% endif %}" onclick="this.form.tipo.value=''">
                             TODOS
                         </button>
@@ -47,9 +71,17 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             {% if usuarios.items %}
-                <ul class="list-group list-group-flush">
+                <ul id="lista-usuarios" class="list-group list-group-flush">
                     {% for user in usuarios.items %}
-                    <li class="list-group-item px-3 px-md-4 py-3 py-md-4 border-0 border-bottom d-flex align-items-center gap-3 hover-bg user-list-item" data-user-id="{{ user.id }}" style="cursor: pointer;">
+                    <li class="list-group-item px-3 px-md-4 py-3 py-md-4 border-0 border-bottom d-flex align-items-center gap-3 hover-bg user-list-item"
+                        data-user-id="{{ user.id }}"
+                        data-empresa="{{ (user.empresa or '')|e }}"
+                        data-cnpj="{{ (user.cnpj or '')|e }}"
+                        data-cargo="{{ (user.cargo or '')|e }}"
+                        data-data-admissao="{{ user.data_admissao.strftime('%Y-%m-%d') if user.data_admissao else '' }}"
+                        data-departamento="{{ (user.departamento or '')|e }}"
+                        data-local-trabalho="{{ (user.local_trabalho or user.localizacao or '')|e }}"
+                        style="cursor: pointer;">
                         <!-- Foto de Perfil -->
                         <div class="user-photo rounded-circle overflow-hidden border bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;">
                             {% if user.foto_perfil %}
@@ -139,7 +171,24 @@
         .hover-bg {
             cursor: pointer;
         }
-        
+
+        .date-range-display {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .date-range-display .form-control {
+            background-color: #fff;
+        }
+
+        .date-range-picker-inputs {
+            border: 1px solid #dde2e6;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            background: #f8f9fa;
+        }
+
         .list-group-item:last-child {
             border-bottom: none !important;
         }
@@ -295,6 +344,11 @@
         .modal-lg {
             max-width: 800px;
         }
+
+        #detalheUsuarioModal .modal-header .modal-title,
+        #detalheUsuarioModal .modal-header .modal-title i {
+            color: #ffffff !important;
+        }
     </style>
 
     <!-- Modal Adicionar Documento -->
@@ -343,6 +397,54 @@
                     <button type="button" class="btn btn-primary" id="btnSalvarDocumento">
                         <i class="fas fa-save"></i> Salvar Documento
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Filtro de Usuários -->
+    <div class="modal fade" id="modalFiltroUsuarios" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Filtrar Usuários</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-filtro-usuarios">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empresa</label>
+                                <input type="text" id="filtro-empresa" class="form-control" placeholder="Nome da empresa">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CNPJ</label>
+                                <input type="text" id="filtro-cnpj" class="form-control" placeholder="Ex.: 12.345.678/0001-90">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cargo/Função</label>
+                                <input type="text" id="filtro-cargo" class="form-control" placeholder="Cargo">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Data de Admissão</label>
+                                <input type="text" id="filtro-periodo-admissao" class="form-control" placeholder="Selecione o período..." readonly>
+                                <input type="hidden" id="filtro-data-admissao-start" name="filtro-data-admissao-start">
+                                <input type="hidden" id="filtro-data-admissao-end" name="filtro-data-admissao-end">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Departamento</label>
+                                <input type="text" id="filtro-departamento" class="form-control" placeholder="Departamento">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Local de Trabalho</label>
+                                <input type="text" id="filtro-local-trabalho" class="form-control" placeholder="Cidade/Local">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-limpar-filtros">Limpar</button>
+                    <button type="button" class="btn btn-primary" id="btn-aplicar-filtros">Aplicar filtros</button>
                 </div>
             </div>
         </div>
@@ -481,6 +583,122 @@
             } finally {
                 btnSalvar.disabled = false;
             }
+        });
+
+        // --- Filtrar usuários (client-side usando data-attributes) ---
+        function matchesFilter(value, filter) {
+            if (!filter) return true;
+            if (!value) return false;
+            return value.toString().toLowerCase().includes(filter.toString().toLowerCase());
+        }
+
+        function aplicarFiltrosUsuarios() {
+            const DEBUG_FILTERS = true;
+            const empresa = document.getElementById('filtro-empresa').value.trim();
+            const cnpj = document.getElementById('filtro-cnpj').value.trim();
+            const cargo = document.getElementById('filtro-cargo').value.trim();
+            let dataStart = document.getElementById('filtro-data-admissao-start').value;
+            let dataEnd = document.getElementById('filtro-data-admissao-end').value;
+            const periodo = document.getElementById('filtro-periodo-admissao').value.trim();
+            const periodoInput = document.getElementById('filtro-periodo-admissao');
+            const departamento = document.getElementById('filtro-departamento').value.trim();
+            const localTrabalho = document.getElementById('filtro-local-trabalho').value.trim();
+
+            if ((!dataStart || !dataEnd) && periodo) {
+                const splitPeriod = periodo.includes('—') ? '—' : (periodo.includes('-') ? '-' : null);
+                if (splitPeriod) {
+                    const parts = periodo.split(splitPeriod).map(part => part.trim());
+                    if (parts.length === 2) {
+                        const [startText, endText] = parts;
+                        const parseBRDate = (value) => {
+                            const [day, month, year] = value.split('/').map(Number);
+                            if (!day || !month || !year) return '';
+                            const date = new Date(year, month - 1, day);
+                            if (Number.isNaN(date.getTime())) return '';
+                            return `${date.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        };
+                        dataStart = dataStart || parseBRDate(startText);
+                        dataEnd = dataEnd || parseBRDate(endText);
+                    }
+                }
+            }
+
+            // fallback: if still empty, try dataset set by picker
+            if ((!dataStart || !dataEnd) && periodoInput) {
+                dataStart = dataStart || (periodoInput.dataset && periodoInput.dataset.start) || '';
+                dataEnd = dataEnd || (periodoInput.dataset && periodoInput.dataset.end) || '';
+            }
+
+            // fallback: try global litepicker instance methods (best-effort)
+            if ((!dataStart || !dataEnd) && window.litepickerPeriodo) {
+                try {
+                    const lp = window.litepickerPeriodo;
+                    if (!dataStart && typeof lp.getStartDate === 'function') {
+                        const s = lp.getStartDate();
+                        if (s) dataStart = s.toISOString().slice(0,10);
+                    }
+                    if (!dataEnd && typeof lp.getEndDate === 'function') {
+                        const e = lp.getEndDate();
+                        if (e) dataEnd = e.toISOString().slice(0,10);
+                    }
+                } catch (e) { console.warn('litepicker fallback failed', e); }
+            }
+
+            if (DEBUG_FILTERS) console.log('Aplicando filtros', {empresa, cnpj, cargo, dataStart, dataEnd, departamento, localTrabalho, periodo});
+            const lista = document.querySelector('#lista-usuarios');
+            const items = lista ? lista.querySelectorAll('.user-list-item') : document.querySelectorAll('.user-list-item');
+            items.forEach(li => {
+                const vEmpresa = li.dataset.empresa || '';
+                const vCnpj = li.dataset.cnpj || '';
+                const vCargo = li.dataset.cargo || '';
+                const vData = li.dataset.dataAdmissao || '';
+                const vDepartamento = li.dataset.departamento || '';
+                const vLocal = li.dataset.localTrabalho || '';
+
+                // date range check (vData is YYYY-MM-DD)
+                let dateOk = true;
+                if (dataStart || dataEnd) {
+                    if (!vData) dateOk = false;
+                    else {
+                        if (dataStart && vData < dataStart) dateOk = false;
+                        if (dataEnd && vData > dataEnd) dateOk = false;
+                    }
+                }
+
+                const normalizedCnpj = (value) => (value || '').toString().replace(/\D/g, '');
+                const ok = matchesFilter(vEmpresa, empresa)
+                    && (cnpj ? normalizedCnpj(vCnpj).includes(normalizedCnpj(cnpj)) : true)
+                    && matchesFilter(vCargo, cargo)
+                    && dateOk
+                    && matchesFilter(vDepartamento, departamento)
+                    && matchesFilter(vLocal, localTrabalho);
+
+                if (DEBUG_FILTERS) console.log('item', {id: li.dataset.userId, vEmpresa, vCnpj, vCargo, vData, vDepartamento, vLocal, dateOk, ok});
+
+                if (ok) {
+                    li.classList.remove('d-none');
+                    li.style.removeProperty('display');
+                } else {
+                    li.classList.add('d-none');
+                    try { li.style.setProperty('display', 'none', 'important'); } catch(e) { li.style.display = 'none'; }
+                }
+            });
+        }
+
+        document.getElementById('btn-aplicar-filtros').addEventListener('click', function() {
+            aplicarFiltrosUsuarios();
+            var filtroModal = bootstrap.Modal.getInstance(document.getElementById('modalFiltroUsuarios'));
+            if (filtroModal) filtroModal.hide();
+        });
+
+        document.getElementById('btn-limpar-filtros').addEventListener('click', function() {
+            document.getElementById('form-filtro-usuarios').reset();
+            document.getElementById('filtro-periodo-admissao').value = '';
+            document.getElementById('filtro-data-admissao-start').value = '';
+            document.getElementById('filtro-data-admissao-end').value = '';
+            const listaReset = document.querySelector('#lista-usuarios');
+            const resetItems = listaReset ? listaReset.querySelectorAll('.user-list-item') : document.querySelectorAll('.user-list-item');
+            resetItems.forEach(li => { li.classList.remove('d-none'); li.style.display = ''; });
         });
     </script>
 
@@ -795,63 +1013,217 @@
         }
 
         // ==================== Modal de Detalhes do Usuário ====================
+        let usuarioDetalheAtualId = null;
+
         document.querySelectorAll('.user-list-item').forEach(item => {
-            item.addEventListener('click', async function(e) {
+            item.addEventListener('click', async function() {
                 const userId = this.dataset.userId;
                 await abrirDetalhesUsuario(userId);
             });
         });
 
+        function mostrarAlertaDetalheUsuario(mensagem, tipo = 'success') {
+            const alerta = document.getElementById('detalheUsuarioAlert');
+            if (!alerta) return;
+            alerta.className = `alert alert-${tipo} alert-dismissible fade show`;
+            alerta.innerHTML = `${mensagem}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            alerta.classList.remove('d-none');
+        }
+
+        function ocultarAlertaDetalheUsuario() {
+            const alerta = document.getElementById('detalheUsuarioAlert');
+            if (!alerta) return;
+            alerta.classList.add('d-none');
+            alerta.innerHTML = '';
+        }
+
+        function atualizarVisibilidadePjDetalhe() {
+            const tipoContrato = document.getElementById('detalheTipoContrato').value;
+            const pjSection = document.getElementById('detalhePjSection');
+            if (pjSection) {
+                pjSection.style.display = tipoContrato === 'PJ' ? 'block' : 'none';
+            }
+        }
+
         async function abrirDetalhesUsuario(userId) {
             try {
+                ocultarAlertaDetalheUsuario();
                 const response = await fetch(`/api/users/${userId}`);
                 const usuario = await response.json();
 
-                // Preencher modal com dados do usuário
-                document.getElementById('detalheUsername').textContent = usuario.username;
-                document.getElementById('detalheRole').innerHTML = usuario.role === 'admin' 
-                    ? '<span class="badge bg-primary">ADMIN</span>' 
-                    : '<span class="badge bg-secondary">USUÁRIO</span>';
-                document.getElementById('detalheAtivo').innerHTML = usuario.ativo 
-                    ? '<span class="badge bg-success">Ativo</span>' 
-                    : '<span class="badge bg-danger">Bloqueado</span>';
-                
-                // Dados gerais
-                document.getElementById('detalheArea').textContent = usuario.area || '—';
-                document.getElementById('detalheLocalizacao').textContent = usuario.localizacao || '—';
-                document.getElementById('detalheDataCriacao').textContent = usuario.data_criacao || '—';
-                
-                // Dados da empresa
-                document.getElementById('detalheEmpresa').textContent = usuario.empresa || '—';
-                document.getElementById('detalheCNPJ').textContent = usuario.cnpj || '—';
-                document.getElementById('detalheEndereco').textContent = usuario.endereco || '—';
-                document.getElementById('detalheCargo').textContent = usuario.cargo || '—';
-                document.getElementById('detalheCPF').textContent = usuario.cpf || '—';
-                document.getElementById('detalheDataAdmissao').textContent = usuario.data_admissao || '—';
-                document.getElementById('detalheDepartamento').textContent = usuario.departamento || '—';
-                document.getElementById('detalheLocalTrabalho').textContent = usuario.local_trabalho || '—';
-
-                const possuiPJ = (usuario.tipo_contrato || '').toUpperCase() === 'PJ' || usuario.pj_contratante || usuario.pj_contratada;
-                const pjSection = document.getElementById('detalhePjSection');
-                if (pjSection) {
-                    pjSection.style.display = possuiPJ ? 'block' : 'none';
+                if (!response.ok) {
+                    throw new Error(usuario.erro || 'Falha ao carregar usuário');
                 }
-                document.getElementById('detalhePjContratante').textContent = usuario.pj_contratante || '—';
-                document.getElementById('detalhePjContratanteCnpj').textContent = usuario.pj_contratante_cnpj || '—';
-                document.getElementById('detalhePjContratanteEndereco').textContent = usuario.pj_contratante_endereco || '—';
-                document.getElementById('detalhePjContratada').textContent = usuario.pj_contratada || '—';
-                document.getElementById('detalhePjContratadaCnpj').textContent = usuario.pj_contratada_cnpj || '—';
-                document.getElementById('detalhePjDataContrato').textContent = usuario.pj_data_contrato || '—';
-                
-                // Abrir modal
+
+                usuarioDetalheAtualId = userId;
+
+                document.getElementById('detalheUsername').value = usuario.username || '';
+                document.getElementById('detalheRole').value = usuario.role || 'usuario';
+                document.getElementById('detalheAtivo').value = usuario.ativo ? '1' : '0';
+                document.getElementById('detalheTipoContrato').value = (usuario.tipo_contrato || 'CLT').toUpperCase();
+                document.getElementById('detalheEmail').value = usuario.email || '';
+                document.getElementById('detalheArea').value = usuario.area || '';
+                document.getElementById('detalheLocalizacao').value = usuario.localizacao || '';
+                document.getElementById('detalheDataCriacao').textContent = usuario.data_criacao || '—';
+
+                document.getElementById('detalheEmpresa').value = usuario.empresa || '';
+                document.getElementById('detalheCNPJ').value = usuario.cnpj || '';
+                document.getElementById('detalheEndereco').value = usuario.endereco || '';
+
+                document.getElementById('detalheCargo').value = usuario.cargo || '';
+                document.getElementById('detalheCPF').value = usuario.cpf || '';
+                document.getElementById('detalheDataAdmissao').value = usuario.data_admissao_iso || '';
+                document.getElementById('detalheDepartamento').value = usuario.departamento || '';
+                document.getElementById('detalheLocalTrabalho').value = usuario.local_trabalho || '';
+
+                document.getElementById('detalhePjContratante').value = usuario.pj_contratante || '';
+                document.getElementById('detalhePjContratanteCnpj').value = usuario.pj_contratante_cnpj || '';
+                document.getElementById('detalhePjContratanteEndereco').value = usuario.pj_contratante_endereco || '';
+                document.getElementById('detalhePjContratada').value = usuario.pj_contratada || '';
+                document.getElementById('detalhePjContratadaCnpj').value = usuario.pj_contratada_cnpj || '';
+                document.getElementById('detalhePjDataContrato').value = usuario.pj_data_contrato_iso || '';
+
+                atualizarVisibilidadePjDetalhe();
+
+                const fotoInput = document.getElementById('detalheFotoPerfil');
+                if (fotoInput) {
+                    fotoInput.value = '';
+                }
+                const fotoPreview = document.getElementById('detalheFotoPreview');
+                if (fotoPreview) {
+                    if (usuario.foto_perfil) {
+                        fotoPreview.innerHTML = `<img src="/static/uploads/avatars/${escapeHtml(usuario.foto_perfil)}" alt="Foto de ${escapeHtml(usuario.username)}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    } else {
+                        fotoPreview.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 text-secondary"><i class="fas fa-user fa-3x"></i></div>`;
+                    }
+                }
+
                 const modal = new bootstrap.Modal(document.getElementById('detalheUsuarioModal'));
                 modal.show();
-
             } catch (error) {
                 console.error('Erro ao carregar detalhes:', error);
                 alert('Erro ao carregar detalhes do usuário');
             }
         }
+
+        async function uploadFotoPerfilUsuario() {
+            if (!usuarioDetalheAtualId) return;
+
+            const fotoInput = document.getElementById('detalheFotoPerfil');
+            if (!fotoInput || !fotoInput.files.length) {
+                mostrarAlertaDetalheUsuario('Selecione uma imagem antes de enviar.', 'warning');
+                return;
+            }
+
+            const file = fotoInput.files[0];
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type) && !/\.(png|jpe?g|gif|webp)$/i.test(file.name)) {
+                mostrarAlertaDetalheUsuario('Formato de imagem não permitido. Use JPG, PNG, GIF ou WEBP.', 'danger');
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                mostrarAlertaDetalheUsuario('Imagem muito grande. Máximo 2MB.', 'danger');
+                return;
+            }
+
+            const btnUpload = document.getElementById('btnUploadFotoPerfil');
+            btnUpload.disabled = true;
+            const originalText = btnUpload.innerHTML;
+            btnUpload.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+
+            try {
+                const formData = new FormData();
+                formData.append('foto_perfil', file);
+
+                const response = await fetch(`/admin/users/${usuarioDetalheAtualId}/upload-photo`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: formData
+                });
+
+                const resultado = await response.json();
+                if (!response.ok) {
+                    throw new Error(resultado.erro || 'Falha ao enviar imagem de perfil.');
+                }
+
+                mostrarAlertaDetalheUsuario(resultado.mensagem || 'Imagem enviada com sucesso.', 'success');
+                const fotoPreview = document.getElementById('detalheFotoPreview');
+                if (fotoPreview && resultado.foto_perfil) {
+                    fotoPreview.innerHTML = `<img src="/static/uploads/avatars/${escapeHtml(resultado.foto_perfil)}" alt="Foto do usuário" style="width: 100%; height: 100%; object-fit: cover;">`;
+                }
+                await abrirDetalhesUsuario(usuarioDetalheAtualId);
+            } catch (error) {
+                console.error('Erro ao enviar imagem de perfil:', error);
+                mostrarAlertaDetalheUsuario(error.message || 'Erro ao enviar imagem de perfil.', 'danger');
+            } finally {
+                btnUpload.disabled = false;
+                btnUpload.innerHTML = originalText;
+            }
+        }
+
+        async function salvarDetalhesUsuario() {
+            if (!usuarioDetalheAtualId) return;
+
+            const btnSalvar = document.getElementById('btnSalvarDetalheUsuario');
+            const textoOriginal = btnSalvar.innerHTML;
+            btnSalvar.disabled = true;
+            btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+            try {
+                ocultarAlertaDetalheUsuario();
+
+                const dados = {
+                    role: document.getElementById('detalheRole').value,
+                    ativo: document.getElementById('detalheAtivo').value === '1',
+                    tipo_contrato: document.getElementById('detalheTipoContrato').value,
+                    email: document.getElementById('detalheEmail').value.trim(),
+                    area: document.getElementById('detalheArea').value.trim(),
+                    localizacao: document.getElementById('detalheLocalizacao').value.trim(),
+                    empresa: document.getElementById('detalheEmpresa').value.trim(),
+                    cnpj: document.getElementById('detalheCNPJ').value.trim(),
+                    endereco: document.getElementById('detalheEndereco').value.trim(),
+                    cargo: document.getElementById('detalheCargo').value.trim(),
+                    cpf: document.getElementById('detalheCPF').value.trim(),
+                    data_admissao: document.getElementById('detalheDataAdmissao').value,
+                    departamento: document.getElementById('detalheDepartamento').value.trim(),
+                    local_trabalho: document.getElementById('detalheLocalTrabalho').value.trim(),
+                    pj_contratante: document.getElementById('detalhePjContratante').value.trim(),
+                    pj_contratante_cnpj: document.getElementById('detalhePjContratanteCnpj').value.trim(),
+                    pj_contratante_endereco: document.getElementById('detalhePjContratanteEndereco').value.trim(),
+                    pj_contratada: document.getElementById('detalhePjContratada').value.trim(),
+                    pj_contratada_cnpj: document.getElementById('detalhePjContratadaCnpj').value.trim(),
+                    pj_data_contrato: document.getElementById('detalhePjDataContrato').value
+                };
+
+                const response = await fetch(`/api/users/${usuarioDetalheAtualId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                const resultado = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(resultado.erro || 'Falha ao salvar alterações');
+                }
+
+                mostrarAlertaDetalheUsuario(resultado.mensagem || 'Usuário atualizado com sucesso.', 'success');
+                setTimeout(() => window.location.reload(), 900);
+            } catch (error) {
+                console.error('Erro ao salvar usuário:', error);
+                mostrarAlertaDetalheUsuario(error.message || 'Erro ao salvar alterações.', 'danger');
+            } finally {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = textoOriginal;
+            }
+        }
+
     </script>
 
     <!-- Modal de Detalhes do Usuário -->
@@ -859,12 +1231,14 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="detalheUsuarioModalLabel">
+                    <h5 class="modal-title text-white" id="detalheUsuarioModalLabel">
                         <i class="fas fa-user-circle"></i> Detalhes do Usuário
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="detalheUsuarioAlert" class="alert d-none" role="alert"></div>
+
                     <!-- Seção 1: Informações Básicas -->
                     <div class="card mb-3 border-start border-primary border-4">
                         <div class="card-header bg-light">
@@ -873,26 +1247,45 @@
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Nome de Usuário</label>
-                                    <p class="mb-0" id="detalheUsername">—</p>
+                                    <label for="detalheUsername" class="fw-bold text-muted small">Nome de Usuário</label>
+                                    <input type="text" class="form-control" id="detalheUsername" readonly>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="fw-bold text-muted small">Tipo</label>
-                                    <p class="mb-0" id="detalheRole">—</p>
+                                    <label for="detalheRole" class="fw-bold text-muted small">Tipo</label>
+                                    <select class="form-select" id="detalheRole">
+                                        <option value="usuario">Usuário</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="fw-bold text-muted small">Status</label>
-                                    <p class="mb-0" id="detalheAtivo">—</p>
+                                    <label for="detalheAtivo" class="fw-bold text-muted small">Status</label>
+                                    <select class="form-select" id="detalheAtivo">
+                                        <option value="1">Ativo</option>
+                                        <option value="0">Bloqueado</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="detalheTipoContrato" class="fw-bold text-muted small">Tipo de Contrato</label>
+                                    <select class="form-select" id="detalheTipoContrato" onchange="atualizarVisibilidadePjDetalhe()">
+                                        <option value="CLT">CLT</option>
+                                        <option value="PJ">PJ</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="detalheEmail" class="fw-bold text-muted small">E-mail</label>
+                                    <input type="email" class="form-control" id="detalheEmail" placeholder="usuario@empresa.com">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Área da Empresa</label>
-                                    <p class="mb-0" id="detalheArea">—</p>
+                                    <label for="detalheArea" class="fw-bold text-muted small">Área da Empresa</label>
+                                    <input type="text" class="form-control" id="detalheArea">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Localização/Cidade</label>
-                                    <p class="mb-0" id="detalheLocalizacao">—</p>
+                                    <label for="detalheLocalizacao" class="fw-bold text-muted small">Localização/Cidade</label>
+                                    <input type="text" class="form-control" id="detalheLocalizacao">
                                 </div>
                             </div>
                         </div>
@@ -906,18 +1299,18 @@
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Empresa</label>
-                                    <p class="mb-0" id="detalheEmpresa">—</p>
+                                    <label for="detalheEmpresa" class="fw-bold text-muted small">Empresa</label>
+                                    <input type="text" class="form-control" id="detalheEmpresa">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">CNPJ</label>
-                                    <p class="mb-0" id="detalheCNPJ">—</p>
+                                    <label for="detalheCNPJ" class="fw-bold text-muted small">CNPJ</label>
+                                    <input type="text" class="form-control" id="detalheCNPJ">
                                 </div>
                             </div>
-                            <div class="row mb-3">
+                            <div class="row">
                                 <div class="col-12">
-                                    <label class="fw-bold text-muted small">Endereço</label>
-                                    <p class="mb-0" id="detalheEndereco">—</p>
+                                    <label for="detalheEndereco" class="fw-bold text-muted small">Endereço</label>
+                                    <input type="text" class="form-control" id="detalheEndereco">
                                 </div>
                             </div>
                         </div>
@@ -931,75 +1324,103 @@
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Cargo/Função</label>
-                                    <p class="mb-0" id="detalheCargo">—</p>
+                                    <label for="detalheCargo" class="fw-bold text-muted small">Cargo/Função</label>
+                                    <input type="text" class="form-control" id="detalheCargo">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">CPF</label>
-                                    <p class="mb-0" id="detalheCPF">—</p>
+                                    <label for="detalheCPF" class="fw-bold text-muted small">CPF</label>
+                                    <input type="text" class="form-control" id="detalheCPF">
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Data de Admissão</label>
-                                    <p class="mb-0" id="detalheDataAdmissao">—</p>
+                                    <label for="detalheDataAdmissao" class="fw-bold text-muted small">Data de Admissão</label>
+                                    <input type="date" class="form-control" id="detalheDataAdmissao">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="fw-bold text-muted small">Departamento</label>
-                                    <p class="mb-0" id="detalheDepartamento">—</p>
+                                    <label for="detalheDepartamento" class="fw-bold text-muted small">Departamento</label>
+                                    <input type="text" class="form-control" id="detalheDepartamento">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    <label class="fw-bold text-muted small">Local de Trabalho</label>
-                                    <p class="mb-0" id="detalheLocalTrabalho">—</p>
+                                    <label for="detalheLocalTrabalho" class="fw-bold text-muted small">Local de Trabalho</label>
+                                    <input type="text" class="form-control" id="detalheLocalTrabalho">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                        <!-- Seção 3: Dados PJ -->
-                        <div class="card mb-3 border-start border-warning border-4" id="detalhePjSection" style="display: none;">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="fas fa-briefcase text-warning"></i> Dados PJ</h6>
+                    <!-- Seção 4: Dados PJ -->
+                    <div class="card mb-3 border-start border-warning border-4" id="detalhePjSection" style="display: none;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-briefcase text-warning"></i> Dados PJ</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="detalhePjContratante" class="fw-bold text-muted small">Contratante</label>
+                                    <input type="text" class="form-control" id="detalhePjContratante">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="detalhePjContratanteCnpj" class="fw-bold text-muted small">CNPJ do Contratante</label>
+                                    <input type="text" class="form-control" id="detalhePjContratanteCnpj">
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="fw-bold text-muted small">Contratante</label>
-                                        <p class="mb-0" id="detalhePjContratante">—</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="fw-bold text-muted small">CNPJ do Contratante</label>
-                                        <p class="mb-0" id="detalhePjContratanteCnpj">—</p>
-                                    </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label for="detalhePjContratanteEndereco" class="fw-bold text-muted small">Endereço do Contratante</label>
+                                    <input type="text" class="form-control" id="detalhePjContratanteEndereco">
                                 </div>
-                                <div class="row mb-3">
-                                    <div class="col-12">
-                                        <label class="fw-bold text-muted small">Endereço do Contratante</label>
-                                        <p class="mb-0" id="detalhePjContratanteEndereco">—</p>
-                                    </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="detalhePjContratada" class="fw-bold text-muted small">Contratada</label>
+                                    <input type="text" class="form-control" id="detalhePjContratada">
                                 </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="fw-bold text-muted small">Contratada</label>
-                                        <p class="mb-0" id="detalhePjContratada">—</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="fw-bold text-muted small">CNPJ da Contratada</label>
-                                        <p class="mb-0" id="detalhePjContratadaCnpj">—</p>
-                                    </div>
+                                <div class="col-md-6">
+                                    <label for="detalhePjContratadaCnpj" class="fw-bold text-muted small">CNPJ da Contratada</label>
+                                    <input type="text" class="form-control" id="detalhePjContratadaCnpj">
                                 </div>
-                                <div class="row">
-                                    <div class="col-12">
-                                        <label class="fw-bold text-muted small">Data do Contrato</label>
-                                        <p class="mb-0" id="detalhePjDataContrato">—</p>
-                                    </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label for="detalhePjDataContrato" class="fw-bold text-muted small">Data do Contrato</label>
+                                    <input type="date" class="form-control" id="detalhePjDataContrato">
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Seção 4: Datas do Sistema -->
+                    <!-- Seção 5: Foto do Usuário -->
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-camera text-primary"></i> Foto do Usuário</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-4 text-center mb-3 mb-md-0">
+                                    <div id="detalheFotoPreview" class="rounded-circle overflow-hidden border bg-light mx-auto" style="width: 120px; height: 120px;">
+                                        <div class="d-flex align-items-center justify-content-center h-100 text-secondary">
+                                            <i class="fas fa-user fa-3x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="detalheFotoPerfil" class="form-label fw-bold text-muted small">Imagem de Perfil</label>
+                                        <input type="file" class="form-control" id="detalheFotoPerfil" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                                        <div class="form-text">Selecione uma imagem JPG, PNG, GIF ou WEBP. Máximo 2MB.</div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary" id="btnUploadFotoPerfil" onclick="uploadFotoPerfilUsuario()">
+                                        <i class="fas fa-upload"></i> Enviar imagem
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção 6: Datas do Sistema -->
                     <div class="card border-start border-secondary border-4">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><i class="fas fa-calendar text-secondary"></i> Datas do Sistema</h6>
@@ -1016,6 +1437,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-success" id="btnSalvarDetalheUsuario" onclick="salvarDetalhesUsuario()">
+                        <i class="fas fa-save"></i> Salvar alterações
+                    </button>
                 </div>
             </div>
         </div>
@@ -1653,4 +2077,58 @@
             }
         }
     </script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const periodoInput = document.getElementById('filtro-periodo-admissao');
+        const startInput = document.getElementById('filtro-data-admissao-start');
+        const endInput = document.getElementById('filtro-data-admissao-end');
+
+        if (periodoInput && typeof Litepicker !== 'undefined') {
+            try {
+                const pickerInstance = new Litepicker({
+                    element: periodoInput,
+                    singleMode: false,
+                    numberOfMonths: 2,
+                    numberOfColumns: 2,
+                    dropdowns: {
+                        minYear: 2000,
+                        maxYear: new Date().getFullYear() + 5,
+                        months: true,
+                        years: true
+                    },
+                    format: 'DD/MM/YYYY',
+                    lang: 'pt-BR',
+                    tooltipText: {
+                        one: 'dia',
+                        other: 'dias'
+                    }
+                });
+
+                // expose globally for debugging/fallback
+                window.litepickerPeriodo = pickerInstance;
+
+                // keep hidden fields and dataset in sync
+                pickerInstance.on('selected', (start, end) => {
+                    try {
+                        const startIso = start ? start.format ? start.format('YYYY-MM-DD') : new Date(start).toISOString().slice(0,10) : '';
+                        const endIso = end ? end.format ? end.format('YYYY-MM-DD') : new Date(end).toISOString().slice(0,10) : '';
+                        const startText = start ? (start.format ? start.format('DD/MM/YYYY') : new Date(start).toLocaleDateString('pt-BR')) : '';
+                        const endText = end ? (end.format ? end.format('DD/MM/YYYY') : new Date(end).toLocaleDateString('pt-BR')) : '';
+                        periodoInput.value = (startText && endText) ? `${startText} — ${endText}` : (startText || endText || '');
+                        startInput.value = startIso || '';
+                        endInput.value = endIso || '';
+                        periodoInput.dataset.start = startIso || '';
+                        periodoInput.dataset.end = endIso || '';
+                    } catch (e) { console.error('litepicker selected handler error', e); }
+                });
+            } catch (e) {
+                console.error('Erro ao inicializar Litepicker:', e);
+            }
+        }
+    });
+</script>
 {% endblock %}

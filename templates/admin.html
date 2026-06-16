@@ -61,6 +61,15 @@
                                               </div>
 
                                               <div class="mb-3">
+                                                  <label for="email_domain" class="form-label">Domínio do e-mail</label>
+                                                  <select class="form-select" id="email_domain">
+                                                      <option value="@somaasset.com.br" selected>@somaasset.com.br</option>
+                                                      <option value="@somagestora.com.br">@somagestora.com.br</option>
+                                                  </select>
+                                                  <div class="form-text">O e-mail será preenchido automaticamente a partir do nome de usuário, mas você pode editá-lo manualmente.</div>
+                                              </div>
+
+                                              <div class="mb-3">
                                                   <label for="email" class="form-label">E-mail (opcional)</label>
                                                   <input type="email" class="form-control" id="email" name="email" placeholder="Ex.: usuario@empresa.com">
                                                   <div class="form-text">Informe um e-mail válido apenas se quiser notificar este usuário quando um chamado for concluído.</div>
@@ -143,11 +152,32 @@
                                                     <input type="text" class="form-control" id="departamento" name="departamento" placeholder="Ex.: Financeiro, TI, Operações">
                                                     <div class="form-text">Departamento do usuário.</div>
                                                 </div>
-                                                <div class="mb-3">
+                                                <div class="mb-3 mb-0">
                                                     <label for="local_trabalho" class="form-label">Local de Trabalho</label>
-                                                    <input type="text" class="form-control" id="local_trabalho" name="local_trabalho" placeholder="Ex.: Matriz, Filial - São Paulo">
-                                                    <div class="form-text">Local de trabalho do usuário.</div>
+                                                    <input type="text" class="form-control" id="local_trabalho" name="local_trabalho" placeholder="Ex.: Matriz, Filial - São Paulo" style="border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0;">
                                                 </div>
+                                                <div class="row g-0" style="margin-top:-2px;">
+                                                    <div class="col-md-6 pe-1">
+                                                        <label for="clt-localizacao" class="form-label visually-hidden">Local</label>
+                                                        <select class="form-select" id="clt-localizacao" style="border-top-left-radius: 0; border-top-right-radius: 0; border-top: none !important; margin-top: -2px !important;">
+                                                            <option value="" selected>Local</option>
+                                                            <option value="Campinas">Campinas</option>
+                                                            <option value="São Paulo">São Paulo</option>
+                                                            <option value="Ribeirão Preto">Ribeirão Preto</option>
+                                                            <option value="Caxias Do Sul">Caxias Do Sul</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6 ps-1">
+                                                        <label for="clt-tipo-trabalho" class="form-label visually-hidden">Tipo de Trabalho</label>
+                                                        <select class="form-select" id="clt-tipo-trabalho" style="border-top-left-radius: 0; border-top-right-radius: 0; border-top: none !important; margin-top: -2px !important;">
+                                                            <option value="" selected>Tipo de Trabalho</option>
+                                                            <option value="Presencial">Presencial</option>
+                                                            <option value="Home Office">Home Office</option>
+                                                            <option value="Híbrido">Híbrido</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-text">Local de trabalho do usuário.</div>
                                             </div>
 
                                             <!-- Campos PJ -->
@@ -210,6 +240,7 @@
                                         <div id="lista-usuarios" class="d-grid gap-2">
                                             <!-- Usuários serão carregados aqui -->
                                         </div>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -354,6 +385,50 @@
                                     const cltFields = document.getElementById('clt-fields');
                                     const initial = document.getElementById('initial-fields');
                                     const common = document.getElementById('common-after-selection');
+                                    const usernameField = document.getElementById('username');
+                                    const emailField = document.getElementById('email');
+                                    const emailDomainSelect = document.getElementById('email_domain');
+                                    let lastGeneratedEmail = '';
+                                    let manualEmailEdit = false;
+
+                                    function normalizeUsername(value) {
+                                        return value
+                                            .trim()
+                                            .normalize('NFD')
+                                            .replace(/[\u0300-\u036f]/g, '')
+                                            .replace(/\s+/g, ' ')
+                                            .toLowerCase();
+                                    }
+
+                                    function generateEmailFromUsername(username, domain) {
+                                        const normalized = normalizeUsername(username);
+                                        const parts = normalized.split(' ').filter(Boolean);
+                                        if (parts.length === 0) {
+                                            return '';
+                                        }
+                                        const localPart = parts.length === 1 ? parts[0] : `${parts[0]}.${parts[parts.length - 1]}`;
+                                        return localPart.replace(/[^a-z0-9._-]/g, '') + domain;
+                                    }
+
+                                    function updateEmailFromUsername(force = false) {
+                                        if (!usernameField || !emailField || !emailDomainSelect) {
+                                            return;
+                                        }
+                                        const generated = generateEmailFromUsername(usernameField.value, emailDomainSelect.value);
+                                        const currentEmail = emailField.value.trim();
+                                        if (force || !manualEmailEdit || currentEmail === lastGeneratedEmail || currentEmail === '') {
+                                            emailField.value = generated;
+                                            lastGeneratedEmail = generated;
+                                            manualEmailEdit = false;
+                                        }
+                                    }
+
+                                    usernameField?.addEventListener('input', () => updateEmailFromUsername(true));
+                                    emailDomainSelect?.addEventListener('change', () => updateEmailFromUsername(true));
+                                    emailField?.addEventListener('input', () => {
+                                        const currentValue = emailField.value.trim();
+                                        manualEmailEdit = currentValue !== '' && currentValue !== lastGeneratedEmail;
+                                    });
 
                                     function toggle(){
                                         const val = (tipo.value||'').toUpperCase();
@@ -380,9 +455,33 @@
                                         }
                                     }
 
+                                    const localTrabalhoInput = document.getElementById('local_trabalho');
+                                    const cltLocalizacaoSelect = document.getElementById('clt-localizacao');
+                                    const cltTipoTrabalhoSelect = document.getElementById('clt-tipo-trabalho');
+
+                                    const updateLocalTrabalhoField = () => {
+                                        if (!localTrabalhoInput) return;
+                                        const loc = cltLocalizacaoSelect?.value || '';
+                                        const tipoTrabalho = cltTipoTrabalhoSelect?.value || '';
+                                        if (loc && tipoTrabalho) {
+                                            localTrabalhoInput.value = `${loc} - ${tipoTrabalho}`;
+                                        }
+                                    };
+
+                                    if (cltLocalizacaoSelect) {
+                                        cltLocalizacaoSelect.addEventListener('change', updateLocalTrabalhoField);
+                                    }
+                                    if (cltTipoTrabalhoSelect) {
+                                        cltTipoTrabalhoSelect.addEventListener('change', updateLocalTrabalhoField);
+                                    }
+
                                     if (tipo){
                                         tipo.addEventListener('change', toggle);
-                                        document.addEventListener('DOMContentLoaded', toggle);
+                                        document.addEventListener('DOMContentLoaded', () => {
+                                            toggle();
+                                            updateEmailFromUsername();
+                                            updateLocalTrabalhoField();
+                                        });
                                         // initial hide
                                         toggle();
                                     }
@@ -457,6 +556,7 @@
     <script>
         let usuarios = [];
         let filtroCidade = '';
+        let usuarioFilters = {};
         let usuarioParaDeletar = null;
         let modalConfirmarDelete = null;
 
@@ -482,9 +582,45 @@
             const lista = document.getElementById('lista-usuarios');
             lista.innerHTML = '';
 
-            const usuariosFiltrados = filtroCidade
+            const usuariosFiltradosBase = filtroCidade
                 ? usuarios.filter(user => (user.local_trabalho || user.localizacao || '').trim().toLowerCase() === filtroCidade.toLowerCase())
                 : usuarios;
+
+            const usuariosFiltrados = usuariosFiltradosBase.filter(user => {
+                // apply modal filters (if any)
+                if (usuarioFilters.empresa) {
+                    const emp = (user.empresa || '').toLowerCase();
+                    if (!emp.includes(usuarioFilters.empresa.toLowerCase())) return false;
+                }
+                if (usuarioFilters.cnpj) {
+                    const ucnpj = (user.cnpj || user.pj_contratante_cnpj || '').replace(/\D/g, '');
+                    const fcnpj = (usuarioFilters.cnpj || '').replace(/\D/g, '');
+                    if (!ucnpj.includes(fcnpj)) return false;
+                }
+                if (usuarioFilters.cargo) {
+                    const cargo = (user.cargo || '').toLowerCase();
+                    if (!cargo.includes(usuarioFilters.cargo.toLowerCase())) return false;
+                }
+                
+                // data de admissão entre intervalo (se fornecido)
+                const start = usuarioFilters.data_admissao_start || '';
+                const end = usuarioFilters.data_admissao_end || '';
+                if (start || end) {
+                    const ud = user.data_admissao ? (new Date(user.data_admissao)).toISOString().slice(0,10) : '';
+                    if (!ud) return false;
+                    if (start && ud < start) return false;
+                    if (end && ud > end) return false;
+                }
+                if (usuarioFilters.departamento) {
+                    const dep = (user.departamento || user.area || '').toLowerCase();
+                    if (!dep.includes(usuarioFilters.departamento.toLowerCase())) return false;
+                }
+                if (usuarioFilters.local_trabalho) {
+                    const loc = (user.local_trabalho || user.localizacao || '').toLowerCase();
+                    if (!loc.includes(usuarioFilters.local_trabalho.toLowerCase())) return false;
+                }
+                return true;
+            });
 
             if (usuariosFiltrados.length === 0) {
                 lista.innerHTML = '<p class="text-muted">Nenhum usuário cadastrado.</p>';
@@ -695,6 +831,29 @@
         })();
 
         // Adicionar usuário
+        // Handlers do modal de filtros
+        document.getElementById('btn-aplicar-filtros')?.addEventListener('click', () => {
+            usuarioFilters = {
+                empresa: (document.getElementById('filtro-empresa')?.value || '').trim(),
+                cnpj: (document.getElementById('filtro-cnpj')?.value || '').trim(),
+                cargo: (document.getElementById('filtro-cargo')?.value || '').trim(),
+                data_admissao_start: (document.getElementById('filtro-data-admissao-start')?.value || '').trim(),
+                data_admissao_end: (document.getElementById('filtro-data-admissao-end')?.value || '').trim(),
+                departamento: (document.getElementById('filtro-departamento')?.value || '').trim(),
+                local_trabalho: (document.getElementById('filtro-local-trabalho')?.value || '').trim()
+            };
+            exibirUsuarios();
+            const modalEl = document.getElementById('modalFiltroUsuarios');
+            try { const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl); modal.hide(); } catch (e) {}
+        });
+
+        document.getElementById('btn-limpar-filtros')?.addEventListener('click', () => {
+            const form = document.getElementById('form-filtro-usuarios');
+            if (form) form.reset();
+            usuarioFilters = {};
+            exibirUsuarios();
+        });
+
         document.getElementById('form-adicionar-usuario').addEventListener('submit', async (e) => {
             e.preventDefault();
             

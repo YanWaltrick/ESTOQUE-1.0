@@ -14,13 +14,21 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
               <label class="form-label">Usuário (username)</label>
-              <input type="text" name="username" class="form-control" required value="{{ usuario.username if usuario else '' }}">
+              <input type="text" id="username-field" name="username" class="form-control" required value="{{ usuario.username if usuario else '' }}">
             </div>
 
             <div class="mb-3">
               <label class="form-label">E-mail (opcional)</label>
-              <input type="email" name="email" class="form-control" value="{{ usuario.email if usuario else '' }}" placeholder="Ex.: usuario@empresa.com">
+              <input type="email" id="email-field" name="email" class="form-control" value="{{ usuario.email if usuario else '' }}" placeholder="Ex.: usuario@empresa.com">
               <div class="form-text">Informe um e-mail válido somente se quiser notificar este usuário quando um chamado for concluído.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Domínio do e-mail</label>
+              <select id="email_domain" class="form-select">
+                <option value="@somaasset.com.br" selected>@somaasset.com.br</option>
+              </select>
+              <div class="form-text">O e-mail será preenchido automaticamente a partir do usuário. Você ainda pode editar o e-mail manualmente.</div>
             </div>
 
             <div class="mb-3">
@@ -104,9 +112,30 @@
                 <label class="form-label">Departamento</label>
                 <input type="text" name="departamento" class="form-control" value="{{ usuario.departamento if usuario else '' }}">
               </div>
-              <div class="mb-3">
+              <div class="mb-3 mb-0">
                 <label class="form-label">Local de trabalho</label>
-                <input type="text" name="local_trabalho" class="form-control" value="{{ usuario.local_trabalho if usuario else '' }}">
+                <input type="text" name="local_trabalho" id="local_trabalho" class="form-control" value="{{ usuario.local_trabalho if usuario else '' }}" style="border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0;">
+              </div>
+              <div class="row g-0" style="margin-top:-2px;">
+                <div class="col-md-6 pe-1">
+                  <label class="form-label visually-hidden" for="clt-localizacao">Local</label>
+                  <select id="clt-localizacao" class="form-select" style="border-top-left-radius: 0; border-top-right-radius: 0; border-top: none !important; margin-top: -2px !important;">
+                    <option value="" selected>Local</option>
+                    <option value="Campinas">Campinas</option>
+                    <option value="São Paulo">São Paulo</option>
+                    <option value="Ribeirão Preto">Ribeirão Preto</option>
+                    <option value="Caxias Do Sul">Caxias Do Sul</option>
+                  </select>
+                </div>
+                <div class="col-md-6 ps-1">
+                  <label class="form-label visually-hidden" for="clt-tipo-trabalho">Tipo de Trabalho</label>
+                  <select id="clt-tipo-trabalho" class="form-select" style="border-top-left-radius: 0; border-top-right-radius: 0; border-top: none !important; margin-top: -2px !important;">
+                    <option value="" selected>Tipo de Trabalho</option>
+                    <option value="Presencial">Presencial</option>
+                    <option value="Home Office">Home Office</option>
+                    <option value="Híbrido">Híbrido</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -161,6 +190,61 @@
     const pjFields = document.getElementById('pj-fields');
     const cltFields = document.getElementById('clt-fields');
     const initial = document.getElementById('initial-fields');
+    const usernameField = document.getElementById('username-field');
+    const emailField = document.getElementById('email-field');
+    const emailDomainSelect = document.getElementById('email_domain');
+    let lastGeneratedEmail = '';
+    let manualEmailEdit = false;
+
+        function normalizeUsername(value) {
+      return value
+        .trim()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    }
+
+    function generateEmailFromUsername(username, domain) {
+      const normalized = normalizeUsername(username);
+      const parts = normalized.split(' ').filter(Boolean);
+      if (parts.length === 0) {
+        return '';
+      }
+      const localPart = parts.length === 1 ? parts[0] : `${parts[0]}.${parts[parts.length - 1]}`;
+      const safeLocalPart = localPart.replace(/[^a-z0-9._-]/g, '');
+      return safeLocalPart ? `${safeLocalPart}${domain}` : '';
+    }
+
+    function updateEmailFromUsername() {
+      if (!usernameField || !emailField || !emailDomainSelect) {
+        return;
+      }
+      const emailValue = emailField.value.trim();
+      const generated = generateEmailFromUsername(usernameField.value, emailDomainSelect.value);
+      if (!manualEmailEdit || emailValue === lastGeneratedEmail || emailValue === '') {
+        emailField.value = generated;
+        lastGeneratedEmail = generated;
+        manualEmailEdit = false;
+      }
+    }
+
+    usernameField?.addEventListener('input', () => {
+      updateEmailFromUsername();
+    });
+
+    emailDomainSelect?.addEventListener('change', () => {
+      updateEmailFromUsername();
+    });
+
+    emailField?.addEventListener('input', () => {
+      const currentValue = emailField.value.trim();
+      if (currentValue === '' || currentValue === lastGeneratedEmail) {
+        manualEmailEdit = false;
+      } else {
+        manualEmailEdit = true;
+      }
+    });
 
     function toggle(){
       const val = (tipo.value||'').toUpperCase();
@@ -186,9 +270,26 @@
     }
 
     tipo.addEventListener('change', toggle);
+    const syncLocalTrabalhoDropdowns = () => {
+      if (!localTrabalhoInput || !cltLocalizacaoSelect || !cltTipoTrabalhoSelect) return;
+      const value = (localTrabalhoInput.value || '').trim();
+      if (!value || !value.includes(' - ')) return;
+      const [loc, tipo] = value.split(' - ').map(part => part.trim());
+      const validLocais = ['Campinas', 'São Paulo', 'Ribeirão Preto', 'Caxias Do Sul'];
+      const validTipos = ['Presencial', 'Home Office', 'Híbrido'];
+      if (validLocais.includes(loc)) {
+        cltLocalizacaoSelect.value = loc;
+      }
+      if (validTipos.includes(tipo)) {
+        cltTipoTrabalhoSelect.value = tipo;
+      }
+    };
+
     document.addEventListener('DOMContentLoaded', function(){
       // se em modo editar já existir tipo selecionado, exibir campos apropriados
       toggle();
+      updateEmailFromUsername();
+      syncLocalTrabalhoDropdowns();
     });
 
     function applyCpfCnpjMask(input) {
@@ -226,6 +327,9 @@
     // Empresa select auto-fill
     const empresaInput = document.getElementById('empresa');
     const enderecoInput = document.querySelector('input[name="endereco"]');
+    const localTrabalhoInput = document.getElementById('local_trabalho');
+    const cltLocalizacaoSelect = document.getElementById('clt-localizacao');
+    const cltTipoTrabalhoSelect = document.getElementById('clt-tipo-trabalho');
     const empresaMap = {
       'Antares Securitizadora de Recebíveis Comerciais S.A.': ['31.508.560/0001-85', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
       'Soma Análise de Créditos e Cobranças': ['35.073.002/0001-95', 'Av Doutor José Bonifácio Coutinho, 150, 8º andar, Jardim Madalena, SP/Campinas'],
@@ -248,6 +352,20 @@
         if (document.getElementById('area')) document.getElementById('area').value = value || '';
         if (document.getElementById('localizacao')) document.getElementById('localizacao').value = data[1] || '';
       });
+    }
+    const updateLocalTrabalhoField = () => {
+      if (!localTrabalhoInput || !cltLocalizacaoSelect || !cltTipoTrabalhoSelect) return;
+      const loc = cltLocalizacaoSelect.value || '';
+      const tipo = cltTipoTrabalhoSelect.value || '';
+      if (loc && tipo) {
+        localTrabalhoInput.value = `${loc} - ${tipo}`;
+      }
+    };
+    if (cltLocalizacaoSelect) {
+      cltLocalizacaoSelect.addEventListener('change', updateLocalTrabalhoField);
+    }
+    if (cltTipoTrabalhoSelect) {
+      cltTipoTrabalhoSelect.addEventListener('change', updateLocalTrabalhoField);
     }
     // quando o endereço for alterado manualmente, atualizar localizacao oculto
     const areaInput = document.getElementById('area');

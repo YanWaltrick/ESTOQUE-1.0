@@ -47,11 +47,21 @@ def _listar_usuarios_paginados(page=1, per_page=10, q='', tipo=''):
 def listar_usuarios():
     """Listar todos os usuários"""
     page = request.args.get('page', 1, type=int)
-    per_page = 10
     q = request.args.get('q', '').strip()
     tipo = request.args.get('tipo', '').strip().upper()
 
-    usuarios_page = _listar_usuarios_paginados(page=page, per_page=per_page, q=q, tipo=tipo)
+    query = User.query
+    if q:
+        query = query.filter(User.username.ilike(f'%{q}%'))
+    if tipo in {'CLT', 'PJ'}:
+        query = query.filter(User.tipo_contrato == tipo)
+
+    total_users = query.count() or 1
+    usuarios_page = query.order_by(
+        case((User.tipo_contrato == 'CLT', 0), else_=1),
+        User.ativo.desc(),
+        User.username.asc()
+    ).paginate(page=page, per_page=total_users)
 
     return render_template('admin/usuarios.html', usuarios=usuarios_page, q=q, tipo=tipo)
 
@@ -371,6 +381,59 @@ def editar_usuario(user_id):
         return redirect(url_for('admin.listar_usuarios'))
     
     return render_template('admin/user_form.html', mode='edit', usuario=usuario)
+
+
+@admin_bp.route('/users/<int:user_id>/upload-photo', methods=['POST'])
+@require_permission('manage_users')
+def upload_usuario_foto(user_id):
+    """Upload de foto de perfil via AJAX para o popup de detalhes do usuário."""
+    usuario = User.query.get_or_404(user_id)
+
+    foto_perfil_file = request.files.get('foto_perfil')
+    if not foto_perfil_file or not getattr(foto_perfil_file, 'filename', '').strip():
+        return jsonify({'success': False, 'erro': 'Nenhum arquivo de imagem enviado.'}), 400
+
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    filename = foto_perfil_file.filename
+    extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    if extension not in allowed_extensions:
+        return jsonify({'success': False, 'erro': 'Formato de imagem não permitido. Use PNG, JPG, JPEG, GIF ou WEBP.'}), 400
+
+    foto_perfil_file.seek(0, os.SEEK_END)
+    size = foto_perfil_file.tell()
+    foto_perfil_file.seek(0)
+    if size > 2 * 1024 * 1024:
+        return jsonify({'success': False, 'erro': 'Imagem muito grande. Tamanho máximo: 2MB.'}), 400
+
+    upload_dir = os.path.join(current_app.static_folder, 'uploads', 'avatars')
+    os.makedirs(upload_dir, exist_ok=True)
+    safe_name = secure_filename(os.path.splitext(filename)[0]) or 'user'
+    saved_filename = f"user_{usuario.id}_{int(datetime.now().timestamp())}.{extension}"
+
+    try:
+        if usuario.foto_perfil:
+            old_file = os.path.join(upload_dir, usuario.foto_perfil)
+            if os.path.exists(old_file):
+                os.remove(old_file)
+
+        foto_perfil_file.save(os.path.join(upload_dir, saved_filename))
+        usuario.foto_perfil = saved_filename
+        db.session.commit()
+
+        registrar_evento(
+            tipo_evento='usuario_foto_atualizada',
+            descricao=f'Foto de perfil do usuário "{usuario.username}" atualizada via admin.',
+            usuario_responsavel=current_user.username
+        )
+
+        return jsonify({
+            'success': True,
+            'mensagem': 'Foto de perfil atualizada com sucesso.',
+            'foto_perfil': saved_filename
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'erro': f'Erro ao salvar imagem de perfil: {str(e)}'}), 500
 
 
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
