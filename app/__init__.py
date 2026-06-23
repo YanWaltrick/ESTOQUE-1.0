@@ -140,7 +140,6 @@ def create_app():
         """Erro de página não encontrada"""
         app_logger.warning(f"404 Not Found: {request.method} {request.path}")
         return render_template_string('<h1>Página Não Encontrada (404)</h1><p>O recurso que você procura não existe.</p>'), 404
-    
     @app.errorhandler(500)
     def internal_error(e):
         """Erro interno do servidor"""
