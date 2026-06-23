@@ -142,11 +142,14 @@ def create_app():
         return render_template_string('<h1>Página Não Encontrada (404)</h1><p>O recurso que você procura não existe.</p>'), 404
     
     @app.errorhandler(500)
-    def internal_error(e):
-        """Erro interno do servidor"""
-        registrar_erro(app_logger, e, {'endpoint': request.endpoint, 'metodo': request.method, 'caminho': request.path})
-        return render_template_string('<h1>Erro Interno (500)</h1><p>Ocorreu um erro no servidor. Os administradores foram notificados.</p>'), 500
-
+def internal_error(e):
+    """Erro interno do servidor"""
+    import traceback
+    tb = traceback.format_exc()
+    registrar_erro(app_logger, e, {'endpoint': request.endpoint, 'metodo': request.method, 'caminho': request.path})
+    app_logger.error(f"TRACEBACK COMPLETO:\n{tb}")
+    # TEMPORÁRIO - mostra o traceback na tela para diagnóstico - REMOVER DEPOIS
+    return render_template_string('<h1>Erro Interno (500) - DEBUG TEMP</h1><pre>{{ tb }}</pre>', tb=tb), 500
     # Inicializar Flask-Migrate
     migrate.init_app(app, db)
 
