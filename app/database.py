@@ -4,10 +4,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from dotenv import load_dotenv
 
-# Carregar variaveis de ambiente
-load_dotenv()
+# Carregar variáveis de ambiente do arquivo .env no diretório principal do projeto
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Configuracao do banco de dados
+# Configuração do banco de dados
 # Suporta MySQL (mysql+pymysql), SQLite local e URL customizada
 def get_database_url():
     """Obtem URL do banco.
@@ -22,6 +23,10 @@ def get_database_url():
         # para desenvolvimento. Para produção, defina a variável
         # de ambiente DATABASE_URL explicitamente (ex: mysql+pymysql://user:pass@host/db).
         db_url = 'sqlite:///./instance/estoque.sqlite'
+
+    # Normaliza URLs MySQL sem driver explícito para usar PyMySQL
+    if db_url.startswith('mysql://'):
+        db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
 
     # Aceita MySQL, SQLite ou outros drivers explícitos.
     return db_url
