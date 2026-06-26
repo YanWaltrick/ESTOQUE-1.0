@@ -111,11 +111,13 @@ def create_app():
     from .routes.main import main_bp
     from .routes.admin import admin_bp
     from .routes.api import api_bp
+    from .routes.entra_auth import entra_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(entra_bp)  # Blueprint para autenticação Entra ID
 
     # Adicionar funções úteis ao contexto de templates
     @app.context_processor

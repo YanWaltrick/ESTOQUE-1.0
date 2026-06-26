@@ -272,6 +272,7 @@ def get_produto(id_produto):
 
 @api_bp.route('/produtos', methods=['POST'])
 @login_required
+@require_role('admin')
 def criar_produto():
     """Cria um novo produto"""
     try:
@@ -304,6 +305,7 @@ def criar_produto():
 
 @api_bp.route('/produtos/<id_produto>', methods=['PUT'])
 @login_required
+@require_role('admin')
 def atualizar_produto(id_produto):
     """Atualiza um produto"""
     dados = request.get_json()
@@ -341,6 +343,7 @@ def atualizar_produto(id_produto):
 
 @api_bp.route('/produtos/<id_produto>', methods=['DELETE'])
 @login_required
+@require_role('admin')
 def deletar_produto(id_produto):
     """Delete um produto"""
     try:
@@ -362,6 +365,7 @@ def deletar_produto(id_produto):
 
 @api_bp.route('/entrada', methods=['POST'])
 @login_required
+@require_role('admin')
 def entrada_estoque():
     """Registra entrada de produtos"""
     try:
@@ -388,6 +392,7 @@ def entrada_estoque():
 
 @api_bp.route('/saida', methods=['POST'])
 @login_required
+@require_role('admin')
 def saida_estoque():
     """Registra saída de produtos"""
     try:

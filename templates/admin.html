@@ -692,8 +692,10 @@
             userDiv.className = 'd-flex justify-content-between align-items-center border rounded-3 p-3 bg-light shadow-sm';
 
             const infoDiv = document.createElement('div');
+            infoDiv.className = 'flex-grow-1 me-3';
+            infoDiv.style.minWidth = '0';
             infoDiv.innerHTML = `
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3 break-word">
                     <div class="rounded-circle overflow-hidden bg-white border" style="width: 52px; height: 52px; flex: 0 0 52px;">
                         ${user.foto_perfil
                             ? `<img src="/static/uploads/avatars/${escapeHtml(user.foto_perfil)}" alt="Foto de ${escapeHtml(user.username)}" style="width: 100%; height: 100%; object-fit: cover;">`
@@ -716,9 +718,12 @@
                 </div>`;
 
             const btnDiv = document.createElement('div');
+            btnDiv.className = 'flex-shrink-0 ms-2';
             if (user.username !== 'admin') {
                 const btnDelete = document.createElement('button');
+                btnDelete.type = 'button';
                 btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.style.zIndex = '1';
                 btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
                 btnDelete.onclick = () => confirmarDelete(user);
                 btnDiv.appendChild(btnDelete);

@@ -260,6 +260,7 @@ def editar_usuario(user_id):
         return redirect(url_for('admin.listar_usuarios'))
     
     if request.method == 'POST':
+        username = request.form.get('username', usuario.username).strip()
         role = request.form.get('role', usuario.role)
         tipo_contrato = request.form.get('tipo_contrato', usuario.tipo_contrato).strip().upper()
         area = request.form.get('area', usuario.area).strip()
@@ -317,6 +318,24 @@ def editar_usuario(user_id):
             flash('Tipo de contrato inválido. Escolha entre CLT ou PJ.', 'error')
             return redirect(url_for('admin.editar_usuario', user_id=user_id))
         
+        # Validar username único
+        if username:
+            existing_username = User.query.filter(User.username == username, User.id != usuario.id).first()
+            if existing_username:
+                flash('Já existe outro usuário com esse nome de login.', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+        else:
+            flash('Nome de usuário é obrigatório.', 'error')
+            return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+        # Validar email único quando preenchido
+        if email:
+            existing_email = User.query.filter(User.email == email, User.id != usuario.id).first()
+            if existing_email:
+                flash('Já existe outro usuário com este email.', 'error')
+                return redirect(url_for('admin.editar_usuario', user_id=user_id))
+
+        usuario.username = username
         usuario.role = role
         usuario.tipo_contrato = tipo_contrato
         usuario.area = area

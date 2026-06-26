@@ -4,7 +4,9 @@ Flask-SQLAlchemy==3.1.1
 Flask-Mail==0.9.1
 Flask-Migrate==4.0.5
 pymysql==1.1.1
-cryptography==45.0.1
+cryptography==44.0.3
+msal==1.28.0
+requests==2.31.0
 
 SQLAlchemy==2.0.48
 

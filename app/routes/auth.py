@@ -396,27 +396,25 @@ def forgot_password():
             return redirect(url_for('auth.forgot_password'))
 
         user = User.query.filter_by(username=username).first()
-        if not user:
-            flash('Usuário não encontrado.', 'error')
-            return redirect(url_for('auth.forgot_password'))
+        if user:
+            texto = f'Esqueci a senha - usuário "{user.username}" solicita redefinição.'
+            if mensagem:
+                texto += f' Detalhes: {mensagem}'
 
-        texto = f'Esqueci a senha - usuário "{user.username}" solicita redefinição.'
-        if mensagem:
-            texto += f' Detalhes: {mensagem}'
+            chamada = Chamada(id_usuario=user.id, mensagem=texto)
+            db.session.add(chamada)
+            db.session.commit()
 
-        chamada = Chamada(id_usuario=user.id, mensagem=texto)
-        db.session.add(chamada)
-        db.session.commit()
+            email_ok, email_error = _enviar_emails_senha_esquecida(user, texto)
 
-        email_ok, email_error = _enviar_emails_senha_esquecida(user, texto)
+            registrar_evento(
+                tipo_evento='senha_esquecida',
+                descricao=f'Chamado de redefinição de senha solicitado para "{user.username}"',
+                usuario_responsavel='Sistema'
+            )
 
-        registrar_evento(
-            tipo_evento='senha_esquecida',
-            descricao=f'Chamado de redefinição de senha solicitado para "{user.username}"',
-            usuario_responsavel='Sistema'
-        )
-
-        flash('Chamado criado com sucesso! Um administrador analisará sua solicitação em breve.', 'success')
+        # Sempre mostrar a mesma mensagem, exista ou não o usuário
+        flash('Se o usuário informado existir, um chamado foi registrado e um administrador irá analisar em breve.', 'success')
         return redirect(url_for('auth.forgot_password'))
 
     return render_template('forgot_password.html')
@@ -465,23 +463,38 @@ def user_files():
 @auth_bp.route('/download/<path:filename>')
 @login_required
 def download_file(filename):
+    # Diretórios onde arquivos podem estar salvos
+    allowed_folders = [
+        os.path.join('static', 'uploads', 'documentos'),
+        os.path.join('static', 'uploads', 'chamadas')
+    ]
+
     # Usar o diretório raiz da aplicação (onde app.py está)
     if current_app.root_path:
         app_root = current_app.root_path
     else:
         app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
+
     # Verificar se o arquivo está em um dos diretórios permitidos
     for folder in allowed_folders:
         folder_path = os.path.join(app_root, folder)
         file_path = os.path.join(folder_path, filename)
-        
+
         # Normalizar caminhos para comparação segura
         abs_file_path = os.path.abspath(file_path)
         abs_folder_path = os.path.abspath(folder_path)
-        
+
         # Verificar se o caminho é válido e seguro (dentro da pasta permitida)
         if abs_file_path.startswith(abs_folder_path) and os.path.isfile(abs_file_path):
+            # Verificar propriedade do arquivo (usuário não-admin só pode baixar arquivos próprios)
+            if not current_user.is_admin:
+                # Padrões de nome: {user_id}_{timestamp}_{nome} ou chamada_{user_id}_{uuid}_{nome}
+                user_prefix = f"{current_user.id}_"
+                chamada_prefix = f"chamada_{current_user.id}_"
+                if not (filename.startswith(user_prefix) or filename.startswith(chamada_prefix)):
+                    flash('Você não tem permissão para baixar este arquivo.', 'error')
+                    return redirect(url_for('auth.user_files'))
+
             try:
                 registrar_evento(
                     tipo_evento='arquivo_baixado',
@@ -493,7 +506,7 @@ def download_file(filename):
                 current_app.logger.error(f'Erro ao fazer download de {abs_file_path}: {str(e)}')
                 flash(f'Erro ao baixar arquivo: {str(e)}', 'error')
                 return redirect(url_for('auth.user_files'))
-    
+
     current_app.logger.warning(f'Tentativa de download de arquivo não encontrado: {filename}')
     flash('Arquivo não encontrado.', 'error')
     return redirect(url_for('auth.user_files'))
