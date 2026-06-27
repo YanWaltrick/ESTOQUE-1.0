@@ -3,7 +3,7 @@
 
 Cria a tabela se não existir e insere cada arquivo como BLOB.
 Uso:
-  python migrate_docs_to_db.py [--delete]
+  python scripts/migrate_docs_to_db.py [--delete]
 
 --delete : remove os arquivos originais após migração bem-sucedida
 """
@@ -12,6 +12,8 @@ import sys
 import argparse
 import mimetypes
 import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import create_app, db
 

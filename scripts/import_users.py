@@ -11,7 +11,7 @@ import sys
 import unicodedata
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from app.database import db
@@ -256,7 +256,7 @@ def import_users(filepath):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print('Uso: python import_users.py <arquivo.xls ou arquivo.xlsx>')
+        print('Uso: python scripts/import_users.py <arquivo.xls ou arquivo.xlsx>')
         sys.exit(1)
 
     filepath = sys.argv[1]
