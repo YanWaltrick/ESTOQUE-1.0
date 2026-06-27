@@ -11,8 +11,8 @@ echo TESTE DE INTEGRAÇÃO ENTRA ID
 echo ============================================================================
 echo.
 
-REM Navegar para o diretório do projeto
-cd /d "%~dp0"
+REM Navegar para a raiz do projeto (este script vive em tests/)
+cd /d "%~dp0.."
 
 REM Definir Python
 set PYTHON=.venv\Scripts\python.exe
