@@ -6,6 +6,7 @@
 
 | Documento | Descrição |
 |-----------|-----------|
+| [ARQUITETURA.md](ARQUITETURA.md) | Visão geral da arquitetura e fluxogramas (inicialização, requisição, SSO). |
 | [ANALISE_CLT_PJ.md](ANALISE_CLT_PJ.md) | Análise detalhada dos fluxos de cadastro CLT e PJ. |
 | [SETUP_REMOTO.md](SETUP_REMOTO.md) | Configuração e acesso remoto à aplicação. |
 | [SECURITY.md](SECURITY.md) | Política de segurança e divulgação de vulnerabilidades. |
@@ -16,9 +17,8 @@ A pasta [entra-id/](entra-id/) reúne tudo sobre o login corporativo via Microso
 
 | Arquivo | Descrição |
 |---------|-----------|
-| [entra-id/README.txt](entra-id/README.txt) | Referência rápida da integração. |
+| [entra-id/README.md](entra-id/README.md) | Visão geral, rotas e checklist de produção. |
 | [entra-id/SETUP.md](entra-id/SETUP.md) | Guia completo de configuração no Azure Portal. |
-| [entra-id/STATUS.txt](entra-id/STATUS.txt) | Status da implementação e checklist. |
-| [entra-id/EXEMPLO_USAGE.py](entra-id/EXEMPLO_USAGE.py) | Exemplos práticos de integração no código. |
+| [entra-id/EXEMPLOS.md](entra-id/EXEMPLOS.md) | Snippets práticos de integração no código. |
 
 > O exemplo de variáveis de ambiente do Entra ID está em `.env.entra-id-example` na raiz do projeto.

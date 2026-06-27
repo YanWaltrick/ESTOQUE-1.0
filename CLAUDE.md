@@ -123,6 +123,15 @@ Scripts em `scripts/` para tarefas administrativas: `import_users.py` (importaç
 
 A documentação fica em `docs/` (índice em `docs/README.md`): `ANALISE_CLT_PJ.md`, `SETUP_REMOTO.md`, `SECURITY.md` e a subpasta `docs/entra-id/` com os guias da integração Microsoft Entra ID. O `README.md` e este `CLAUDE.md` permanecem na raiz.
 
+**Convenções (seguir ao criar ou mover docs):**
+
+- **Onde mora:** toda doc em `docs/`, sempre `.md` (sem `.txt` nem `.py` de documentação). Mantenha o índice `docs/README.md` atualizado ao adicionar/remover um arquivo. O `README.md` e o `CLAUDE.md` ficam na raiz.
+- **Formato e idioma:** Markdown, em Português (Brasil) com acentuação correta.
+- **Naming:** `MAIUSCULA_SNAKE_CASE.md` para os guias de topo de `docs/` (padrão atual: `ANALISE_CLT_PJ.md`); dentro de subpastas temáticas (`docs/entra-id/`), nomes descritivos como `SETUP.md`, `EXEMPLOS.md`, `README.md`.
+- **ADR (decisões de arquitetura):** só registre quando a decisão for cara de reverter; crie em `docs/adr/NNNN-titulo.md` (a pasta só passa a existir quando houver a primeira ADR).
+- **Regra de ouro — o que NÃO documentar:** não repita o que o código já diz. Docs explicam o *porquê* e o *como configurar/operar*; a assinatura e o comportamento exato vivem no código. Prefira apontar para o arquivo-fonte (ex.: "ver `app/auth/entra_id.py`") a copiar trechos.
+- **Manutenção:** ao alterar código que uma doc descreve, atualize a doc na mesma mudança. Doc que passou a mentir deve ser corrigida ou **deletada** — doc desatualizada é pior que doc ausente. Evite arquivos de "status/relatório" datados (apodrecem rápido).
+
 ### Testes
 
 Testes e verificações ficam em `tests/` (ex.: `tests/test_entra_id.py`, smoke test da integração Entra ID). Executar a partir da raiz: `python tests/test_entra_id.py`.
