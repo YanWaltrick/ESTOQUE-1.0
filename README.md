@@ -44,7 +44,7 @@ Este projeto hoje funciona como uma aplicação web em Flask para gestão de est
 
 ### 1. Entrar na pasta do projeto
 ```bash
-cd ESTOQUE-1.0
+cd sistema-estoque
 ```
 
 ### 2. Criar ambiente virtual

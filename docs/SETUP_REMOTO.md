@@ -154,7 +154,7 @@ gunicorn -w 4 -b 0.0.0.0:5000 wsgi:app
 
 **Servidor PC-01 (192.168.1.100):**
 ```bash
-cd c:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\ESTOQUE-1.0
+cd c:\Users\Laboratorio\Desktop\apps vsCode\ESTOQUE\sistema-estoque
 python app.py
 ```
 
