@@ -12,3 +12,8 @@ venv/
 
 # Logs
 logs/*.log
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
