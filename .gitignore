@@ -1,2 +1,14 @@
 __pycache__/
+*.py[cod]
 .env
+
+# IDEs
+.idea/
+.vscode/
+
+# Ambientes virtuais
+venv/
+.venv/
+
+# Logs
+logs/*.log
