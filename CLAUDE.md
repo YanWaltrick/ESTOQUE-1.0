@@ -95,7 +95,7 @@ A função `can_perform(permission)`, `get_user_permissions()` e o dict `ROLES_P
 - **Desenvolvimento:** SQLite em `instance/estoque.sqlite` (padrão automático)
 - **Produção:** MySQL via `DATABASE_URL=mysql+pymysql://...`
 - O sistema aplica migrations do Alembic na inicialização. Colunas ausentes em tabelas existentes são adicionadas por `_ensure_schema_columns()` como fallback manual.
-- Não há testes automatizados no projeto; o banco é sempre inicializado pelo código da aplicação.
+- O banco é sempre inicializado pelo código da aplicação (`init_database()` na criação da app).
 
 ### Uploads
 
@@ -121,7 +121,9 @@ Scripts em `scripts/` para tarefas administrativas: `import_users.py` (importaç
 
 ### Documentação
 
-A documentação fica em `docs/` (índice em `docs/README.md`): `ANALISE_CLT_PJ.md`, `SETUP_REMOTO.md`, `SECURITY.md` e a subpasta `docs/entra-id/` com os guias da integração Microsoft Entra ID. O `README.md` e este `CLAUDE.md` permanecem na raiz.
+A documentação fica em `docs/` (índice em `docs/README.md`): `ANALISE_CLT_PJ.md`, `SETUP_REMOTO.md`, `SECURITY.md`, a subpasta `docs/entra-id/` (integração Microsoft Entra ID) e `docs/testes/` (estratégia de testes). O `README.md` e este `CLAUDE.md` permanecem na raiz.
+
+**Documentação viva (prioridade sobre código):** o projeto segue a [`docs/NORMA_DOCUMENTACAO.md`](docs/NORMA_DOCUMENTACAO.md) — estado, decisões e pendências vivem nos arquivos `docs/`, não no histórico de conversa. Pendências de cada área ficam em `docs/<area>/ROADMAP.md`. Ao mudar comportamento, atualize a documentação correspondente na mesma tarefa.
 
 **Convenções (seguir ao criar ou mover docs):**
 
@@ -134,4 +136,23 @@ A documentação fica em `docs/` (índice em `docs/README.md`): `ANALISE_CLT_PJ.
 
 ### Testes
 
-Testes e verificações ficam em `tests/` (ex.: `tests/test_entra_id.py`, smoke test da integração Entra ID). Executar a partir da raiz: `python tests/test_entra_id.py`.
+Suíte de testes automatizados com **pytest**, em `tests/`. Rodar a partir da raiz:
+
+```bash
+pip install -r requirements-dev.txt   # pytest + pytest-cov
+pytest                                # roda toda a suíte
+pytest --cov=app                      # com cobertura
+```
+
+**Padrão (o `tests/conftest.py` é a fonte da verdade — reutilize as fixtures dele):**
+
+- `app` (escopo de sessão) — instância criada com `create_app()` sobre um SQLite temporário. O banco de teste é selecionado definindo `DATABASE_URL` em variável de ambiente **antes** de importar a aplicação (a URL é resolvida no import de `app/database.py`); `WTF_CSRF_ENABLED=False` para permitir POSTs.
+- `db_session` — isola cada teste em uma transação revertida ao final (savepoint via `join_transaction_mode`). Use em qualquer teste que escreva no banco.
+- `client` — `test_client()` sem autenticação.
+- `auth_client` — `test_client()` já logado como o admin padrão (`admin`/`admin`).
+
+Ao escrever um teste novo, **copie o estilo de `tests/test_smoke.py`**: nomes em português `test_*`, asserts sobre status/redirecionamento, uma camada por teste. A Skill de scaffold de testes só se justifica depois que o padrão estabilizar (~30 testes).
+
+O smoke test legado da integração Entra ID (`tests/test_entra_id.py`, baseado em `print`) continua executável via `python tests/test_entra_id.py`, mas novos testes devem seguir o padrão pytest acima.
+
+Visão geral, padrão detalhado e **pendências priorizadas** em [`docs/testes/`](docs/testes/) (`README.md` e `ROADMAP.md`).

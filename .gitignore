@@ -12,3 +12,12 @@ venv/
 
 # Logs
 logs/*.log
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pasta instance do Flask: bancos locais nao versionados (pasta preservada via .gitkeep)
+instance/*
+!instance/.gitkeep
