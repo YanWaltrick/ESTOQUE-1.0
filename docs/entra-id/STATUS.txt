@@ -98,19 +98,19 @@ Veja .env.entra-id-example para exemplo completo.
 
 5. (Opcional) Executar teste:
    
-   Windows: test_entra_id.bat
-   Linux/Mac: python test_entra_id.py
+   Windows: tests\test_entra_id.bat
+   Linux/Mac: python tests/test_entra_id.py
 
 
 ✨ RECURSOS CRIADOS
 ────────────────────────────────────────────────────────────────────────────────
 
-✓ ENTRA_ID_SETUP.md
+✓ docs/entra-id/SETUP.md
   └─ Guia completo de setup (200+ linhas)
   └─ Instruções passo-a-passo do Azure Portal
   └─ Troubleshooting
 
-✓ EXEMPLO_USAGE.py
+✓ docs/entra-id/EXEMPLO_USAGE.py
   └─ 10 exemplos práticos de integração
   └─ Decorators, Middleware, Testes, etc.
 
@@ -118,10 +118,10 @@ Veja .env.entra-id-example para exemplo completo.
   └─ Exemplo real com instruções
   └─ Como obter cada variável de ambiente
 
-✓ ENTRA_ID_README.txt
+✓ docs/entra-id/README.txt
   └─ Referência rápida visual
 
-✓ test_entra_id.py / test_entra_id.bat
+✓ tests/test_entra_id.py / tests/test_entra_id.bat
   └─ Testes de verificação
 
 
@@ -161,7 +161,7 @@ LONGO PRAZO (Opcional):
 🔍 DEBUGGING
 ────────────────────────────────────────────────────────────────────────────────
 
-Se encontrar erros, veja ENTRA_ID_SETUP.md seção "Troubleshooting":
+Se encontrar erros, veja SETUP.md seção "Troubleshooting":
 
   • "Variáveis de ambiente ENTRA_* não encontradas"
   • "Email não autorizado"
@@ -177,10 +177,10 @@ Documentação Microsoft:
   https://learn.microsoft.com/azure/active-directory/develop/
 
 Exemplos de Uso:
-  Ver EXEMPLO_USAGE.py (10 exemplos completos)
+  Ver EXEMPLO_USAGE.py (10 exemplos completos, nesta mesma pasta)
 
 Perguntas Frequentes:
-  Ver ENTRA_ID_SETUP.md
+  Ver SETUP.md
 
 
 ================================================================================

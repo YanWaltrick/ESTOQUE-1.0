@@ -107,7 +107,17 @@ app/
 static/               # CSS, JavaScript, uploads e arquivos estáticos
 templates/            # páginas HTML renderizadas pelo Flask
 migrations/           # migrações do banco
+scripts/              # scripts utilitários administrativos (importação, manutenção)
+tests/                # testes e verificações da aplicação
+docs/                 # documentação do projeto (ver docs/README.md)
 ```
+
+## Documentação
+A documentação detalhada fica em [docs/](docs/README.md):
+- [docs/ANALISE_CLT_PJ.md](docs/ANALISE_CLT_PJ.md) — análise dos fluxos CLT e PJ.
+- [docs/SETUP_REMOTO.md](docs/SETUP_REMOTO.md) — configuração de acesso remoto.
+- [docs/SECURITY.md](docs/SECURITY.md) — política de segurança.
+- [docs/entra-id/](docs/entra-id/) — guias da integração com Microsoft Entra ID.
 
 ## Pontos importantes do funcionamento atual
 - O ponto de entrada principal é [app.py](app.py).

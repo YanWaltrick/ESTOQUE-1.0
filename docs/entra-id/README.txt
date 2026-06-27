@@ -27,7 +27,7 @@ ARQUIVOS CRIADOS / MODIFICADOS:
 ✅ .env.example                         [MODIFICADO]
    └─ Adicionadas variáveis Entra ID
 
-✅ ENTRA_ID_SETUP.md                    [NOVO]
+✅ SETUP.md                    [NOVO]
    └─ Guia completo de setup e configuração
 
 ✅ EXEMPLO_USAGE.py                     [NOVO]
@@ -211,7 +211,7 @@ ANTES DE USAR EM PRODUÇÃO:
 
 Leia os arquivos criados para mais detalhes:
 
-    ► ENTRA_ID_SETUP.md         (guia de configuração - 200 linhas)
+    ► SETUP.md         (guia de configuração - 200 linhas)
     ► EXEMPLO_USAGE.py          (10 exemplos práticos - 400+ linhas)
     ► .env.entra-id-example     (exemplo real com instruções)
     ► app/auth/entra_id.py      (código com comentários)
@@ -251,7 +251,7 @@ Leia os arquivos criados para mais detalhes:
 ❓ DÚVIDAS / TROUBLESHOOTING
 ================================================================================
 
-Veja ENTRA_ID_SETUP.md seção "🔍 Troubleshooting" para:
+Veja SETUP.md seção "🔍 Troubleshooting" para:
 
     • Erro: Variáveis de ambiente não encontradas
     • Erro: Email não autorizado
