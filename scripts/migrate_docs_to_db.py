@@ -13,25 +13,20 @@ import argparse
 import mimetypes
 import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 from app.database import create_app, db
+# Reutiliza o modelo canônico em vez de redefinir a tabela inline (a redefinição
+# colide com o `DocumentoArquivo` já registrado ao importar o pacote `app`).
+from app.models import DocumentoArquivo
 
 
 def main(delete_files: bool):
     app, _db, _mail = create_app()
 
-    class DocumentoArquivo(db.Model):
-        __tablename__ = 'documentos_arquivos'
-
-        id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-        filename = db.Column(db.String(255), nullable=False)
-        content = db.Column(db.LargeBinary, nullable=False)
-        mime_type = db.Column(db.String(100), nullable=True)
-        size = db.Column(db.Integer, nullable=True)
-        uploaded_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-    uploads_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'documentos')
+    # A pasta de uploads fica na raiz do projeto, não em `scripts/`.
+    uploads_dir = os.path.join(PROJECT_ROOT, 'static', 'uploads', 'documentos')
 
     if not os.path.isdir(uploads_dir):
         print(f"Pasta de uploads não encontrada: {uploads_dir}")
