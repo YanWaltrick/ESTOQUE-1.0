@@ -19,8 +19,9 @@ legítimos travados), sem depender de alguém olhar o log de auditoria.
 
 O mecanismo de bloqueio já existe e está testado:
 
-- `User.registrar_login_falho(max_tentativas=5, bloqueio_minutos=15)` — incrementa
-  o contador e grava `bloqueado_ate` ao atingir o limite (`app/models/__init__.py`).
+- `User.registrar_login_falho(...)` — registra a tentativa falha e efetiva o
+  bloqueio ao atingir o limite configurado; assinatura, defaults e comportamento
+  exato em `app/models/__init__.py`.
 - `User.pode_tentar_login()` / `minutos_ate_desbloqueio()` — checagem usada no
   login (`app/routes/auth.py`).
 - O modelo `Chamada` já é usado para abrir chamados aos admins (inclusive no

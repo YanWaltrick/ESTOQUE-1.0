@@ -5,7 +5,39 @@
 > escopo, achados e o destino de cada achado (corrigido ou virou item no
 > [ROADMAP](ROADMAP.md)).
 >
-> **Última atualização:** 2026-06-27 — revisão `xhigh` com correções aplicadas
+> **Última atualização:** 2026-06-28 — revisão `xhigh` da PR de cobertura, 13 correções aplicadas
+
+---
+
+## 2026-06-28 — Revisão `xhigh` da PR de cobertura (#3) + correções aplicadas
+
+**Escopo:** diff da PR que subiu a cobertura de 22%→76% (`6ec184c^..6ec184c`) —
+os 12 arquivos de teste novos, as fixtures do `conftest.py` e as 2 correções de
+produção (`_garantir_aware_gmt3`, status da API). As duas correções originais da
+PR foram confirmadas corretas; os achados abaixo são adicionais.
+
+**Método:** `/code-review xhigh` (recall, 10 ângulos + verificação). Suíte
+executada antes e depois: **289 testes passando** em ambos os pontos.
+
+**Resultado:** 13 achados, **todos corrigidos nesta branch** (`fix/correcoes-revisao-cobertura`).
+Itens de profundidade não triviais (TypeDecorator de fuso; decidir sobre as rotas
+órfãs) foram **deixados no [ROADMAP](ROADMAP.md)** em vez de remendados.
+
+### Achados e correções
+
+| # | Tipo | Local | Correção |
+|---|------|-------|----------|
+| 1 | 🔴 Contrato de API | `app/__init__.py` + `tests/test_api.py` | `unauthorized_handler`: requisição de API/AJAX anônima agora recebe **401 JSON** (antes 302 HTML); teste endurecido para `== 401` |
+| 2 | 🟠 Efeito colateral | `app/models/__init__.py` (`is_active`) | Propriedade de leitura não comita mais no banco; limpeza do bloqueio expirado fica só em `pode_tentar_login` |
+| 3 | 🟠 Teste vacuous | `test_auth_routes.py` (`forgot_password`) | Passou a verificar que o `Chamada` foi de fato criado |
+| 4 | 🟠 Teste vacuous | `test_auth_routes.py` (troca de senha) | Verifica que a senha mudou (sucesso) e que **não** mudou (senha atual errada) |
+| 5 | 🟠 Teste vacuous | `test_auth_routes.py` (foto de perfil) | Verifica `foto_perfil` gravado no upload válido e ausente em extensão inválida/sem arquivo |
+| 6–13 | 🟡 Qualidade | `conftest.py`, `test_*`, `models`, doc | Fixtures `admin_user`/`perfil_verificado_client` no `conftest`; hash da senha pré-computado; reuso de `now_gmt3()`/constante `GMT3`; `test_logger` robusto a estado global; doc deixa de copiar assinatura |
+
+> Itens **não** corrigidos (achados de profundidade, deixados ao ROADMAP):
+> generalizar o fuso na camada do ORM (achado de altitude) e decidir
+> remover/implementar as rotas órfãs `/admin/dashboard` e `/admin/audit-log`
+> (item #10).
 
 ---
 
