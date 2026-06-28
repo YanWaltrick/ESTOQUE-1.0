@@ -8,11 +8,10 @@ Visão geral da suíte de testes automatizados do projeto. As **pendências e
 próximos passos** ficam em [`ROADMAP.md`](ROADMAP.md); o histórico de revisões de
 código fica em [`REVISAO_CODIGO.md`](REVISAO_CODIGO.md).
 
-> ⚠️ **Interino:** a suíte roda hoje em SQLite e o isolamento entre testes está
-> **quebrado** (limitação do driver pysqlite — comprovado). A direção decidida é
-> migrar para **MySQL** (mesmo dialeto de produção), o que conserta o isolamento de
-> forma limpa. Ver [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md)
-> — planejado, ainda não implementado.
+> **Banco de teste: MySQL.** A suíte roda contra o banco `estoque_test` no container
+> MySQL (`docker compose up -d`) — mesmo dialeto de produção. O isolamento entre
+> testes usa transação externa real (receita do Flask-SQLAlchemy), não o workaround
+> do pysqlite. Ver [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md).
 
 ---
 
@@ -33,9 +32,10 @@ aplicação ainda **não** tem testes.
 
 ## 2. Como rodar
 
-A partir da raiz do projeto:
+A partir da raiz do projeto (com o MySQL de pé):
 
 ```bash
+docker compose up -d                  # MySQL local (cria estoque_test)
 pip install -r requirements-dev.txt   # pytest + pytest-cov
 pytest                                # roda toda a suíte
 pytest --cov=app                      # com relatório de cobertura
@@ -54,8 +54,8 @@ Todo teste novo reutiliza as fixtures dele em vez de montar a própria app ou ba
 
 | Fixture | Escopo | O que entrega |
 |---------|--------|---------------|
-| `app` | sessão | App criada com `create_app()` sobre um SQLite temporário |
-| `db_session` | função | Isola o teste em transação revertida ao final (savepoint) |
+| `app` | sessão | App criada com `create_app()` sobre o MySQL `estoque_test` |
+| `db_session` | função | Isola o teste em transação externa revertida ao final |
 | `client` | função | `test_client()` sem autenticação |
 | `auth_client` | função | `test_client()` já logado como admin padrão (`admin`/`admin`) |
 
@@ -63,7 +63,7 @@ Todo teste novo reutiliza as fixtures dele em vez de montar a própria app ou ba
 
 - O banco de teste é selecionado definindo `DATABASE_URL` em variável de ambiente
   **antes** de importar a aplicação — porque `app/database.py` resolve a URL no
-  momento do import. Isso mantém o banco de teste isolado de `instance/estoque.sqlite`.
+  momento do import. Isso mantém o banco de teste (`estoque_test`) separado do de dev.
 - `create_app()` chama `init_database()` na criação (cria tabelas + admin padrão).
   Hoje não há revisões Alembic, então cai em `db.create_all()`. **Quando a primeira
   migração for criada, o isolamento precisa ser revalidado** — ver

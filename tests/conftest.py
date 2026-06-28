@@ -6,26 +6,31 @@ banco. Veja `tests/test_smoke.py` como exemplo canônico.
 
 Pontos-chave da arquitetura de teste:
 
-- `DATABASE_URL` é resolvida no momento em que `app.database` é importado.
-  Por isso, definimos um SQLite temporário em variável de ambiente ANTES de
-  qualquer import da aplicação. `load_dotenv` não sobrescreve variáveis já
-  presentes no ambiente, então este valor vence um eventual `.env`.
+- O projeto é 100% MySQL. Os testes usam um banco DEDICADO (`estoque_test`) no
+  mesmo container de dev (ver `docker-compose.yml`). **Pré-requisito:** o MySQL
+  precisa estar de pé (`docker compose up -d`).
+- `DATABASE_URL` é resolvida no momento em que `app.database` é importado. Por
+  isso, definimos a URL de teste em variável de ambiente ANTES de qualquer import
+  da aplicação. `load_dotenv` não sobrescreve variáveis já presentes no ambiente,
+  então este valor vence o `.env` (blinda contra apontar para dev/produção).
+  Pode ser sobrescrita via `TEST_DATABASE_URL` (ex.: no CI).
 - `create_app()` chama `init_database()` na criação (cria tabelas e o usuário
   admin padrão). A app é criada uma vez por sessão de testes.
-- Cada teste roda dentro de uma transação revertida ao final (`db_session`),
-  garantindo isolamento sem recriar o banco a cada teste.
+- Cada teste roda dentro de uma transação externa revertida ao final
+  (`db_session`), garantindo isolamento sem recriar o banco a cada teste.
 """
 
 import os
-import tempfile
 
 import pytest
 
 # --- Configuração de ambiente (antes de importar a aplicação) ----------------
-# Banco de teste isolado em arquivo temporário (não toca instance/estoque.sqlite).
-_DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".sqlite", prefix="estoque-test-")
-os.close(_DB_FD)
-os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
+# Banco de teste DEDICADO em MySQL (estoque_test). Nunca aponta para o banco de
+# dev/produção. Sobrescrevível via TEST_DATABASE_URL.
+os.environ["DATABASE_URL"] = os.environ.get(
+    "TEST_DATABASE_URL",
+    "mysql+pymysql://estoque:estoque123@127.0.0.1:3306/estoque_test?charset=utf8mb4",
+)
 os.environ["FLASK_ENV"] = "development"  # evita exigir SECRET_KEY e HSTS
 os.environ.setdefault("SECRET_KEY", "chave-de-teste")
 
@@ -51,9 +56,8 @@ def app():
 
     yield application
 
-    # Limpeza do arquivo de banco temporário ao fim da sessão.
-    if os.path.exists(_DB_PATH):
-        os.remove(_DB_PATH)
+    # Banco de teste é o estoque_test (MySQL, container) — nada a remover aqui.
+    # O isolamento por teste fica a cargo da fixture `db_session`.
 
 
 @pytest.fixture()

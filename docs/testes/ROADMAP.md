@@ -10,13 +10,12 @@ testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
 [Revisão de Código de 2026-06-27](REVISAO_CODIGO.md). O raciocínio do "porquê" está
 preservado em cada item.
 
-> ⚠️ **Direção do banco de teste decidida (2026-06-27):** a suíte vai migrar de
-> SQLite para **MySQL** (mesmo dialeto de produção). Ver
-> [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) —
-> planejado, **ainda não implementado**. O item #9 abaixo deixa de ser corrigido no
-> SQLite e será **resolvido pela migração** (etapa E6). O item #8 **já foi corrigido
-> no SQLite** na revisão `xhigh` (a correção é agnóstica de dialeto e segue válida no
-> MySQL).
+> ✅ **Banco de teste migrado para MySQL (2026-06-27):** o SQLite foi **removido**
+> (100% MySQL). A suíte usa o banco `estoque_test` no container (`docker compose up`).
+> Ver [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md).
+> Com isso, o item #9 (limpeza do SQLite temporário) deixou de existir e o #8
+> (isolamento) foi corrigido pela receita de transação externa — válida no MySQL.
+> Falta a **verificação da suíte contra o container** (E3) e o **gate de CI** (E7).
 
 ---
 
@@ -32,7 +31,7 @@ preservado em cada item.
 | 6 | Migrar smoke test legado do Entra ID para pytest | ▫ Baixa | 🟡 Mitigado (`collect_ignore`) — migração pendente |
 | 7 | Skill de scaffold de testes | ▫ Futuro | ⚪ Adiado (condicional) |
 | 8 | `db_session` não isolava (bind ignorado pelo FSQLA) — revisões R1/X1 | 🔺 Alta | ✅ Corrigido (2026-06-27, revisão X1) |
-| 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ⚪ Absorvido — SQLite será removido (Plano MySQL E6) |
+| 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ✅ Resolvido — SQLite removido (E6); não há mais arquivo temporário |
 
 ---
 
@@ -195,20 +194,12 @@ rollback final.
 
 ## 9. Limpeza frágil do SQLite temporário (revisão R2)
 
-**Prioridade:** ▪ Média · **Status:** 🔴 Pendente · **Origem:** [Revisão R2](REVISAO_CODIGO.md#achados)
+**Prioridade:** ▪ Média · **Status:** ✅ Resolvido (2026-06-27) · **Origem:** [Revisão R2](REVISAO_CODIGO.md#achados)
 
-**Por quê:** o arquivo de banco é criado no import do módulo; se a coleção falhar
-antes da fixture `app`, vaza em `/tmp`. Além disso, o engine não é descartado antes
-do `os.remove`, o que no Windows (suportado — há `tests/test_entra_id.bat`) causa
-`PermissionError` por lock de conexões pooled.
-
-**Checklist:**
-
-- [ ] Descartar o engine antes de remover o arquivo (`_db.engine.dispose()` no
-      teardown).
-- [ ] Proteger o `os.remove` para não mascarar erro / lidar com Windows.
-- [ ] Avaliar `tmp_path_factory` do pytest para o pytest gerenciar o ciclo de vida
-      do arquivo.
+**Resolução:** com a remoção do SQLite (Plano MySQL **E6**), os testes deixaram de
+criar arquivo temporário — passam a usar o banco `estoque_test` no container MySQL.
+O problema original (vazamento em `/tmp`, `PermissionError` por lock no Windows)
+deixou de existir. Não há mais `tempfile`/`os.remove` no `conftest.py`.
 
 ---
 
