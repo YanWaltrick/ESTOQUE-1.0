@@ -26,6 +26,10 @@ Este documento descreve as práticas e mecanismos de segurança implementados no
 - Dois níveis de acesso: `admin` e `usuario`
 - Verificação de permissões em cada endpoint crítico
 - Logs de acesso negado (403)
+- ✅ **Respostas de auth adequadas ao cliente**: requisições não autenticadas a
+  rotas de API (`/api/*`) ou AJAX/JSON recebem **`401` JSON**; navegação HTML é
+  redirecionada ao login (`unauthorized_handler` em `app/__init__.py`). Sem
+  privilégio suficiente, API/AJAX recebem **`403` JSON** (`@require_role`)
 
 ---
 
@@ -143,5 +147,5 @@ Para relatar vulnerabilidades de segurança:
 
 ---
 
-**Última atualização**: Maio 2026  
+**Última atualização**: Junho 2026  
 **Status**: ✅ Segurança implementada

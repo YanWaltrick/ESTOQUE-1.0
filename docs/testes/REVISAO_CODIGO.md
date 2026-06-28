@@ -34,10 +34,10 @@ Itens de profundidade não triviais (TypeDecorator de fuso; decidir sobre as rot
 | 5 | 🟠 Teste vacuous | `test_auth_routes.py` (foto de perfil) | Verifica `foto_perfil` gravado no upload válido e ausente em extensão inválida/sem arquivo |
 | 6–13 | 🟡 Qualidade | `conftest.py`, `test_*`, `models`, doc | Fixtures `admin_user`/`perfil_verificado_client` no `conftest`; hash da senha pré-computado; reuso de `now_gmt3()`/constante `GMT3`; `test_logger` robusto a estado global; doc deixa de copiar assinatura |
 
-> Itens **não** corrigidos (achados de profundidade, deixados ao ROADMAP):
-> generalizar o fuso na camada do ORM (achado de altitude) e decidir
-> remover/implementar as rotas órfãs `/admin/dashboard` e `/admin/audit-log`
-> (item #10).
+> Itens **não** corrigidos (achados de profundidade, registrados no ROADMAP):
+> generalizar o fuso na camada do ORM (achado de altitude — **item #11**) e
+> decidir remover/implementar as rotas órfãs `/admin/dashboard` e
+> `/admin/audit-log` (**item #10**).
 
 ---
 
