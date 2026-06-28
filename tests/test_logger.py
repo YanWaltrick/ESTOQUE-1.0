@@ -17,10 +17,13 @@ from app.utils.logger import (
 
 def test_criar_logger_idempotente():
     l1 = criar_logger("teste_app_unico")
+    n_handlers = len(l1.handlers)
     l2 = criar_logger("teste_app_unico")
     assert l1 is l2
-    # Não duplica handlers em chamadas repetidas.
-    assert len(l1.handlers) == 2
+    # Configura pelo menos um handler e não os duplica em chamadas repetidas
+    # (sem fixar a contagem exata, que depende da config global do logging).
+    assert n_handlers > 0
+    assert len(l2.handlers) == n_handlers
 
 
 def test_criar_logger_nivel_debug():
@@ -72,10 +75,12 @@ def test_registrar_seguranca(caplog):
     assert "attacker" in caplog.text
 
 
-def test_log_resposta_http_loga_status(app, caplog):
+def test_log_resposta_http_loga_status(app, caplog, monkeypatch):
     """O decorator de after_request loga método, path e status."""
     logger = logging.getLogger("teste_http")
-    logger.propagate = True
+    # `caplog` captura via propagação ao root; restauramos `propagate` ao final
+    # (monkeypatch) para não vazar a mutação para outros testes.
+    monkeypatch.setattr(logger, "propagate", True)
 
     @log_resposta_http(logger)
     def handler(response):
