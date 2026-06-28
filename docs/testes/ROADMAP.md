@@ -25,7 +25,6 @@ preservado em cada item.
 |---|------|-----------|--------|
 | 1 | Gate de CI rodando `pytest` | 🔺 Alta | 🔴 Pendente |
 | 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28, 76% / 289 testes) |
-| 10 | Rotas órfãs `/admin/dashboard` e `/admin/audit-log` (templates ausentes) | ▪ Média | 🔴 Pendente |
 | 3 | Revalidar isolamento com a 1ª migração Alembic | ▪ Média | 🔴 Pendente |
 | 4 | Estratégia para divergência SQLite (teste) × MySQL (prod) | ▪ Média | 🟢 Decidido → [Plano MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) (teste = MySQL) |
 | 5 | Dívida: `datetime.utcnow()` deprecado em `app/__init__.py` | ▫ Baixa | 🔴 Pendente |
@@ -33,6 +32,7 @@ preservado em cada item.
 | 7 | Skill de scaffold de testes | ▫ Futuro | ⚪ Adiado (condicional) |
 | 8 | `db_session` não isolava (bind ignorado pelo FSQLA) — revisões R1/X1 | 🔺 Alta | ✅ Corrigido (2026-06-27, revisão X1) |
 | 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ✅ Resolvido — SQLite removido (E6); não há mais arquivo temporário |
+| 10 | Rotas órfãs `/admin/dashboard` e `/admin/audit-log` (templates ausentes) | ▪ Média | 🔴 Pendente |
 
 ---
 
