@@ -43,6 +43,29 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @login_manager.unauthorized_handler
+    def handle_unauthorized():
+        """Não autenticado: API/AJAX recebem 401 JSON; navegação HTML é redirecionada.
+
+        Sem isto, o `@login_required` (que envolve `@require_role` nas rotas de
+        `/api`) redireciona requisições anônimas para a página HTML de login
+        (302). O ramo 401 JSON de `require_role` nunca roda para usuários
+        anônimos por estar mais interno, e um cliente JSON acabaria tentando
+        parsear HTML. Aqui devolvemos 401 JSON quando a requisição é de API/AJAX.
+        """
+        from flask import jsonify
+
+        eh_api = (
+            request.path.startswith('/api/')
+            or request.is_json
+            or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        )
+        if eh_api:
+            return jsonify({'error': 'Autenticação necessária'}), 401
+
+        flash(login_manager.login_message, login_manager.login_message_category)
+        return redirect(url_for(login_manager.login_view))
+
     @app.before_request
     def _session_timeout():
         """Expire sessões de usuários (não admin) após 10 minutos de inatividade. Registra tempo inicial."""

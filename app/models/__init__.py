@@ -4,9 +4,14 @@ from flask_login import UserMixin
 from sqlalchemy.dialects.mysql import LONGBLOB
 
 
+# Fuso-horário único da aplicação (GMT-3). Fonte de verdade para `now_gmt3()`
+# e para reanexar o fuso a valores naive lidos do banco.
+GMT3 = timezone(timedelta(hours=-3))
+
+
 def now_gmt3():
     """Retorna datetime com fuso-horário GMT-3."""
-    return datetime.now(timezone(timedelta(hours=-3)))
+    return datetime.now(GMT3)
 
 
 def _garantir_aware_gmt3(dt):
@@ -19,7 +24,7 @@ def _garantir_aware_gmt3(dt):
     Este helper torna a comparação robusta sem alterar o instante representado.
     """
     if dt is not None and dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone(timedelta(hours=-3)))
+        return dt.replace(tzinfo=GMT3)
     return dt
 
 
@@ -110,19 +115,22 @@ class User(db.Model, UserMixin):
     
     @property
     def is_active(self):
-        """Override de is_active para Flask-Login - verifica se está ativo e desbloqueado"""
+        """Override de is_active para Flask-Login - verifica se está ativo e desbloqueado.
+
+        Sem efeitos colaterais: o Flask-Login lê esta propriedade a cada
+        requisição. A limpeza do bloqueio já expirado é feita no fluxo de login
+        (`pode_tentar_login`), que comita de forma controlada — uma propriedade
+        de leitura não deve gravar no banco.
+        """
         if not self.ativo:
             return False
-        
-        # Verificar se está bloqueado temporariamente
+
+        # Bloqueio temporário ainda vigente?
         if self.bloqueado_ate:
             bloqueado_ate = _garantir_aware_gmt3(self.bloqueado_ate)
-            if datetime.now(timezone(timedelta(hours=-3))) < bloqueado_ate:
+            if now_gmt3() < bloqueado_ate:
                 return False
-            # Se expirou o bloqueio, limpar
-            self.bloqueado_ate = None
-            db.session.commit()
-        
+
         return True
     
     def registrar_login_sucesso(self):
@@ -151,7 +159,7 @@ class User(db.Model, UserMixin):
     def pode_tentar_login(self) -> bool:
         """Verifica se o usuário pode tentar login (não está bloqueado)"""
         if self.bloqueado_ate:
-            agora = datetime.now(timezone(timedelta(hours=-3)))
+            agora = now_gmt3()
             if agora < _garantir_aware_gmt3(self.bloqueado_ate):
                 return False
             # Se expirou, liberar
@@ -166,7 +174,7 @@ class User(db.Model, UserMixin):
         if not self.bloqueado_ate:
             return 0
         
-        agora = datetime.now(timezone(timedelta(hours=-3)))
+        agora = now_gmt3()
         diferenca = _garantir_aware_gmt3(self.bloqueado_ate) - agora
         return max(0, int(diferenca.total_seconds() / 60))
     

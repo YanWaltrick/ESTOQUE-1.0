@@ -3,7 +3,7 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-28 — item #2 concluído (cobertura 22%→76%); 2 bugs corrigidos; item #10 (rotas órfãs) registrado
+> **Última atualização:** 2026-06-28 — item #2 concluído (cobertura 22%→76%); 2 bugs corrigidos; itens #10 (rotas órfãs) e #11 (fuso no ORM) registrados na revisão `xhigh`
 
 Origem da maioria destes itens: veredito do Conselho de LLMs sobre a estratégia de
 testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
@@ -33,6 +33,7 @@ preservado em cada item.
 | 8 | `db_session` não isolava (bind ignorado pelo FSQLA) — revisões R1/X1 | 🔺 Alta | ✅ Corrigido (2026-06-27, revisão X1) |
 | 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ✅ Resolvido — SQLite removido (E6); não há mais arquivo temporário |
 | 10 | Rotas órfãs `/admin/dashboard` e `/admin/audit-log` (templates ausentes) | ▪ Média | 🔴 Pendente |
+| 11 | Generalizar o fuso GMT-3 na camada do ORM (naive/aware) | ▪ Média | 🔴 Pendente |
 
 ---
 
@@ -231,8 +232,35 @@ servido por `main.py:/admin`. Acessá-las executa a query e então levanta
 
 ---
 
+## 11. Generalizar o fuso GMT-3 na camada do ORM (naive/aware)
+
+**Prioridade:** ▪ Média · **Status:** 🔴 Pendente · **Origem:** revisão `xhigh` (2026-06-28, achado de altitude)
+
+**Por quê:** o MySQL grava `DATETIME` sem fuso; os modelos escrevem *aware*
+(`now_gmt3()`) e leem *naive*, o que já causou o erro 500 no bloqueio por força
+bruta. A correção atual (`_garantir_aware_gmt3` em `app/models/__init__.py`)
+reanexa o fuso **por ponto de comparação** — funciona, mas só cobre `bloqueado_ate`.
+As demais colunas (`ultimo_login`, `data_assinatura`, `data_criacao`, etc.)
+levantarão o mesmo `TypeError` assim que forem comparadas com um *aware* — inclusive
+a feature planejada em [CHAMADO_AUTOMATICO_FORCA_BRUTA](../seguranca/CHAMADO_AUTOMATICO_FORCA_BRUTA.md).
+
+**Checklist:**
+
+- [ ] Avaliar um `TypeDecorator` (ou `DateTime(timezone=True)` / normalização na
+      escrita) que torne leitura e escrita simétricas para **todas** as colunas.
+- [ ] Remover os usos pontuais de `_garantir_aware_gmt3` quando a base ficar consistente.
+- [ ] Revisar comparações de datetime feitas no nível do SQL em `app/routes/api.py`
+      (ex.: filtros por data) quanto a *offset* vindo do cliente.
+
+---
+
 ## Histórico (itens concluídos)
 
+- 🟢 **2026-06-28** — Revisão `xhigh` da PR de cobertura: 13 achados corrigidos na
+  branch `fix/correcoes-revisao-cobertura` (401 JSON para API não autenticada;
+  `is_active` sem commit colateral; testes vacuous fortalecidos; dedup de fixtures).
+  Achados de profundidade registrados como itens #10 e #11. Detalhe em
+  [REVISAO_CODIGO.md](REVISAO_CODIGO.md#2026-06-28--revisão-xhigh-da-pr-de-cobertura-3--correções-aplicadas).
 - 🟢 **2026-06-28** — Cobertura de testes de 22% → **76%** (289 testes) na branch
   `feature/aumentar-cobertura-testes`. Novos arquivos: `test_models`,
   `test_security`, `test_decorators`, `test_logger`, `test_estoque_service`,

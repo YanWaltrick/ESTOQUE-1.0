@@ -4,8 +4,10 @@ Cobrem login (incluindo bloqueio por força bruta), logout, reautenticação de
 perfil, troca de senha/foto e recuperação de senha.
 """
 
+from io import BytesIO
+
 from app.auth.security import PasswordValidator
-from app.models import User
+from app.models import Chamada, User
 from tests.conftest import SENHA_TESTE
 
 
@@ -87,6 +89,10 @@ def test_perfil_reautenticacao_correta(user_client, usuario_comum):
         follow_redirects=False,
     )
     assert resp.status_code == 302
+    # A reautenticação bem-sucedida marca a sessão como verificada (o caminho de
+    # falha também devolve 302, então o status sozinho não distinguiria os dois).
+    with user_client.session_transaction() as sess:
+        assert sess.get("perfil_verified") is True
 
 
 def test_perfil_senha_sem_verificacao_redireciona(user_client):
@@ -94,11 +100,8 @@ def test_perfil_senha_sem_verificacao_redireciona(user_client):
     assert resp.status_code == 302
 
 
-def test_trocar_senha_fluxo_completo(user_client, usuario_comum):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-
-    resp = user_client.post(
+def test_trocar_senha_fluxo_completo(perfil_verificado_client, usuario_comum):
+    resp = perfil_verificado_client.post(
         "/perfil/password",
         data={
             "login_name": usuario_comum.username,
@@ -109,13 +112,15 @@ def test_trocar_senha_fluxo_completo(user_client, usuario_comum):
         follow_redirects=False,
     )
     assert resp.status_code == 302
+    # A senha deve ter sido efetivamente alterada no banco (o caminho de erro
+    # redireciona com o mesmo 302, então é preciso verificar o efeito).
+    user = User.query.filter_by(username=usuario_comum.username).first()
+    assert PasswordValidator.verify_password("NovaSenha1", user.password)
+    assert not PasswordValidator.verify_password(SENHA_TESTE, user.password)
 
 
-def test_trocar_senha_atual_incorreta(user_client, usuario_comum):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-
-    resp = user_client.post(
+def test_trocar_senha_atual_incorreta(perfil_verificado_client, usuario_comum):
+    resp = perfil_verificado_client.post(
         "/perfil/password",
         data={
             "login_name": usuario_comum.username,
@@ -126,49 +131,50 @@ def test_trocar_senha_atual_incorreta(user_client, usuario_comum):
         follow_redirects=False,
     )
     assert resp.status_code == 302  # redireciona com flash de erro
+    # Senha atual incorreta: a senha NÃO deve mudar.
+    user = User.query.filter_by(username=usuario_comum.username).first()
+    assert PasswordValidator.verify_password(SENHA_TESTE, user.password)
 
 
-def test_perfil_foto_get(user_client):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-    resp = user_client.get("/perfil/foto")
+def test_perfil_foto_get(perfil_verificado_client):
+    resp = perfil_verificado_client.get("/perfil/foto")
     assert resp.status_code == 200
 
 
-def test_perfil_foto_upload_valido(user_client):
-    from io import BytesIO
-
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
+def test_perfil_foto_upload_valido(perfil_verificado_client, usuario_comum):
     data = {"foto_perfil": (BytesIO(b"\x89PNG\r\n\x1a\nconteudo"), "foto.png")}
-    resp = user_client.post(
+    resp = perfil_verificado_client.post(
         "/perfil/foto", data=data, content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302
+    # A referência da nova foto deve ter sido gravada no usuário (o caminho de
+    # erro também redireciona com 302, então é preciso verificar o efeito).
+    user = User.query.filter_by(username=usuario_comum.username).first()
+    assert user.foto_perfil
+    assert user.foto_perfil.lower().endswith(".png")
 
 
-def test_perfil_foto_extensao_invalida(user_client):
-    from io import BytesIO
-
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
+def test_perfil_foto_extensao_invalida(perfil_verificado_client, usuario_comum):
     data = {"foto_perfil": (BytesIO(b"conteudo"), "arquivo.exe")}
-    resp = user_client.post(
+    resp = perfil_verificado_client.post(
         "/perfil/foto", data=data, content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302  # redireciona com flash de erro
+    # Extensão não permitida: nada deve ser gravado no usuário.
+    user = User.query.filter_by(username=usuario_comum.username).first()
+    assert not user.foto_perfil
 
 
-def test_perfil_foto_sem_arquivo(user_client):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-    resp = user_client.post(
+def test_perfil_foto_sem_arquivo(perfil_verificado_client, usuario_comum):
+    resp = perfil_verificado_client.post(
         "/perfil/foto", data={}, content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302
+    user = User.query.filter_by(username=usuario_comum.username).first()
+    assert not user.foto_perfil
 
 
 # --- Recuperação de senha ---------------------------------------------------
@@ -185,13 +191,18 @@ def test_forgot_password_username_vazio(client, db_session):
 
 
 def test_forgot_password_cria_chamado(client, db_session, criar_usuario):
-    criar_usuario(username="esqueci")
+    user = criar_usuario(username="esqueci")
     resp = client.post(
         "/forgot-password",
         data={"username": "esqueci", "mensagem": "Esqueci minha senha"},
         follow_redirects=False,
     )
     assert resp.status_code == 302
+    # Deve ter sido aberto um chamado de redefinição para o usuário (o caminho de
+    # username vazio/inexistente também devolve 302 com a mesma mensagem genérica).
+    chamada = Chamada.query.filter_by(id_usuario=user.id).first()
+    assert chamada is not None
+    assert "Esqueci minha senha" in chamada.mensagem
 
 
 # --- Arquivos do usuário ----------------------------------------------------
@@ -210,15 +221,11 @@ def test_download_arquivo_inexistente(user_client):
 # --- Perfil já verificado ---------------------------------------------------
 
 
-def test_perfil_get_verificado(user_client):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-    resp = user_client.get("/perfil")
+def test_perfil_get_verificado(perfil_verificado_client):
+    resp = perfil_verificado_client.get("/perfil")
     assert resp.status_code == 200
 
 
-def test_perfil_senha_get_verificado(user_client):
-    with user_client.session_transaction() as sess:
-        sess["perfil_verified"] = True
-    resp = user_client.get("/perfil/senha")
+def test_perfil_senha_get_verificado(perfil_verificado_client):
+    resp = perfil_verificado_client.get("/perfil/senha")
     assert resp.status_code == 200

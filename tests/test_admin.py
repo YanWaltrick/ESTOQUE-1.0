@@ -11,10 +11,7 @@ import pytest
 
 from app.models import DocumentoUsuario, TermoEntrega, User
 
-
-@pytest.fixture()
-def admin_user(db_session):
-    return User.query.filter_by(username="admin").first()
+# O fixture `admin_user` vem do `conftest.py` (compartilhado com test_api.py).
 
 
 # --- RBAC -------------------------------------------------------------------

@@ -5,14 +5,7 @@ endpoints e o RBAC. Produtos/chamadas são criados pela própria API para manter
 a consistência com a instância de serviço usada pelas views.
 """
 
-import pytest
-
-from app.models import User
-
-
-@pytest.fixture()
-def admin_user(db_session):
-    return User.query.filter_by(username="admin").first()
+# O fixture `admin_user` vem do `conftest.py` (compartilhado com test_admin.py).
 
 
 # --- Produtos: CRUD ---------------------------------------------------------
@@ -386,8 +379,11 @@ def test_resetar_senha_api_senhas_divergentes(auth_client, criar_usuario):
 
 
 def test_get_users_anonimo_401(client):
+    """Requisição anônima a uma rota de API recebe 401 JSON (não redirect HTML)."""
     resp = client.get("/api/users")
-    assert resp.status_code in (401, 302)
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert "error" in resp.get_json()
 
 
 def test_entrada_produto_inexistente(auth_client):

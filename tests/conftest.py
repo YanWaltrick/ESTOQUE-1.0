@@ -164,20 +164,27 @@ from app.models import User  # noqa: E402
 # (>=6 chars, maiúscula, minúscula e dígito).
 SENHA_TESTE = "Senha123"
 
+# Hash pré-computado da senha padrão. O KDF (pbkdf2) é deliberadamente lento;
+# computá-lo uma única vez evita repetir o custo em cada usuário criado pela
+# factory (centenas de vezes ao longo da suíte).
+_SENHA_TESTE_HASH = PasswordValidator.hash_password(SENHA_TESTE)
+
 
 @pytest.fixture()
 def criar_usuario(db_session):
     """Factory de usuários de teste com senha já hasheada.
 
     Uso: `user = criar_usuario(username="joao", role="usuario")`. A senha
-    padrão é `SENHA_TESTE`; passe `senha=` para sobrescrever. Demais kwargs são
-    repassados ao construtor de `User` (tipo_contrato, email, empresa, etc.).
+    padrão é `SENHA_TESTE` (hash pré-computado); passe `senha=` para
+    sobrescrever. Demais kwargs são repassados ao construtor de `User`
+    (tipo_contrato, email, empresa, etc.).
     """
 
-    def _criar(username="usuario_teste", senha=SENHA_TESTE, role="usuario", **kwargs):
+    def _criar(username="usuario_teste", senha=None, role="usuario", **kwargs):
+        password = _SENHA_TESTE_HASH if senha is None else PasswordValidator.hash_password(senha)
         user = User(
             username=username,
-            password=PasswordValidator.hash_password(senha),
+            password=password,
             role=role,
             **kwargs,
         )
@@ -186,6 +193,12 @@ def criar_usuario(db_session):
         return user
 
     return _criar
+
+
+@pytest.fixture()
+def admin_user(db_session):
+    """O usuário admin padrão (`admin`) semeado na inicialização do banco."""
+    return User.query.filter_by(username="admin").first()
 
 
 @pytest.fixture()
@@ -205,3 +218,15 @@ def user_client(app, usuario_comum):
     )
     assert response.status_code == 302, "Falha ao autenticar o usuário comum de teste"
     return test_client
+
+
+@pytest.fixture()
+def perfil_verificado_client(user_client):
+    """`user_client` com a reautenticação de perfil já marcada na sessão.
+
+    Evita repetir o bloco `with ... session_transaction()` em cada teste de
+    `/perfil/*` que exige `perfil_verified` na sessão.
+    """
+    with user_client.session_transaction() as sess:
+        sess["perfil_verified"] = True
+    return user_client
