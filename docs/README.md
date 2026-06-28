@@ -19,6 +19,7 @@ A pasta [banco-de-dados/](banco-de-dados/) reúne as decisões de arquitetura de
 | Arquivo | Descrição |
 |---------|-----------|
 | [banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md](banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) | Plano para padronizar MySQL em todos os ambientes (planejado, ainda não implementado). |
+| [banco-de-dados/REVISAO_CODIGO.md](banco-de-dados/REVISAO_CODIGO.md) | Log das revisões de código de scripts e migrações de dados. |
 
 ## Infraestrutura
 

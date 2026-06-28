@@ -31,7 +31,7 @@ flowchart TD
 
     DEC --> SVC["Services<br/>estoque · notification · termo"]
     SVC --> MOD["Models<br/>app/models/__init__.py"]
-    MOD --> DBX[("SQLite (dev)<br/>MySQL (prod)")]
+    MOD --> DBX[("MySQL<br/>dev · teste · prod")]
 
     SVC -.->|e-mail / webhook| EXT["SMTP · Teams · Power Automate"]
     SVC -.->|PDF ReportLab| PDF["Termo de Entrega"]

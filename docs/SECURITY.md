@@ -32,8 +32,8 @@ Este documento descreve as práticas e mecanismos de segurança implementados no
 ## 2. Proteção de Dados
 
 ### Database
-- ✅ **Variáveis de Ambiente**: URL do banco carregada de `DATABASE_URL`
-- ✅ **Suporte MySQL + SQLite**: Flexibilidade de ambiente
+- ✅ **Variáveis de Ambiente**: URL do banco carregada de `DATABASE_URL` (obrigatória)
+- ✅ **MySQL em todos os ambientes**: mesmo dialeto em dev, teste e produção
 - ✅ **Sem SQL Injection**: Uso de SQLAlchemy ORM (queries parametrizadas)
 
 ### Uploads de Arquivos

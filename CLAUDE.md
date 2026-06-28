@@ -20,12 +20,21 @@ flask --app manage db downgrade                # Reverte última migração
 
 ## Configuração de ambiente
 
+**Python 3.13** (fixado em `mise.toml` via [mise](https://mise.jdx.dev/)). Com mise
+instalado, `mise install` provê o interpretador; sem mise, use Python 3.13 manualmente.
+O ambiente virtual (`.venv/`) e as dependências (`pip install -r requirements.txt`)
+seguem normalmente.
+
+**Banco:** o projeto é **100% MySQL** (sem SQLite). Suba o MySQL local com
+`docker compose up -d` (ver `docker-compose.yml`) antes de rodar app ou testes.
+
 Copie `.env.example` para `.env` e preencha os valores. As variáveis obrigatórias para desenvolvimento mínimo:
 
 ```env
 FLASK_ENV=development
 SECRET_KEY=qualquer-chave-para-dev
-# DATABASE_URL não é obrigatório — usa SQLite em instance/estoque.sqlite por padrão
+# DATABASE_URL é OBRIGATÓRIA (MySQL). Para o container local:
+DATABASE_URL=mysql+pymysql://estoque:estoque123@127.0.0.1:3306/estoque_db?charset=utf8mb4
 ```
 
 Para produção, `SECRET_KEY` é obrigatória (levanta `RuntimeError` se ausente com `FLASK_ENV != development`).
@@ -92,8 +101,10 @@ A função `can_perform(permission)`, `get_user_permissions()` e o dict `ROLES_P
 
 ### Banco de dados
 
-- **Desenvolvimento:** SQLite em `instance/estoque.sqlite` (padrão automático)
-- **Produção:** MySQL via `DATABASE_URL=mysql+pymysql://...`
+**MySQL em todos os ambientes** (dev, teste, produção) — SQLite foi removido. `DATABASE_URL` é obrigatória (ver `docs/banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md`).
+
+- **Dev/teste:** MySQL via container (`docker compose up -d`). Bancos `estoque_db` (dev) e `estoque_test` (testes).
+- **Produção:** MySQL gerenciado (Azure) via `DATABASE_URL=mysql+pymysql://...`.
 - O sistema aplica migrations do Alembic na inicialização. Colunas ausentes em tabelas existentes são adicionadas por `_ensure_schema_columns()` como fallback manual.
 - O banco é sempre inicializado pelo código da aplicação (`init_database()` na criação da app).
 
@@ -136,9 +147,10 @@ A documentação fica em `docs/` (índice em `docs/README.md`): `ANALISE_CLT_PJ.
 
 ### Testes
 
-Suíte de testes automatizados com **pytest**, em `tests/`. Rodar a partir da raiz:
+Suíte de testes automatizados com **pytest**, em `tests/`. **Pré-requisito:** o MySQL precisa estar de pé (`docker compose up -d`) — os testes usam o banco `estoque_test`. Rodar a partir da raiz:
 
 ```bash
+docker compose up -d                  # MySQL local (dev + estoque_test)
 pip install -r requirements-dev.txt   # pytest + pytest-cov
 pytest                                # roda toda a suíte
 pytest --cov=app                      # com cobertura
@@ -146,8 +158,8 @@ pytest --cov=app                      # com cobertura
 
 **Padrão (o `tests/conftest.py` é a fonte da verdade — reutilize as fixtures dele):**
 
-- `app` (escopo de sessão) — instância criada com `create_app()` sobre um SQLite temporário. O banco de teste é selecionado definindo `DATABASE_URL` em variável de ambiente **antes** de importar a aplicação (a URL é resolvida no import de `app/database.py`); `WTF_CSRF_ENABLED=False` para permitir POSTs.
-- `db_session` — isola cada teste em uma transação revertida ao final (savepoint via `join_transaction_mode`). Use em qualquer teste que escreva no banco.
+- `app` (escopo de sessão) — instância criada com `create_app()` sobre o MySQL `estoque_test`. O banco de teste é selecionado definindo `DATABASE_URL` (sobrescrevível por `TEST_DATABASE_URL`) **antes** de importar a aplicação (a URL é resolvida no import de `app/database.py`); `WTF_CSRF_ENABLED=False` para permitir POSTs.
+- `db_session` — isola cada teste em uma transação externa revertida ao final. Use em qualquer teste que escreva no banco.
 - `client` — `test_client()` sem autenticação.
 - `auth_client` — `test_client()` já logado como o admin padrão (`admin`/`admin`).
 

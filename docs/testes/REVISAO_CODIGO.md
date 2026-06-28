@@ -5,7 +5,56 @@
 > escopo, achados e o destino de cada achado (corrigido ou virou item no
 > [ROADMAP](ROADMAP.md)).
 >
-> **Última atualização:** 2026-06-27 — branch `feature/implementacao-testes`
+> **Última atualização:** 2026-06-27 — revisão `xhigh` com correções aplicadas
+
+---
+
+## 2026-06-27 — Revisão `xhigh` do fork + correções aplicadas
+
+**Escopo:** diff do fork desde o merge do upstream (`1e577a0..HEAD`) — além dos
+testes, os scripts movidos para `scripts/`. A maior parte do diff é documentação;
+o foco foi o código com risco real.
+
+**Método:** `/code-review xhigh` (recall) com **verificação empírica**: a suíte foi
+de fato executada (`.venv` + `requirements-dev.txt`) e cada achado foi reproduzido
+com um teste descartável **antes** de corrigir.
+
+**Resultado:** 3 defeitos confirmados, **todos corrigidos nesta tarefa**. O achado
+X1 reabre e **corrige o diagnóstico** do achado R1 da revisão `high` anterior.
+
+### Achados e correções
+
+| # | Severidade | Verificação | Local | Correção |
+|---|-----------|-------------|-------|----------|
+| X1 | 🔴 Alta | CONFIRMADO (reproduzido) | `tests/conftest.py` (`db_session`) | Receita oficial do Flask-SQLAlchemy (troca engine→conexão) |
+| X2 | 🟠 Média | CONFIRMADO (reproduzido) | `tests/test_entra_id.py` via `pytest.ini` | `collect_ignore` no `conftest.py` |
+| X3 | 🔴 Alta | CONFIRMADO (reproduzido) | `scripts/migrate_docs_to_db.py` | Ver [revisão de banco-de-dados](../banco-de-dados/REVISAO_CODIGO.md) |
+
+**X1 — `db_session` não isolava de verdade (corrige o diagnóstico de R1).**
+A revisão `high` anterior (R1) previu `StatementError` por *bind* global apontando
+para conexão fechada. A reprodução empírica revelou um sintoma **diferente e pior**:
+`_db.session.configure(bind=...)` é **ignorado** pelo Flask-SQLAlchemy 3.x — seu
+`get_bind` resolve o engine padrão por `engines[None]` e nunca chega ao
+`super().get_bind()` que honraria o *bind* da sessão. Logo, os `commit()` dos testes
+iam direto ao SQLite e **vazavam entre testes** (provado: um usuário criado em um
+teste aparecia no seguinte). A suíte passava só porque nenhum smoke test dependia do
+isolamento. **Correção:** adotada a receita oficial do FSQLA 3.1 (*join an external
+transaction*) — cada engine é substituída por uma conexão com transação aberta no
+dicionário `engines` e restaurada no teardown. Validado com sonda
+(escreve-em-um-teste → ausente-no-seguinte), agora verde.
+
+**X2 — `tests/test_entra_id.py` era importado pela coleta do pytest.**
+Com `testpaths = tests` e `python_files = test_*.py`, o pytest importava o smoke
+legado durante a coleta, executando seu corpo de módulo (`create_app()` + banner) e,
+em caso de erro, `exit(1)` — contrariando o `CLAUDE.md`, que diz que ele deve rodar
+só via `python tests/test_entra_id.py`. Provado com `pytest -s` (o banner aparecia na
+saída). **Correção:** `collect_ignore = ["test_entra_id.py"]` no `conftest.py`.
+Continua executável standalone e deixa de poluir/abortar a suíte. A migração completa
+para pytest segue pendente no [ROADMAP #6](ROADMAP.md#6-migrar-smoke-test-legado-do-entra-id-para-pytest).
+
+**X3 — script de migração de documentos não rodava.** Regressão de path introduzida
+pelo *move* para `scripts/` somada a uma colisão de tabela pré-existente. Detalhe e
+correção na [revisão de banco-de-dados](../banco-de-dados/REVISAO_CODIGO.md).
 
 ---
 

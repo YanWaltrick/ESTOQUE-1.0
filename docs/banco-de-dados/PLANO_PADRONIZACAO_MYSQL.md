@@ -1,9 +1,10 @@
 # Plano: Padronização em MySQL (um dialeto em todos os ambientes)
 
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
-> **Status geral:** 🔴 Planejado — **NÃO implementado** (decisão explícita de só documentar por ora).
+> **Status geral:** 🟡 Em implementação — E1/E2/E4/E6 aplicados (verificação da suíte
+> contra MySQL pendente até o container subir); E3/E5/E7 pendentes; E8 parcial.
 >
-> **Última atualização:** 2026-06-27 — branch `feature/implementacao-testes`
+> **Última atualização:** 2026-06-27 — remoção do SQLite (100% MySQL)
 
 ---
 
@@ -54,14 +55,23 @@ introduzir PostgreSQL.
 | ID | Pendência | Prioridade | Status |
 |----|-----------|-----------|--------|
 | PEND-1 | **Descobrir a versão exata do MySQL no Azure** (`SELECT VERSION();`, `SELECT @@sql_mode;`, collation) | 🔺 Alta | 🔴 Pendente |
-| PEND-2 | **Implementar o container Docker** (`docker-compose.yml` + conftest apontando para MySQL) | 🔺 Alta | 🔴 Pendente (adiado por decisão) |
+| PEND-2 | **Implementar o container Docker** (`docker-compose.yml` + conftest apontando para MySQL) | 🔺 Alta | 🟢 Feito (`docker-compose.yml` + `conftest`→`estoque_test`) |
 
 **PEND-1 — versão do Azure desconhecida.** Não temos a versão/`sql_mode`/collation
-que a Azure roda. **Decisão provisória:** o plano assume `mysql:8.0` como padrão
-sensato (placeholder). Ao descobrir a versão real, ajustar o pin no
-`docker-compose.yml` e nesta tabela. Onde verificar: Azure Portal → recurso MySQL →
-*Overview / Server version*, ou rodar `SELECT VERSION();` / `SELECT @@sql_mode;` no
-banco de produção.
+que a Azure roda. **Estado atual:** o `docker-compose.yml` já está **pinado em
+`mysql:8.0`** como placeholder sensato (e os drivers — `pymysql 1.1.1` +
+`cryptography` — suportam o `caching_sha2_password` do MySQL 8). Ao descobrir a
+versão real, **trocar pelo patch exato** (ex.: `mysql:8.0.39`) no `docker-compose.yml`
+e nesta tabela, e alinhar `sql_mode`/collation. Como verificar — rodar no banco de
+**produção** (Azure):
+
+```sql
+SELECT VERSION();
+SELECT @@sql_mode;
+SELECT @@collation_server;
+```
+
+Ou no Azure Portal → recurso MySQL → *Overview / Server version*.
 
 **PEND-2 — Docker adiado.** A decisão atual é **documentar, não implementar**. O
 container MySQL e a troca do `conftest.py` para MySQL **não serão feitos agora**;
@@ -70,31 +80,39 @@ ficam registrados aqui como próximo passo quando o plano for retomado. Usar
 
 ---
 
-## 4. Plano de execução (quando retomado)
+## 4. Plano de execução
 
-Todas as etapas estão 🔴 Pendentes — nenhuma implementada.
-
-- [ ] **E1. Container MySQL versionado.** `docker-compose.yml` na raiz com MySQL
-      **pinado** à versão do Azure (placeholder `mysql:8.0` até PEND-1), `sql_mode`
-      e collation iguais aos de prod. Banco de teste dedicado (`estoque_test`).
-- [ ] **E2. `conftest.py` → MySQL.** `DATABASE_URL` de teste apontando para o
-      container; fixture `db_session` com transação externa real (resolve o
-      isolamento de verdade, sem o workaround do pysqlite).
-- [ ] **E3. Teste de isolamento.** Teste que escreve no banco e confirma rollback —
-      prova empírica de que o isolamento funciona (hoje não exercitado).
-- [ ] **E4. Corrigir `LargeBinary` → `LONGBLOB`** no modelo `DocumentoArquivo`
-      (`app/models/__init__.py`), evitando truncamento silencioso de documentos
-      > 64 KB no MySQL.
+- [x] **E1. Container MySQL versionado.** `docker-compose.yml` na raiz com MySQL
+      pinado (`mysql:8.0` até PEND-1), `sql_mode` e collation `utf8mb4`. Banco de
+      teste dedicado (`estoque_test`) via `scripts/mysql-init/01-init.sql`.
+- [x] **E2. `conftest.py` → MySQL.** `DATABASE_URL` de teste aponta para
+      `estoque_test` (sobrescrevível por `TEST_DATABASE_URL`); `db_session` usa a
+      receita de transação externa (já agnóstica de dialeto).
+- [ ] **E3. Teste de isolamento.** Sonda existe (validada no SQLite); falta
+      promovê-la a teste permanente e confirmar contra o MySQL.
+- [x] **E4. `LargeBinary` → `LONGBLOB`** no modelo `DocumentoArquivo`
+      (`app/models/__init__.py`). *Obs.:* `create_all` aplica em bancos novos; um
+      banco já existente exige migration `ALTER TABLE ... MODIFY content LONGBLOB`.
 - [ ] **E5. Matar `_ensure_schema_columns`.** Mover as colunas para uma migration
       Alembic versionada e remover o fallback de `ALTER TABLE` no boot
       (`app/__init__.py`).
-- [ ] **E6. Remover o SQLite.** Atualizar `database.py` (sem fallback SQLite),
-      `requirements*` se aplicável, e a documentação de onboarding. Definir como os
-      devs sobem o MySQL local (`docker compose up`).
+- [x] **E6. Remover o SQLite.** `database.py` exige `DATABASE_URL` (sem fallback),
+      `connect_args` de SQLite removido, `migrations/{alembic.ini,env.py}` sem
+      SQLite, `.env*` e docs de onboarding atualizados.
 - [ ] **E7. Gate de CI.** Job no GitHub Actions com `services: mysql` rodando
       `pytest` e bloqueando merge/deploy em caso de falha.
-- [ ] **E8. Atualizar docs vivos.** `CLAUDE.md`, `docs/testes/README.md` e os
-      ROADMAPs refletindo o novo padrão; marcar etapas como 🟢 conforme concluídas.
+- [~] **E8. Atualizar docs vivos.** `CLAUDE.md`, `PLANO`, `docs/testes/*`,
+      `ARQUITETURA.md`, `SECURITY.md` atualizados. Concluir conforme E3/E5/E7.
+- [ ] **E9. Limpeza de dependências.** `mysql-connector-python` no `requirements.txt`
+      **não é usado** (o driver real é `pymysql`); remover após confirmar que nenhum
+      ambiente/serviço depende dele.
+- [ ] **E10. `LONGBLOB` em bancos existentes.** `create_all` (E4) só afeta bancos
+      novos. Em um banco já existente (ex.: produção), aplicar
+      `ALTER TABLE documentos_arquivos MODIFY content LONGBLOB;` via migration Alembic
+      versionada — senão a coluna continua `BLOB` (limite 64 KB) lá.
+
+> ⚠️ **Verificação pendente:** rodar `flask --app manage db upgrade` + `pytest`
+> contra o container MySQL (não feito ainda — o container precisa estar de pé).
 
 ---
 

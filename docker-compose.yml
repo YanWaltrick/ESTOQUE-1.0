@@ -1,0 +1,36 @@
+# MySQL local para desenvolvimento e testes (padronização — ver
+# docs/banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md).
+#
+# Subir:   docker compose up -d
+# Parar:   docker compose down            (dados preservados no volume)
+# Zerar:   docker compose down -v         (apaga o volume / banco)
+services:
+  mysql:
+    # PEND-1: trocar por o patch EXATO do Azure (ex.: mysql:8.0.39) quando souber
+    # a versão de produção (SELECT VERSION();). Pinar o patch, não floutar "8.0".
+    image: mysql:8.0
+    container_name: estoque-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: senha123
+      MYSQL_DATABASE: estoque_db          # banco de desenvolvimento
+      MYSQL_USER: estoque                 # usuário de aplicação (não-root)
+      MYSQL_PASSWORD: estoque123
+    command:
+      # Fidelidade com o Azure (ajustar para os valores reais de produção):
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --sql-mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+    volumes:
+      - estoque-mysql-data:/var/lib/mysql
+      - ./scripts/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-psenha123"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  estoque-mysql-data:

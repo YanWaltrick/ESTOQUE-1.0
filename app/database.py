@@ -9,26 +9,28 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Configuração do banco de dados
-# Suporta MySQL (mysql+pymysql), SQLite local e URL customizada
+# O projeto é padronizado em MySQL (mysql+pymysql) em TODOS os ambientes
+# (dev, teste, produção). Ver docs/banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md.
 def get_database_url():
-    """Obtem URL do banco.
+    """Obtém a URL do banco a partir de DATABASE_URL.
 
-    Suporta MySQL e SQLite. Se DATABASE_URL não estiver definida,
-    usa SQLite por padrão.
+    O projeto usa MySQL em todos os ambientes. `DATABASE_URL` é obrigatória — não
+    há mais fallback para SQLite. Em dev/teste, suba o MySQL via
+    `docker compose up` (ver docker-compose.yml).
     """
     db_url = os.getenv('DATABASE_URL')
 
     if not db_url:
-        # Não usar credenciais codificadas: por padrão, usar SQLite local
-        # para desenvolvimento. Para produção, defina a variável
-        # de ambiente DATABASE_URL explicitamente (ex: mysql+pymysql://user:pass@host/db).
-        db_url = 'sqlite:///./instance/estoque.sqlite'
+        raise RuntimeError(
+            'DATABASE_URL não definida. Configure-a (ex.: '
+            'mysql+pymysql://estoque:estoque123@127.0.0.1:3306/estoque_db). '
+            'Em dev/teste, suba o MySQL com `docker compose up`.'
+        )
 
     # Normaliza URLs MySQL sem driver explícito para usar PyMySQL
     if db_url.startswith('mysql://'):
         db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
 
-    # Aceita MySQL, SQLite ou outros drivers explícitos.
     return db_url
 
 DATABASE_URL = get_database_url()
@@ -55,7 +57,8 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'connect_args': {'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
+        'pool_pre_ping': True,   # detecta conexões MySQL ociosas/derrubadas
+        'pool_recycle': 280,     # recicla antes do wait_timeout padrão do MySQL
     }
 
     # Cookies de sessão seguros (não forçar em development para facilitar testes locais)
