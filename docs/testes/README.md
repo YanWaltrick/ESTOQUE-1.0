@@ -76,6 +76,13 @@ Todo teste novo reutiliza as fixtures dele em vez de montar a própria app ou ba
 | `db_session` | função | Isola o teste em transação externa revertida ao final |
 | `client` | função | `test_client()` sem autenticação |
 | `auth_client` | função | `test_client()` já logado como admin padrão (`admin`/`admin`) |
+| `criar_usuario` | função | Factory de usuário de teste com senha conhecida (`SENHA_TESTE`); demais kwargs vão para o construtor de `User` |
+| `usuario_comum` | função | Um usuário `role='usuario'` persistido para o teste |
+| `user_client` | função | `test_client()` logado como o `usuario_comum` (para testar RBAC/fluxos de não-admin) |
+
+> Há ainda o fixture autouse `_limpar_uploads_de_teste` (escopo de sessão), que
+> remove os arquivos gravados em `static/uploads/` pelos testes de upload/PDF —
+> nenhum teste precisa invocá-lo.
 
 **Decisões de arquitetura relevantes:**
 
