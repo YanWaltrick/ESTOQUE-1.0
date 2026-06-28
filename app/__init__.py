@@ -200,12 +200,7 @@ def init_database():
     print("Sistema de Estoque - Inicializando...")
     print("="*60)
     from .database import DATABASE_URL
-    if "mysql" in DATABASE_URL:
-        db_type = "MySQL"
-    elif "sqlite" in DATABASE_URL:
-        db_type = "SQLite"
-    else:
-        db_type = "Desconhecido"
+    db_type = "MySQL" if "mysql" in DATABASE_URL else "Desconhecido"
     print(f"Banco de dados: {db_type}")
     print("="*60 + "\n")
 

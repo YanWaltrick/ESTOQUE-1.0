@@ -1,6 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from app.database import db
 from flask_login import UserMixin
+from sqlalchemy.dialects.mysql import LONGBLOB
 
 
 def now_gmt3():
@@ -389,7 +390,9 @@ class DocumentoArquivo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(255), nullable=False, index=True)
-    content = db.Column(db.LargeBinary, nullable=False)
+    # LONGBLOB (até 4 GB) em vez de LargeBinary/BLOB (64 KB no MySQL), evitando
+    # truncamento silencioso de documentos grandes.
+    content = db.Column(LONGBLOB, nullable=False)
     mime_type = db.Column(db.String(100), nullable=True)
     size = db.Column(db.Integer, nullable=True)
     uploaded_at = db.Column(db.DateTime, default=now_gmt3)

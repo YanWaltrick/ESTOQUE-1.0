@@ -30,11 +30,14 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = os.environ.get(
-        "DATABASE_URL",
-        "mysql+pymysql://root:senha123@localhost:3306/estoque_db"
-    )
-    
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError(
+            "DATABASE_URL não definida — necessária para as migrações (MySQL). "
+            "Suba o banco com `docker compose up` e defina DATABASE_URL no .env."
+        )
+    configuration["sqlalchemy.url"] = db_url
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
