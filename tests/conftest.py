@@ -33,6 +33,12 @@ os.environ.setdefault("SECRET_KEY", "chave-de-teste")
 from app import create_app  # noqa: E402
 from app.database import db as _db  # noqa: E402
 
+# `tests/test_entra_id.py` é um smoke legado baseado em `print`, executável só
+# via `python tests/test_entra_id.py` (ver CLAUDE.md). Não tem funções `test_*`
+# e seu corpo de módulo chama `create_app()`/`exit(1)` no import — então é
+# ignorado pela coleta do pytest para não rodar esses efeitos colaterais.
+collect_ignore = ["test_entra_id.py"]
+
 
 @pytest.fixture(scope="session")
 def app():
@@ -52,28 +58,37 @@ def app():
 
 @pytest.fixture()
 def db_session(app):
-    """Isola cada teste em uma transação revertida ao final.
+    """Isola cada teste em uma transação externa revertida ao final.
 
-    Liga a sessão do Flask-SQLAlchemy a uma conexão com transação externa.
-    `join_transaction_mode="create_savepoint"` faz com que commits dentro do
-    teste virem savepoints, desfeitos pelo rollback final — nada vaza entre
-    testes nem persiste no banco.
+    Segue a receita oficial do Flask-SQLAlchemy para *join an external
+    transaction*: cada engine é temporariamente substituída por uma conexão
+    com transação aberta. Isso é necessário porque o `get_bind` do
+    Flask-SQLAlchemy resolve o engine padrão direto via `engines[None]` e
+    **ignora** `Session.configure(bind=...)`; só trocando a entrada do
+    dicionário de engines é que TODO o trabalho da sessão — inclusive commits,
+    que viram savepoints — passa a rodar dentro da transação e é desfeito pelo
+    rollback final. As engines originais são restauradas no teardown.
     """
     with app.app_context():
-        connection = _db.engine.connect()
-        transaction = connection.begin()
+        engines = _db.engines
+        originais = dict(engines)
+        conexoes = []
+        for key, engine in originais.items():
+            connection = engine.connect()
+            transaction = connection.begin()
+            engines[key] = connection
+            conexoes.append((connection, transaction))
 
-        _db.session.remove()
-        _db.session.configure(
-            bind=connection,
-            join_transaction_mode="create_savepoint",
-        )
-
-        yield _db.session
-
-        _db.session.remove()
-        transaction.rollback()
-        connection.close()
+        _db.session.remove()  # garante sessão nova ligada à conexão
+        try:
+            yield _db.session
+        finally:
+            _db.session.remove()
+            for connection, transaction in conexoes:
+                if transaction.is_active:
+                    transaction.rollback()
+                connection.close()
+            engines.update(originais)
 
 
 @pytest.fixture()
