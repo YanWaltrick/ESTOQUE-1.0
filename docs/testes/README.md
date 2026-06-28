@@ -21,12 +21,30 @@ código fica em [`REVISAO_CODIGO.md`](REVISAO_CODIGO.md).
 |------|--------|
 | Framework de testes (`pytest`) configurado | 🟢 Concluído |
 | Fixtures base (`conftest.py`) — app, banco isolado, client autenticado | 🟢 Concluído |
+| Fixtures auxiliares (`criar_usuario`, `usuario_comum`, `user_client`) | 🟢 Concluído |
 | Testes de fumaça do fluxo de login | 🟢 Concluído (4 testes) |
+| Cobertura das rotas/serviços | 🟢 **76%** (289 testes) |
 | Gate de CI rodando `pytest` | 🔴 Pendente — ver [ROADMAP](ROADMAP.md#1-gate-de-ci) |
-| Cobertura das rotas críticas | 🔴 Pendente — ver [ROADMAP](ROADMAP.md#2-cobertura-das-rotas-de-maior-risco) |
 
-Cobertura atual: apenas o caminho de autenticação (login/redirect). O restante da
-aplicação ainda **não** tem testes.
+**Cobertura atual: 76%** (`pytest --cov=app`), partindo de 22%. A suíte cobre os
+modelos, os serviços (estoque, notificações, geração de PDF do termo), as rotas
+JSON (`/api`), administrativas (`/admin`), de autenticação/perfil e a integração
+Entra ID (caminhos de erro). Os fluxos de maior risco do
+[ROADMAP](ROADMAP.md#2-cobertura-das-rotas-de-maior-risco) — bloqueio por força
+bruta, RBAC, geração do Termo (CLT/PJ), estoque e API — estão cobertos.
+
+> **Achados durante a escrita dos testes** (corrigidos na mesma branch):
+> - **Bug de bloqueio por força bruta:** `User.pode_tentar_login`/`is_active`/
+>   `minutos_ate_desbloqueio` comparavam `datetime` *aware* (GMT-3) com o valor
+>   *naive* lido do MySQL, levantando `TypeError` — qualquer login de conta já
+>   bloqueada dava erro 500. Corrigido com `_garantir_aware_gmt3` em `app/models`.
+> - **Bug de status HTTP na API:** em `criar_usuario_api`, a validação de e-mail
+>   retornava `jsonify({...}, 400)` (status 200, corpo malformado) em vez de
+>   `jsonify({...}), 400`. Corrigido.
+> - **Rotas órfãs:** `/admin/dashboard` e `/admin/audit-log` referenciam templates
+>   inexistentes (`admin/dashboard.html`, `admin/audit_log.html`) e não têm links;
+>   levantam `TemplateNotFound`. Documentado nos testes; remoção/implementação
+>   pendente (ver [ROADMAP](ROADMAP.md)).
 
 ---
 
@@ -58,6 +76,13 @@ Todo teste novo reutiliza as fixtures dele em vez de montar a própria app ou ba
 | `db_session` | função | Isola o teste em transação externa revertida ao final |
 | `client` | função | `test_client()` sem autenticação |
 | `auth_client` | função | `test_client()` já logado como admin padrão (`admin`/`admin`) |
+| `criar_usuario` | função | Factory de usuário de teste com senha conhecida (`SENHA_TESTE`); demais kwargs vão para o construtor de `User` |
+| `usuario_comum` | função | Um usuário `role='usuario'` persistido para o teste |
+| `user_client` | função | `test_client()` logado como o `usuario_comum` (para testar RBAC/fluxos de não-admin) |
+
+> Há ainda o fixture autouse `_limpar_uploads_de_teste` (escopo de sessão), que
+> remove os arquivos gravados em `static/uploads/` pelos testes de upload/PDF —
+> nenhum teste precisa invocá-lo.
 
 **Decisões de arquitetura relevantes:**
 

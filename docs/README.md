@@ -39,6 +39,14 @@ A pasta [testes/](testes/) reúne a estratégia de testes automatizados (pytest)
 | [testes/ROADMAP.md](testes/ROADMAP.md) | Pendências e próximos passos priorizados (documento vivo). |
 | [testes/REVISAO_CODIGO.md](testes/REVISAO_CODIGO.md) | Log das revisões de código da área de testes. |
 
+## Segurança
+
+A pasta [seguranca/](seguranca/) reúne features e decisões de segurança da aplicação:
+
+| Arquivo | Descrição |
+|---------|-----------|
+| [seguranca/CHAMADO_AUTOMATICO_FORCA_BRUTA.md](seguranca/CHAMADO_AUTOMATICO_FORCA_BRUTA.md) | Feature planejada: abrir chamado automático aos admins quando uma conta é bloqueada por força bruta (doc inicial). |
+
 ## Integração Microsoft Entra ID
 
 A pasta [entra-id/](entra-id/) reúne tudo sobre o login corporativo via Microsoft Entra ID:

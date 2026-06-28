@@ -20,6 +20,7 @@ Pontos-chave da arquitetura de teste:
   (`db_session`), garantindo isolamento sem recriar o banco a cada teste.
 """
 
+import glob
 import os
 
 import pytest
@@ -43,6 +44,44 @@ from app.database import db as _db  # noqa: E402
 # e seu corpo de módulo chama `create_app()`/`exit(1)` no import — então é
 # ignorado pela coleta do pytest para não rodar esses efeitos colaterais.
 collect_ignore = ["test_entra_id.py"]
+
+
+# Subpastas de upload tocadas pelos testes (foto de perfil, documentos, fotos de
+# equipamento e PDFs de termo). Os caminhos são relativos à raiz do projeto, que
+# é o diretório-pai de `tests/`.
+_UPLOAD_SUBDIRS = [
+    os.path.join("static", "uploads", "avatars"),
+    os.path.join("static", "uploads", "documentos"),
+    os.path.join("static", "uploads", "chamadas"),
+    os.path.join("static", "uploads", "termos"),
+    os.path.join("static", "uploads", "documentos", "termos"),
+]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _limpar_uploads_de_teste():
+    """Remove arquivos que os testes gravam em `static/uploads/`.
+
+    Vários testes exercitam upload de foto/documento e geração de PDF do termo,
+    que escrevem em disco **fora** da transação de banco (revertida pelo
+    `db_session`). Para não poluir o working tree, tiramos um snapshot do que já
+    existia e, ao fim da sessão, removemos apenas os arquivos novos — preservando
+    qualquer upload legado versionado.
+    """
+    raiz = os.path.dirname(os.path.dirname(__file__))
+    antes = set()
+    for sub in _UPLOAD_SUBDIRS:
+        antes.update(glob.glob(os.path.join(raiz, sub, "*")))
+
+    yield
+
+    for sub in _UPLOAD_SUBDIRS:
+        for caminho in glob.glob(os.path.join(raiz, sub, "*")):
+            if caminho not in antes and os.path.isfile(caminho):
+                try:
+                    os.remove(caminho)
+                except OSError:
+                    pass
 
 
 @pytest.fixture(scope="session")
@@ -112,4 +151,57 @@ def auth_client(app, db_session):
     )
     # Login bem-sucedido redireciona (302); falha re-renderiza o form (200).
     assert response.status_code == 302, "Falha ao autenticar o admin de teste"
+    return test_client
+
+
+# --- Fixtures auxiliares para os testes de cobertura -------------------------
+# Importadas aqui (após a configuração de ambiente acima) para criar usuários de
+# teste com senha conhecida e clientes autenticados como usuário comum.
+from app.auth.security import PasswordValidator  # noqa: E402
+from app.models import User  # noqa: E402
+
+# Senha padrão usada pelos usuários de teste — atende ao PasswordValidator
+# (>=6 chars, maiúscula, minúscula e dígito).
+SENHA_TESTE = "Senha123"
+
+
+@pytest.fixture()
+def criar_usuario(db_session):
+    """Factory de usuários de teste com senha já hasheada.
+
+    Uso: `user = criar_usuario(username="joao", role="usuario")`. A senha
+    padrão é `SENHA_TESTE`; passe `senha=` para sobrescrever. Demais kwargs são
+    repassados ao construtor de `User` (tipo_contrato, email, empresa, etc.).
+    """
+
+    def _criar(username="usuario_teste", senha=SENHA_TESTE, role="usuario", **kwargs):
+        user = User(
+            username=username,
+            password=PasswordValidator.hash_password(senha),
+            role=role,
+            **kwargs,
+        )
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    return _criar
+
+
+@pytest.fixture()
+def usuario_comum(criar_usuario):
+    """Um usuário comum (role='usuario') persistido para o teste."""
+    return criar_usuario(username="usuario_comum", role="usuario")
+
+
+@pytest.fixture()
+def user_client(app, usuario_comum):
+    """Cliente HTTP autenticado como um usuário comum (não admin)."""
+    test_client = app.test_client()
+    response = test_client.post(
+        "/login",
+        data={"username": usuario_comum.username, "password": SENHA_TESTE},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302, "Falha ao autenticar o usuário comum de teste"
     return test_client

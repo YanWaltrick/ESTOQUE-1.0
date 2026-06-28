@@ -9,6 +9,20 @@ def now_gmt3():
     return datetime.now(timezone(timedelta(hours=-3)))
 
 
+def _garantir_aware_gmt3(dt):
+    """Reanexa o fuso GMT-3 a um datetime que voltou *naive* do banco.
+
+    O MySQL armazena `DATETIME` sem fuso. Valores gravados via `now_gmt3()`
+    (offset-aware) voltam da leitura como *naive*, representando o horário em
+    GMT-3. Compará-los direto com `now_gmt3()` levanta
+    `TypeError: can't compare offset-naive and offset-aware datetimes`.
+    Este helper torna a comparação robusta sem alterar o instante representado.
+    """
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone(timedelta(hours=-3)))
+    return dt
+
+
 class User(db.Model, UserMixin):
     """Modelo para usuários do sistema com RBAC (Role-Based Access Control)"""
     __tablename__ = 'users'
@@ -102,7 +116,8 @@ class User(db.Model, UserMixin):
         
         # Verificar se está bloqueado temporariamente
         if self.bloqueado_ate:
-            if datetime.now(timezone(timedelta(hours=-3))) < self.bloqueado_ate:
+            bloqueado_ate = _garantir_aware_gmt3(self.bloqueado_ate)
+            if datetime.now(timezone(timedelta(hours=-3))) < bloqueado_ate:
                 return False
             # Se expirou o bloqueio, limpar
             self.bloqueado_ate = None
@@ -137,7 +152,7 @@ class User(db.Model, UserMixin):
         """Verifica se o usuário pode tentar login (não está bloqueado)"""
         if self.bloqueado_ate:
             agora = datetime.now(timezone(timedelta(hours=-3)))
-            if agora < self.bloqueado_ate:
+            if agora < _garantir_aware_gmt3(self.bloqueado_ate):
                 return False
             # Se expirou, liberar
             self.bloqueado_ate = None
@@ -152,7 +167,7 @@ class User(db.Model, UserMixin):
             return 0
         
         agora = datetime.now(timezone(timedelta(hours=-3)))
-        diferenca = self.bloqueado_ate - agora
+        diferenca = _garantir_aware_gmt3(self.bloqueado_ate) - agora
         return max(0, int(diferenca.total_seconds() / 60))
     
     def to_dict(self):

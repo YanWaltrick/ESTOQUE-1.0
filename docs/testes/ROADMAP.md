@@ -3,7 +3,7 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-27 — revisão `xhigh`: item #8 corrigido, #6 mitigado
+> **Última atualização:** 2026-06-28 — item #2 concluído (cobertura 22%→76%); 2 bugs corrigidos; item #10 (rotas órfãs) registrado
 
 Origem da maioria destes itens: veredito do Conselho de LLMs sobre a estratégia de
 testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
@@ -24,7 +24,7 @@ preservado em cada item.
 | # | Item | Prioridade | Status |
 |---|------|-----------|--------|
 | 1 | Gate de CI rodando `pytest` | 🔺 Alta | 🔴 Pendente |
-| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🔴 Pendente |
+| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28, 76% / 289 testes) |
 | 3 | Revalidar isolamento com a 1ª migração Alembic | ▪ Média | 🔴 Pendente |
 | 4 | Estratégia para divergência SQLite (teste) × MySQL (prod) | ▪ Média | 🟢 Decidido → [Plano MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) (teste = MySQL) |
 | 5 | Dívida: `datetime.utcnow()` deprecado em `app/__init__.py` | ▫ Baixa | 🔴 Pendente |
@@ -32,6 +32,7 @@ preservado em cada item.
 | 7 | Skill de scaffold de testes | ▫ Futuro | ⚪ Adiado (condicional) |
 | 8 | `db_session` não isolava (bind ignorado pelo FSQLA) — revisões R1/X1 | 🔺 Alta | ✅ Corrigido (2026-06-27, revisão X1) |
 | 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ✅ Resolvido — SQLite removido (E6); não há mais arquivo temporário |
+| 10 | Rotas órfãs `/admin/dashboard` e `/admin/audit-log` (templates ausentes) | ▪ Média | 🔴 Pendente |
 
 ---
 
@@ -56,25 +57,33 @@ mecanismo que realmente impõe consistência num time pequeno.
 
 ## 2. Cobertura das rotas de maior risco
 
-**Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
+**Prioridade:** 🔺 Alta · **Status:** 🟢 Concluído (2026-06-28)
 
-**Por quê:** com cobertura quase zero, o risco real é **regressão não detectada** nos
-fluxos sensíveis — não a uniformidade de formato dos testes. Priorizar por
-criticidade, não por facilidade.
+**Por quê:** com cobertura quase zero, o risco real era **regressão não detectada**
+nos fluxos sensíveis. A cobertura subiu de **22% → 76%** (289 testes) nesta branch.
 
 **Checklist (ordenado por risco):**
 
-- [ ] **Bloqueio por força bruta:** 5 tentativas falhas → bloqueio de 15 min
-      (`User.pode_tentar_login`, `registrar_login_falho`).
-- [ ] **RBAC:** decorador `@require_role` barra usuário comum em rota de admin
-      (403) e libera admin; `@require_permission` idem.
-- [ ] **Geração do Termo de Entrega (PDF):** `app/services/termo_service.py` gera
-      PDF para CLT e PJ sem erro.
-- [ ] **Estoque:** criar produto e registrar movimentação atualiza o saldo.
-- [ ] **API JSON:** ao menos um endpoint de `api_bp` retorna o JSON esperado.
+- [x] **Bloqueio por força bruta:** 5 tentativas falhas → bloqueio de 15 min
+      (`User.pode_tentar_login`, `registrar_login_falho`). Os testes expuseram e
+      levaram à correção do bug naive/aware (ver Histórico). `tests/test_models.py`,
+      `tests/test_auth_routes.py`.
+- [x] **RBAC:** `@require_role` barra usuário comum em rota admin (403) e libera
+      admin; helpers de permissão testados. `tests/test_decorators.py`,
+      `tests/test_api.py`, `tests/test_admin.py`.
+- [x] **Geração do Termo de Entrega (PDF):** CLT e PJ, termo e aditivo, com e sem
+      equipamentos e com laudo fotográfico. `tests/test_termo_service.py`.
+- [x] **Estoque:** criar produto, entrada/saída e relatórios atualizam o saldo.
+      `tests/test_estoque_service.py`, `tests/test_api.py`.
+- [x] **API JSON:** CRUD de produtos/usuários/chamadas e validações de erro.
+      `tests/test_api.py`.
 
-> Use as fixtures `auth_client` e `db_session` do `conftest.py`. Para testar usuário
-> comum, criar uma fixture/auxiliar de usuário `role='usuario'` quando necessário.
+**Fixtures auxiliares adicionadas ao `conftest.py`:** `criar_usuario` (factory),
+`usuario_comum` e `user_client` (cliente logado como usuário comum) — use-as para
+testar RBAC e fluxos de não-admin.
+
+> Cobertura por área e linhas faltantes: `pytest --cov=app --cov-report=term-missing`.
+> Próximo passo natural: o **gate de CI** (item #1) para travar regressões.
 
 ---
 
@@ -203,8 +212,37 @@ deixou de existir. Não há mais `tempfile`/`os.remove` no `conftest.py`.
 
 ---
 
+## 10. Rotas órfãs `/admin/dashboard` e `/admin/audit-log`
+
+**Prioridade:** ▪ Média · **Status:** 🔴 Pendente · **Origem:** escrita dos testes (2026-06-28)
+
+**Por quê:** ambas as views (`dashboard`, `audit_log` em `app/routes/admin.py`)
+renderizam templates que **não existem** (`admin/dashboard.html`,
+`admin/audit_log.html`) e **nenhum link** aponta para elas — o dashboard real é
+servido por `main.py:/admin`. Acessá-las executa a query e então levanta
+`TemplateNotFound` (erro 500). São código morto que aparenta funcionar.
+
+**Checklist:**
+
+- [ ] Decidir: **remover** as duas rotas (e suas funções) ou **criar** os templates.
+- [ ] Os testes `test_dashboard_rota_orfa_sem_template` /
+      `test_audit_log_rota_orfa_sem_template` (`tests/test_admin.py`) documentam o
+      estado atual — atualizá-los conforme a decisão.
+
+---
+
 ## Histórico (itens concluídos)
 
+- 🟢 **2026-06-28** — Cobertura de testes de 22% → **76%** (289 testes) na branch
+  `feature/aumentar-cobertura-testes`. Novos arquivos: `test_models`,
+  `test_security`, `test_decorators`, `test_logger`, `test_estoque_service`,
+  `test_notification_service`, `test_termo_service`, `test_api`, `test_admin`,
+  `test_auth_routes`, `test_main_routes`, `test_entra`. Fixtures `criar_usuario`/
+  `usuario_comum`/`user_client` no `conftest.py`. **Bugs corrigidos** descobertos
+  pelos testes: (a) comparação naive/aware no bloqueio por força bruta de `User`
+  (erro 500 no login de conta bloqueada); (b) status HTTP em `criar_usuario_api`
+  (`jsonify({...}, 400)` → `jsonify({...}), 400`). **Achado documentado:** rotas
+  órfãs (item #10).
 - 🟢 **2026-06-27** — Revisão `xhigh` com correções aplicadas: #8 (`db_session` agora
   isola de verdade) e #6 mitigado (`collect_ignore` do smoke legado). Ver
   [REVISAO_CODIGO.md](REVISAO_CODIGO.md#2026-06-27--revisão-xhigh-do-fork--correções-aplicadas).
