@@ -611,7 +611,7 @@ def criar_usuario_api():
         if email:
             is_valid_email, email_error = validate_email(email)
             if not is_valid_email:
-                return jsonify({'erro': f'Email inválido: {email_error}'}, 400)
+                return jsonify({'erro': f'Email inválido: {email_error}'}), 400
 
         novo_usuario = User(
             username=username,
