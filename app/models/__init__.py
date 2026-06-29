@@ -1,11 +1,31 @@
 from datetime import datetime, timezone, timedelta
 from app.database import db
 from flask_login import UserMixin
+from sqlalchemy.dialects.mysql import LONGBLOB
+
+
+# Fuso-horário único da aplicação (GMT-3). Fonte de verdade para `now_gmt3()`
+# e para reanexar o fuso a valores naive lidos do banco.
+GMT3 = timezone(timedelta(hours=-3))
 
 
 def now_gmt3():
     """Retorna datetime com fuso-horário GMT-3."""
-    return datetime.now(timezone(timedelta(hours=-3)))
+    return datetime.now(GMT3)
+
+
+def _garantir_aware_gmt3(dt):
+    """Reanexa o fuso GMT-3 a um datetime que voltou *naive* do banco.
+
+    O MySQL armazena `DATETIME` sem fuso. Valores gravados via `now_gmt3()`
+    (offset-aware) voltam da leitura como *naive*, representando o horário em
+    GMT-3. Compará-los direto com `now_gmt3()` levanta
+    `TypeError: can't compare offset-naive and offset-aware datetimes`.
+    Este helper torna a comparação robusta sem alterar o instante representado.
+    """
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=GMT3)
+    return dt
 
 
 class User(db.Model, UserMixin):
@@ -98,18 +118,22 @@ class User(db.Model, UserMixin):
     
     @property
     def is_active(self):
-        """Override de is_active para Flask-Login - verifica se está ativo e desbloqueado"""
+        """Override de is_active para Flask-Login - verifica se está ativo e desbloqueado.
+
+        Sem efeitos colaterais: o Flask-Login lê esta propriedade a cada
+        requisição. A limpeza do bloqueio já expirado é feita no fluxo de login
+        (`pode_tentar_login`), que comita de forma controlada — uma propriedade
+        de leitura não deve gravar no banco.
+        """
         if not self.ativo:
             return False
-        
-        # Verificar se está bloqueado temporariamente
+
+        # Bloqueio temporário ainda vigente?
         if self.bloqueado_ate:
-            if datetime.now(timezone(timedelta(hours=-3))) < self.bloqueado_ate:
+            bloqueado_ate = _garantir_aware_gmt3(self.bloqueado_ate)
+            if now_gmt3() < bloqueado_ate:
                 return False
-            # Se expirou o bloqueio, limpar
-            self.bloqueado_ate = None
-            db.session.commit()
-        
+
         return True
     
     def registrar_login_sucesso(self):
@@ -138,8 +162,8 @@ class User(db.Model, UserMixin):
     def pode_tentar_login(self) -> bool:
         """Verifica se o usuário pode tentar login (não está bloqueado)"""
         if self.bloqueado_ate:
-            agora = datetime.now(timezone(timedelta(hours=-3)))
-            if agora < self.bloqueado_ate:
+            agora = now_gmt3()
+            if agora < _garantir_aware_gmt3(self.bloqueado_ate):
                 return False
             # Se expirou, liberar
             self.bloqueado_ate = None
@@ -153,8 +177,8 @@ class User(db.Model, UserMixin):
         if not self.bloqueado_ate:
             return 0
         
-        agora = datetime.now(timezone(timedelta(hours=-3)))
-        diferenca = self.bloqueado_ate - agora
+        agora = now_gmt3()
+        diferenca = _garantir_aware_gmt3(self.bloqueado_ate) - agora
         return max(0, int(diferenca.total_seconds() / 60))
     
     def to_dict(self):
@@ -392,7 +416,9 @@ class DocumentoArquivo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(255), nullable=False, index=True)
-    content = db.Column(db.LargeBinary, nullable=False)
+    # LONGBLOB (até 4 GB) em vez de LargeBinary/BLOB (64 KB no MySQL), evitando
+    # truncamento silencioso de documentos grandes.
+    content = db.Column(LONGBLOB, nullable=False)
     mime_type = db.Column(db.String(100), nullable=True)
     size = db.Column(db.Integer, nullable=True)
     uploaded_at = db.Column(db.DateTime, default=now_gmt3)

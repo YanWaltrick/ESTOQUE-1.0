@@ -1,6 +1,21 @@
 # Sistema ESTOQUE
 
-Este projeto hoje funciona como uma aplicação web em Flask para gestão de estoque, usuários, chamados (tickets), documentos e termos de entrega. O fluxo principal é baseado em autenticação local.
+Este projeto hoje funciona como uma aplicação web em Flask para gestão de estoque, usuários, chamados (tickets), documentos e termos de entrega. O fluxo principal é baseado em autenticação local, com suporte opcional ao Microsoft Entra ID para login corporativo.
+
+## Origem do projeto e integração com o upstream
+
+Este repositório (`caique-az/sistema-estoque`) é um **fork** de
+`YanWaltrick/ESTOQUE-1.0`. O desenvolvimento acontece aqui, e a intenção é
+**integrar o trabalho ao repositório original via Pull Request** quando estiver
+concluído.
+
+- O remote `origin` aponta para o **fork**. **Não há remote `upstream`
+  configurado por padrão** — para preparar a integração, adicione-o:
+  `git remote add upstream https://github.com/YanWaltrick/ESTOQUE-1.0.git`.
+- Os Pull Requests internos (ex.: revisões de código) têm como base a branch
+  `main` **deste fork**, não o upstream.
+- A integração com o upstream é um passo **separado e deliberado** — não ocorre
+  automaticamente ao mergear PRs internos.
 
 ## Como o sistema funciona hoje
 
@@ -9,6 +24,7 @@ Este projeto hoje funciona como uma aplicação web em Flask para gestão de est
 - Há fluxo de recuperação de senha, reautenticação para alterar dados sensíveis e upload de foto de perfil.
 - Usuários podem ser administradores ou usuários comuns.
 - A sessão de usuários não-administradores expira após 10 minutos de inatividade.
+- Existe integração opcional com Microsoft Entra ID via OAuth/OpenID Connect.
 
 ### 2. Gestão de usuários
 - Administradores podem criar, editar, ativar/desativar e listar usuários.
@@ -43,7 +59,7 @@ Este projeto hoje funciona como uma aplicação web em Flask para gestão de est
 
 ### 1. Entrar na pasta do projeto
 ```bash
-cd ESTOQUE-1.0
+cd sistema-estoque
 ```
 
 ### 2. Criar ambiente virtual
@@ -67,6 +83,7 @@ Crie um arquivo `.env` com as configurações necessárias. O projeto usa variá
 - `TEAMS_CHANNEL_WEBHOOK_URL`
 - `POWER_AUTOMATE_WEBHOOK_URL`
 - `APP_PUBLIC_BASE_URL`
+- `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_TENANT_ID` (opcionais para login corporativo)
 
 Se necessário, copie o exemplo existente para a raiz do projeto e ajuste os valores.
 
@@ -105,13 +122,24 @@ app/
 static/               # CSS, JavaScript, uploads e arquivos estáticos
 templates/            # páginas HTML renderizadas pelo Flask
 migrations/           # migrações do banco
+scripts/              # scripts utilitários administrativos (importação, manutenção)
+tests/                # testes e verificações da aplicação
+docs/                 # documentação do projeto (ver docs/README.md)
 ```
+
+## Documentação
+A documentação detalhada fica em [docs/](docs/README.md):
+- [docs/ANALISE_CLT_PJ.md](docs/ANALISE_CLT_PJ.md) — análise dos fluxos CLT e PJ.
+- [docs/SETUP_REMOTO.md](docs/SETUP_REMOTO.md) — configuração de acesso remoto.
+- [docs/SECURITY.md](docs/SECURITY.md) — política de segurança.
+- [docs/entra-id/](docs/entra-id/) — guias da integração com Microsoft Entra ID.
 
 ## Pontos importantes do funcionamento atual
 - O ponto de entrada principal é [app.py](app.py).
 - A aplicação é montada pela função `create_app()` em [app/__init__.py](app/__init__.py).
 - O estoque é controlado pelo serviço em [app/services/estoque_service.py](app/services/estoque_service.py).
 - As rotas principais estão em [app/routes/main.py](app/routes/main.py), [app/routes/admin.py](app/routes/admin.py), [app/routes/api.py](app/routes/api.py) e [app/routes/auth.py](app/routes/auth.py).
+- A integração com Microsoft Entra ID está em [app/auth/entra_id.py](app/auth/entra_id.py) e [app/routes/entra_auth.py](app/routes/entra_auth.py).
 
 ## Observações
 - O projeto usa SQLAlchemy e Flask-Login.

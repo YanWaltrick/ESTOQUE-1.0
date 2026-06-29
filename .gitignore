@@ -1,2 +1,27 @@
 __pycache__/
+*.py[cod]
 .env
+
+# IDEs
+.idea/
+.vscode/
+
+# Ambientes virtuais
+venv/
+.venv/
+
+# mise: a config de projeto (mise.toml) é versionada; o override pessoal não
+mise.local.toml
+.mise.local.toml
+
+# Logs
+logs/*.log
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pasta instance do Flask: bancos locais nao versionados (pasta preservada via .gitkeep)
+instance/*
+!instance/.gitkeep
