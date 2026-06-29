@@ -1,4 +1,5 @@
 import os
+import io
 import json
 from datetime import datetime, timezone, timedelta
 
@@ -6,7 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import case
 from app.database import db
-from app.models import User, Historico, DocumentoUsuario, ItemRecebido, TermoEntrega
+from app.models import User, Historico, DocumentoUsuario, ItemRecebido, TermoEntrega, DocumentoArquivo
 from app.auth import require_role, require_permission
 from app.auth.security import PasswordValidator, validate_username, validate_email
 from app.utils import registrar_evento
@@ -712,7 +713,13 @@ def visualizar_documento(documento_id):
     caminho_arquivo = _caminho_documento(documento)
 
     if not os.path.exists(caminho_arquivo):
-        return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
+        # Fallback: servir do banco se o documento foi migrado (disco efêmero em produção)
+        blob = DocumentoArquivo.query.filter_by(filename=documento.arquivo).first()
+        if not blob:
+            return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
+        bio = io.BytesIO(blob.content)
+        bio.seek(0)
+        return send_file(bio, as_attachment=False, mimetype=blob.mime_type or 'application/octet-stream')
 
     return send_file(caminho_arquivo, as_attachment=False)
 
@@ -727,10 +734,7 @@ def download_documento(documento_id):
         return jsonify({'success': False, 'message': 'Permissão negada.'}), 403
     
     caminho_arquivo = _caminho_documento(documento)
-    
-    if not os.path.exists(caminho_arquivo):
-        return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
-    
+
     try:
         download_name = f'{documento.nome_documento}.{documento.tipo_arquivo}'
         if documento.tipo_arquivo.lower() == 'pdf' and documento.usuario:
@@ -740,11 +744,25 @@ def download_documento(documento_id):
             elif 'termo' in doc_name:
                 download_name = f'Termo de responsabilidade de {documento.usuario.username}.pdf'
 
+        if os.path.exists(caminho_arquivo):
+            return send_file(
+                caminho_arquivo,
+                as_attachment=True,
+                download_name=download_name,
+                mimetype='application/octet-stream'
+            )
+
+        # Fallback: servir do banco se o documento foi migrado (disco efêmero em produção)
+        blob = DocumentoArquivo.query.filter_by(filename=documento.arquivo).first()
+        if not blob:
+            return jsonify({'success': False, 'message': 'Arquivo não encontrado.'}), 404
+        bio = io.BytesIO(blob.content)
+        bio.seek(0)
         return send_file(
-            caminho_arquivo,
+            bio,
             as_attachment=True,
             download_name=download_name,
-            mimetype='application/octet-stream'
+            mimetype=blob.mime_type or 'application/octet-stream'
         )
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erro ao fazer download: {str(e)}'}), 500
