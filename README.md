@@ -2,20 +2,12 @@
 
 Este projeto hoje funciona como uma aplicação web em Flask para gestão de estoque, usuários, chamados (tickets), documentos e termos de entrega. O fluxo principal é baseado em autenticação local, com suporte opcional ao Microsoft Entra ID para login corporativo.
 
-## Origem do projeto e integração com o upstream
+## Repositório
 
-Este repositório (`caique-az/sistema-estoque`) é um **fork** de
-`YanWaltrick/ESTOQUE-1.0`. O desenvolvimento acontece aqui, e a intenção é
-**integrar o trabalho ao repositório original via Pull Request** quando estiver
-concluído.
-
-- O remote `origin` aponta para o **fork**. **Não há remote `upstream`
-  configurado por padrão** — para preparar a integração, adicione-o:
-  `git remote add upstream https://github.com/YanWaltrick/ESTOQUE-1.0.git`.
-- Os Pull Requests internos (ex.: revisões de código) têm como base a branch
-  `main` **deste fork**, não o upstream.
-- A integração com o upstream é um passo **separado e deliberado** — não ocorre
-  automaticamente ao mergear PRs internos.
+Este é o repositório `YanWaltrick/ESTOQUE-1.0` — o remote `origin` aponta para ele.
+O desenvolvimento que antes acontecia em um fork (`caique-az`) já foi **integrado via
+merge**; não há mais distinção fork/upstream. Os Pull Requests internos têm como base
+a branch `main`.
 
 ## Como o sistema funciona hoje
 

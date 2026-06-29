@@ -2,12 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Origem (fork)
+## Repositório
 
-Este repositório é um **fork** de `YanWaltrick/ESTOQUE-1.0`. O `origin` aponta
-para o fork (`caique-az/sistema-estoque`); **não há remote `upstream` por
-padrão**. PRs internos têm base na `main` deste fork; a integração ao upstream é
-um passo separado e deliberado. Detalhes em [`README.md`](README.md#origem-do-projeto-e-integração-com-o-upstream).
+Este é o repositório `YanWaltrick/ESTOQUE-1.0` — o `origin` aponta para ele. O
+desenvolvimento que antes acontecia em um fork (`caique-az`) já foi **integrado via
+merge**; não há mais distinção fork/upstream nem remote `upstream` separado. PRs
+internos têm base na `main`.
 
 ## Comandos essenciais
 
