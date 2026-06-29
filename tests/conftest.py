@@ -39,12 +39,6 @@ os.environ.setdefault("SECRET_KEY", "chave-de-teste")
 from app import create_app  # noqa: E402
 from app.database import db as _db  # noqa: E402
 
-# `tests/test_entra_id.py` é um smoke legado baseado em `print`, executável só
-# via `python tests/test_entra_id.py` (ver CLAUDE.md). Não tem funções `test_*`
-# e seu corpo de módulo chama `create_app()`/`exit(1)` no import — então é
-# ignorado pela coleta do pytest para não rodar esses efeitos colaterais.
-collect_ignore = ["test_entra_id.py"]
-
 
 # Subpastas de upload tocadas pelos testes (foto de perfil, documentos, fotos de
 # equipamento e PDFs de termo). Os caminhos são relativos à raiz do projeto, que

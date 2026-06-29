@@ -3,7 +3,7 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-28 — item #2 concluído (cobertura 22%→76%); 2 bugs corrigidos; itens #10 (rotas órfãs) e #11 (fuso no ORM) registrados na revisão `xhigh`
+> **Última atualização:** 2026-06-29 — integração do upstream (Entra ID reescrito); testes de Entra ID removidos (289→266 testes, 76%→73%); item #6 encerrado. Antes: item #2 concluído (cobertura 22%→76%); itens #10 (rotas órfãs) e #11 (fuso no ORM) registrados na revisão `xhigh`
 
 Origem da maioria destes itens: veredito do Conselho de LLMs sobre a estratégia de
 testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
@@ -24,11 +24,11 @@ preservado em cada item.
 | # | Item | Prioridade | Status |
 |---|------|-----------|--------|
 | 1 | Gate de CI rodando `pytest` | 🔺 Alta | 🔴 Pendente |
-| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28, 76% / 289 testes) |
+| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28); atualmente 73% / 266 testes (era 76%/289 antes da integração do upstream) |
 | 3 | Revalidar isolamento com a 1ª migração Alembic | ▪ Média | 🔴 Pendente |
 | 4 | Estratégia para divergência SQLite (teste) × MySQL (prod) | ▪ Média | 🟢 Decidido → [Plano MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) (teste = MySQL) |
 | 5 | Dívida: `datetime.utcnow()` deprecado em `app/__init__.py` | ▫ Baixa | 🔴 Pendente |
-| 6 | Migrar smoke test legado do Entra ID para pytest | ▫ Baixa | 🟡 Mitigado (`collect_ignore`) — migração pendente |
+| 6 | Smoke test legado do Entra ID (migração para pytest) | ▫ Baixa | ⚪ Encerrado (2026-06-29) — testes de Entra ID removidos na integração do upstream (módulo reescrito) |
 | 7 | Skill de scaffold de testes | ▫ Futuro | ⚪ Adiado (condicional) |
 | 8 | `db_session` não isolava (bind ignorado pelo FSQLA) — revisões R1/X1 | 🔺 Alta | ✅ Corrigido (2026-06-27, revisão X1) |
 | 9 | Limpeza frágil do SQLite temporário (revisão R2) | ▪ Média | ✅ Resolvido — SQLite removido (E6); não há mais arquivo temporário |
@@ -256,6 +256,14 @@ a feature planejada em [CHAMADO_AUTOMATICO_FORCA_BRUTA](../seguranca/CHAMADO_AUT
 
 ## Histórico (itens concluídos)
 
+- 🟢 **2026-06-29** — Integração do commit do upstream (`YanWaltrick/ESTOQUE-1.0`),
+  que **reescreveu o módulo Entra ID** (`app/auth/entra_id.py` e
+  `app/routes/entra_auth.py` — API e rotas diferentes) e adicionou a rota
+  `/admin-login`. Os testes de Entra ID do fork (`tests/test_entra.py`, 23 testes)
+  cobriam a API **antiga** e tornaram-se incompatíveis; foram **removidos** junto
+  do smoke legado `tests/test_entra_id.py`/`.bat` (item #6 encerrado). A suíte
+  passou de 289 para **266 testes** (todos verdes). Cobertura de testes para o
+  Entra ID reescrito fica como pendência futura (ver item #6).
 - 🟢 **2026-06-28** — Revisão `xhigh` da PR de cobertura: 13 achados corrigidos na
   branch `fix/correcoes-revisao-cobertura` (401 JSON para API não autenticada;
   `is_active` sem commit colateral; testes vacuous fortalecidos; dedup de fixtures).

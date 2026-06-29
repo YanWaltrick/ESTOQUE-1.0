@@ -172,6 +172,4 @@ pytest --cov=app                      # com cobertura
 
 Ao escrever um teste novo, **copie o estilo de `tests/test_smoke.py`**: nomes em português `test_*`, asserts sobre status/redirecionamento, uma camada por teste. A Skill de scaffold de testes só se justifica depois que o padrão estabilizar (~30 testes).
 
-O smoke test legado da integração Entra ID (`tests/test_entra_id.py`, baseado em `print`) continua executável via `python tests/test_entra_id.py`, mas novos testes devem seguir o padrão pytest acima.
-
 Visão geral, padrão detalhado e **pendências priorizadas** em [`docs/testes/`](docs/testes/) (`README.md` e `ROADMAP.md`).
