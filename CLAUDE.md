@@ -33,7 +33,7 @@ O ambiente virtual (`.venv/`) e as dependências (`pip install -r requirements.t
 seguem normalmente.
 
 **Banco:** o projeto é **100% MySQL** (sem SQLite). Suba o MySQL local com
-`docker compose up -d` (ver `docker-compose.yml`) antes de rodar app ou testes.
+`docker compose up -d` (ver `compose.yml`) antes de rodar app ou testes.
 
 Copie `.env.example` para `.env` e preencha os valores. As variáveis obrigatórias para desenvolvimento mínimo:
 

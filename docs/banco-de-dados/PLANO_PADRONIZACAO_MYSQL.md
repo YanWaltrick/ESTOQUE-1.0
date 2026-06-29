@@ -55,13 +55,13 @@ introduzir PostgreSQL.
 | ID | Pendência | Prioridade | Status |
 |----|-----------|-----------|--------|
 | PEND-1 | **Descobrir a versão exata do MySQL no Azure** (`SELECT VERSION();`, `SELECT @@sql_mode;`, collation) | 🔺 Alta | 🔴 Pendente |
-| PEND-2 | **Implementar o container Docker** (`docker-compose.yml` + conftest apontando para MySQL) | 🔺 Alta | 🟢 Feito (`docker-compose.yml` + `conftest`→`estoque_test`) |
+| PEND-2 | **Implementar o container Docker** (`compose.yml` + conftest apontando para MySQL) | 🔺 Alta | 🟢 Feito (`compose.yml` + `conftest`→`estoque_test`) |
 
 **PEND-1 — versão do Azure desconhecida.** Não temos a versão/`sql_mode`/collation
-que a Azure roda. **Estado atual:** o `docker-compose.yml` já está **pinado em
+que a Azure roda. **Estado atual:** o `compose.yml` já está **pinado em
 `mysql:8.0`** como placeholder sensato (e os drivers — `pymysql 1.1.1` +
 `cryptography` — suportam o `caching_sha2_password` do MySQL 8). Ao descobrir a
-versão real, **trocar pelo patch exato** (ex.: `mysql:8.0.39`) no `docker-compose.yml`
+versão real, **trocar pelo patch exato** (ex.: `mysql:8.0.39`) no `compose.yml`
 e nesta tabela, e alinhar `sql_mode`/collation. Como verificar — rodar no banco de
 **produção** (Azure):
 
@@ -82,7 +82,7 @@ ficam registrados aqui como próximo passo quando o plano for retomado. Usar
 
 ## 4. Plano de execução
 
-- [x] **E1. Container MySQL versionado.** `docker-compose.yml` na raiz com MySQL
+- [x] **E1. Container MySQL versionado.** `compose.yml` na raiz com MySQL
       pinado (`mysql:8.0` até PEND-1), `sql_mode` e collation `utf8mb4`. Banco de
       teste dedicado (`estoque_test`) via `scripts/mysql-init/01-init.sql`.
 - [x] **E2. `conftest.py` → MySQL.** `DATABASE_URL` de teste aponta para
