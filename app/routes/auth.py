@@ -201,6 +201,71 @@ def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
+
+@auth_bp.route('/admin-login', methods=['GET', 'POST'])
+def admin_login():
+    """
+    Login exclusivo para administradores (acesso local)
+    Bypass do login via Microsoft Entra ID
+    """
+    # Se já está logado, redirecionar
+    if current_user.is_authenticated:
+        return redirect(url_for('main.admin') if current_user.is_admin else url_for('main.index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+
+        # Buscar usuário
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            flash('Nome de usuário ou senha incorretos.', 'error')
+            return render_template('admin_login.html')
+
+        # Verificar se é admin
+        if not user.is_admin:
+            flash('Este login é exclusivo para administradores.', 'error')
+            registrar_evento(
+                tipo_evento='admin_login_nao_admin',
+                descricao=f'Tentativa de login admin por usuário não-admin: "{username}"',
+                usuario_responsavel='Sistema'
+            )
+            return render_template('admin_login.html')
+
+        # Verificar se está ativo e desbloqueado
+        if not user.pode_tentar_login():
+            minutos = user.minutos_ate_desbloqueio()
+            flash(f'Sua conta foi bloqueada temporariamente por múltiplas tentativas falhas. Tente novamente em {minutos} minuto(s).', 'error')
+            return render_template('admin_login.html')
+
+        # Verificar senha
+        if not PasswordValidator.verify_password(password, user.password):
+            user.registrar_login_falho()
+            flash('Nome de usuário ou senha incorretos.', 'error')
+            registrar_evento(
+                tipo_evento='admin_login_falho',
+                descricao=f'Tentativa de login admin falha: "{username}" (tentativa #{user.tentativas_login_falhas})',
+                usuario_responsavel='Sistema'
+            )
+            return render_template('admin_login.html')
+
+        # Login bem-sucedido
+        user.registrar_login_sucesso()
+        login_user(user, remember=False)
+
+        registrar_evento(
+            tipo_evento='admin_login_sucesso',
+            descricao=f'Login admin bem-sucedido (acesso local): "{user.username}"',
+            usuario_responsavel=user.username
+        )
+
+        flash(f'Bem-vindo, administrador {user.username}!', 'success')
+        return redirect(url_for('main.admin', tab='chamadas'))
+
+    return render_template('admin_login.html')
+
+
 @auth_bp.route('/perfil', methods=['GET', 'POST'])
 @login_required
 def perfil():

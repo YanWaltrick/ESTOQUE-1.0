@@ -1,6 +1,6 @@
 # Sistema ESTOQUE
 
-Este projeto hoje funciona como uma aplicação web em Flask para gestão de estoque, usuários, chamados (tickets), documentos e termos de entrega. O fluxo principal é baseado em autenticação local, com suporte opcional ao Microsoft Entra ID para login corporativo.
+Este projeto hoje funciona como uma aplicação web em Flask para gestão de estoque, usuários, chamados (tickets), documentos e termos de entrega. O fluxo principal é baseado em autenticação local.
 
 ## Como o sistema funciona hoje
 
@@ -9,7 +9,6 @@ Este projeto hoje funciona como uma aplicação web em Flask para gestão de est
 - Há fluxo de recuperação de senha, reautenticação para alterar dados sensíveis e upload de foto de perfil.
 - Usuários podem ser administradores ou usuários comuns.
 - A sessão de usuários não-administradores expira após 10 minutos de inatividade.
-- Existe integração opcional com Microsoft Entra ID via OAuth/OpenID Connect.
 
 ### 2. Gestão de usuários
 - Administradores podem criar, editar, ativar/desativar e listar usuários.
@@ -68,7 +67,6 @@ Crie um arquivo `.env` com as configurações necessárias. O projeto usa variá
 - `TEAMS_CHANNEL_WEBHOOK_URL`
 - `POWER_AUTOMATE_WEBHOOK_URL`
 - `APP_PUBLIC_BASE_URL`
-- `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_TENANT_ID` (opcionais para login corporativo)
 
 Se necessário, copie o exemplo existente para a raiz do projeto e ajuste os valores.
 
@@ -114,7 +112,6 @@ migrations/           # migrações do banco
 - A aplicação é montada pela função `create_app()` em [app/__init__.py](app/__init__.py).
 - O estoque é controlado pelo serviço em [app/services/estoque_service.py](app/services/estoque_service.py).
 - As rotas principais estão em [app/routes/main.py](app/routes/main.py), [app/routes/admin.py](app/routes/admin.py), [app/routes/api.py](app/routes/api.py) e [app/routes/auth.py](app/routes/auth.py).
-- A integração com Microsoft Entra ID está em [app/auth/entra_id.py](app/auth/entra_id.py) e [app/routes/entra_auth.py](app/routes/entra_auth.py).
 
 ## Observações
 - O projeto usa SQLAlchemy e Flask-Login.

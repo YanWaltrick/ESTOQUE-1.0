@@ -117,7 +117,7 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(entra_bp)  # Blueprint para autenticação Entra ID
+    app.register_blueprint(entra_bp)
 
     # Adicionar funções úteis ao contexto de templates
     @app.context_processor
