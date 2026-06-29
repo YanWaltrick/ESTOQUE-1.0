@@ -77,6 +77,9 @@ class User(db.Model, UserMixin):
     tentativas_login_falhas = db.Column(db.Integer, default=0)  # Para detecção de força bruta
     bloqueado_ate = db.Column(db.DateTime, nullable=True)  # Bloqueio temporário após X tentativas
     
+    # Integração Microsoft Entra ID
+    entra_id = db.Column(db.String(255), unique=True, nullable=True)  # OID (Object ID) do usuário no Entra ID
+    
     # Relacionamentos
     chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
