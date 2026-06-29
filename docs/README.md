@@ -21,12 +21,21 @@ A pasta [banco-de-dados/](banco-de-dados/) reúne as decisões de arquitetura de
 | [banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md](banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) | Plano para padronizar MySQL em todos os ambientes (planejado, ainda não implementado). |
 | [banco-de-dados/REVISAO_CODIGO.md](banco-de-dados/REVISAO_CODIGO.md) | Log das revisões de código de scripts e migrações de dados. |
 
+## Decisões de Arquitetura (ADR)
+
+A pasta [adr/](adr/) reúne os Registros de Decisão de Arquitetura — decisões caras de reverter (ver convenção no [`CLAUDE.md`](../CLAUDE.md)):
+
+| Arquivo | Descrição |
+|---------|-----------|
+| [adr/0001-manter-flask-como-stack.md](adr/0001-manter-flask-como-stack.md) | Decisão de manter Flask como stack de aplicação (veredito do Conselho de LLMs); o risco real é operacional, não de framework. |
+
 ## Infraestrutura
 
 A pasta [infraestrutura/](infraestrutura/) reúne decisões de deploy, custo e performance:
 
 | Arquivo | Descrição |
 |---------|-----------|
+| [infraestrutura/PRONTIDAO_PRODUCAO.md](infraestrutura/PRONTIDAO_PRODUCAO.md) | Bloqueios de go-live na Azure (credencial default, uploads efêmeros, migrations no boot, secrets, observabilidade) — documento vivo. |
 | [infraestrutura/PLANO_INVESTIGACAO_CUSTO_LATENCIA.md](infraestrutura/PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) | Investigação de custo (R$ 1.500/mês) e latência; decisão de permanecer na Azure por ora. |
 
 ## Testes
