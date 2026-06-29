@@ -20,7 +20,7 @@ class EntraIDConfig:
         self.client_id = os.getenv('ENTRA_CLIENT_ID')
         self.client_secret = os.getenv('ENTRA_CLIENT_SECRET')
         self.tenant_id = os.getenv('ENTRA_TENANT_ID')
-        self.redirect_path = os.getenv('ENTRA_REDIRECT_PATH', '/entra-callback')
+        self.redirect_path = os.getenv('ENTRA_REDIRECT_PATH', '/entra/callback')
         self.authority = f"https://login.microsoftonline.com/{self.tenant_id}" if self.tenant_id else None
         
         # Validar configuração

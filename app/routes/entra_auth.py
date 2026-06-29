@@ -21,7 +21,7 @@ def _get_redirect_uri():
     """Constrói redirect_uri completo (scheme + host + path)"""
     scheme = 'https' if current_app.config.get('SESSION_COOKIE_SECURE') else 'http'
     host = request.host
-    redirect_path = current_app.config.get('ENTRA_REDIRECT_PATH', '/entra-callback')
+    redirect_path = current_app.config.get('ENTRA_REDIRECT_PATH', '/entra/callback')
     return f"{scheme}://{host}{redirect_path}"
 
 
