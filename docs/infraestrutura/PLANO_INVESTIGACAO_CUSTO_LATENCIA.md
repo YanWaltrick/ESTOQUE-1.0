@@ -19,7 +19,7 @@ viajaria junto para qualquer nuvem.
 **Por que (veredito unânime do Conselho de LLMs, 2026-06-27):**
 
 - Os dois culpados estruturais são do **app**, não da nuvem:
-  - **Documentos binários dentro do MySQL** (`DocumentoArquivo.content = LargeBinary`)
+  - **Documentos binários dentro do MySQL** (`DocumentoArquivo.content = LONGBLOB`)
     — destroem o buffer pool, multiplicam IO, incham backup. A latência provável é
     o banco varrendo páginas cheias de PDF. **No RDS/AWS seria idêntico.**
   - **`_ensure_schema_columns` rodando `ALTER TABLE` a cada boot** — DDL não é

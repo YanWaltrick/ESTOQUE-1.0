@@ -6,6 +6,7 @@
 
 | Documento | Descrição |
 |-----------|-----------|
+| [ONBOARDING.md](ONBOARDING.md) | Passo a passo para rodar a aplicação localmente do zero (pré-requisitos, MySQL via Docker, venv, `.env`, troubleshooting). Comece por aqui. |
 | [ARQUITETURA.md](ARQUITETURA.md) | Visão geral da arquitetura e fluxogramas (inicialização, requisição, SSO). |
 | [NORMA_DOCUMENTACAO.md](NORMA_DOCUMENTACAO.md) | Norma de documentação viva: como mantemos o contexto do projeto nos arquivos (documentação tem prioridade sobre código). |
 | [ANALISE_CLT_PJ.md](ANALISE_CLT_PJ.md) | Análise detalhada dos fluxos de cadastro CLT e PJ. |
@@ -18,7 +19,7 @@ A pasta [banco-de-dados/](banco-de-dados/) reúne as decisões de arquitetura de
 
 | Arquivo | Descrição |
 |---------|-----------|
-| [banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md](banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) | Plano para padronizar MySQL em todos os ambientes (planejado, ainda não implementado). |
+| [banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md](banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) | Padronização MySQL em todos os ambientes — SQLite já removido (`DATABASE_URL` obrigatória); ajustes finais em andamento. |
 | [banco-de-dados/REVISAO_CODIGO.md](banco-de-dados/REVISAO_CODIGO.md) | Log das revisões de código de scripts e migrações de dados. |
 
 ## Decisões de Arquitetura (ADR)

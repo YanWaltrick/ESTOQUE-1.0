@@ -6,7 +6,7 @@ Foram feitas as seguintes mudanças para permitir acesso remoto ao sistema:
 
 ### 1. ✅ **app.py** (já estava correto)
 ```python
-app.run(host='0.0.0.0', port=5000, debug=True)
+app.run(host='0.0.0.0', port=5000, debug=debug_mode)  # debug_mode = (FLASK_ENV == 'development')
 ```
 - O Flask já estava configurado para escutar em `0.0.0.0` (todas as interfaces de rede)
 
@@ -118,7 +118,7 @@ http://localhost:5000
 O banco de dados está em `localhost:3306`. Se estiver em outro PC:
 1. Edite `.env`:
    ```env
-   DATABASE_URL=mysql+pymysql://mamute:QAZwsxEDCrfv@192.168.1.100:3306/estoque
+   DATABASE_URL=mysql+pymysql://usuario:senha@192.168.1.100:3306/estoque_db
    ```
 2. Reinicie a aplicação
 

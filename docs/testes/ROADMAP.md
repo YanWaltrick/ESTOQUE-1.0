@@ -25,7 +25,7 @@ preservado em cada item.
 |---|------|-----------|--------|
 | 1 | Gate de CI rodando `pytest` | 🔺 Alta | 🔴 Pendente |
 | 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28); atualmente 73% / 266 testes (era 76%/289 antes da integração do upstream) |
-| 3 | Revalidar isolamento com a 1ª migração Alembic | ▪ Média | 🔴 Pendente |
+| 3 | Revalidar isolamento da suíte com as migrações Alembic | ▪ Média | 🔴 Pendente |
 | 4 | Estratégia para divergência SQLite (teste) × MySQL (prod) | ▪ Média | 🟢 Decidido → [Plano MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) (teste = MySQL) |
 | 5 | Dívida: `datetime.utcnow()` deprecado em `app/__init__.py` | ▫ Baixa | 🔴 Pendente |
 | 6 | Smoke test legado do Entra ID (migração para pytest) | ▫ Baixa | ⚪ Encerrado (2026-06-29) — testes de Entra ID removidos na integração do upstream (módulo reescrito) |
@@ -88,14 +88,15 @@ testar RBAC e fluxos de não-admin.
 
 ---
 
-## 3. Revalidar isolamento com a primeira migração Alembic
+## 3. Revalidar isolamento da suíte com as migrações Alembic
 
 **Prioridade:** ▪ Média · **Status:** 🔴 Pendente
 
-**Por quê:** `init_database()` aplica migrações Alembic na inicialização quando
-existem revisões. Hoje **não há nenhuma**, então o conftest cai em `db.create_all()`
-e tudo funciona. Assim que a primeira migração for gerada, o caminho de inicialização
-muda e pode conflitar com o SQLite temporário / transação de teste.
+**Por quê:** `init_database()` aplica as migrações Alembic na inicialização — já
+existem **8 revisões** em `migrations/versions/`, complementadas por `db.create_all()`
+e `_ensure_schema_columns()`. O isolamento por transação externa precisa ser
+confirmado verde contra esse caminho de boot real (e não contra um `create_all()`
+isolado).
 
 **Checklist:**
 
@@ -108,17 +109,12 @@ muda e pode conflitar com o SQLite temporário / transação de teste.
 
 ## 4. Divergência SQLite (teste) × MySQL (produção)
 
-**Prioridade:** ▪ Média · **Status:** 🔴 Pendente
+**Prioridade:** ▪ Média · **Status:** 🟢 Resolvido — teste = MySQL
 
-**Por quê:** os testes rodam em SQLite, mas produção é MySQL. Diferenças de tipos,
-de `LargeBinary` (coluna de `DocumentoArquivo`) e de comportamento podem fazer um
-teste passar localmente e o bug aparecer só no Azure.
-
-**Checklist:**
-
-- [ ] Mapear pontos sensíveis a dialeto (tipos binários, `DATETIME`, defaults).
-- [ ] Avaliar um job de CI opcional rodando a suíte contra um MySQL de serviço.
-- [ ] Documentar a decisão (rodar só SQLite vs. matriz SQLite+MySQL).
+**Resolução:** a divergência deixou de existir com a padronização MySQL (Plano
+**E6**): a suíte roda no banco `estoque_test` do container, **mesmo dialeto de
+produção**. Não há mais SQLite. Resta apenas o gate de CI (item #1) rodando `pytest`
+contra esse MySQL. Ver [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md).
 
 ---
 
@@ -127,8 +123,8 @@ teste passar localmente e o bug aparecer só no Azure.
 **Prioridade:** ▫ Baixa · **Status:** 🔴 Pendente
 
 **Por quê:** a suíte emite `DeprecationWarning` vindos de `app/__init__.py`
-(linhas ~51 e ~94) por uso de `datetime.utcnow()`, removido em versões futuras do
-Python. Não quebra os testes hoje, mas é dívida visível.
+(linhas ~74, ~84 e ~117) por uso de `datetime.utcnow()`, removido em versões futuras
+do Python. Não quebra os testes hoje, mas é dívida visível.
 
 **Checklist:**
 
@@ -137,24 +133,14 @@ Python. Não quebra os testes hoje, mas é dívida visível.
 
 ---
 
-## 6. Migrar smoke test legado do Entra ID para pytest
+## 6. Smoke test legado do Entra ID — encerrado
 
-**Prioridade:** ▫ Baixa · **Status:** 🟡 Mitigado (`collect_ignore`) — migração pendente
+**Prioridade:** ▫ Baixa · **Status:** ⚪ Encerrado (2026-06-29)
 
-**Por quê:** `tests/test_entra_id.py` valida imports via `print`/`exit`, fora do
-padrão pytest. Funciona, mas não integra à suíte nem ao relatório de cobertura.
-
-**Mitigação aplicada (revisão X2):** o pytest importava esse arquivo na coleta (casa
-com `python_files = test_*.py`), executando `create_app()` e podendo chamar `exit(1)`.
-Adicionado `collect_ignore = ["test_entra_id.py"]` no `conftest.py` para excluí-lo da
-coleta sem perder a execução standalone. A migração completa abaixo segue pendente.
-
-**Checklist:**
-
-- [x] Impedir que o pytest importe/rode o script legado na coleta (`collect_ignore`).
-- [ ] Reescrever as 4 verificações como testes `pytest` (imports, blueprint,
-      app factory).
-- [ ] Remover o script `.py`/`.bat` legado após a migração (e o `collect_ignore`).
+**Desfecho:** a integração do upstream reescreveu o módulo Entra ID e os testes
+antigos (que cobriam a API anterior) foram **removidos** junto do smoke legado
+`tests/test_entra_id.py`/`.bat`. Não há mais `collect_ignore` no `conftest.py`. A
+cobertura de testes para o Entra ID **reescrito** fica como pendência futura.
 
 ---
 

@@ -12,7 +12,7 @@ O sistema implementa validações, campos específicos, interfaces adaptadas e A
 
 ## 1. ESTRUTURA DE MODELOS DE DADOS
 
-### Localização: [app/models/__init__.py](app/models/__init__.py#L1)
+### Localização: [app/models/__init__.py](../app/models/__init__.py)
 
 #### Classe User (SQLAlchemy)
 
@@ -76,7 +76,7 @@ Serializa todo usuário para dicionário JSON, incluindo:
 
 ### Fluxo de Criação de CLT
 
-#### **Rota:** [app/routes/admin.py - criar_usuario()](app/routes/admin.py#L82)
+#### **Rota:** [app/routes/admin.py - criar_usuario()](../app/routes/admin.py)
 
 **Passos:**
 
@@ -167,7 +167,7 @@ Serializa todo usuário para dicionário JSON, incluindo:
 
 ### Fluxo de Edição de CLT
 
-#### **Rota:** [app/routes/admin.py - editar_usuario()](app/routes/admin.py#L209)
+#### **Rota:** [app/routes/admin.py - editar_usuario()](../app/routes/admin.py)
 
 **Diferenças em relação à criação:**
 - Carrega usuário existente: `usuario = User.query.get_or_404(user_id)`
@@ -184,7 +184,7 @@ Serializa todo usuário para dicionário JSON, incluindo:
 
 ### Fluxo de Criação de PJ
 
-#### **Rota:** [app/routes/admin.py - criar_usuario()](app/routes/admin.py#L82)
+#### **Rota:** [app/routes/admin.py - criar_usuario()](../app/routes/admin.py)
 
 **Passos Específicos para PJ:**
 
@@ -234,11 +234,11 @@ Serializa todo usuário para dicionário JSON, incluindo:
    )
    ```
 
-5. **Persistência (sem Termo de Entrega):**
+5. **Persistência (com Termo de Entrega):**
    ```python
    db.session.add(novo_usuario)
    db.session.commit()
-   # NOTA: PJ não gera Termo de Entrega automaticamente
+   # PJ também gera Termo de Entrega automaticamente, com os dados do contrato PJ
    ```
 
 ### Fluxo de Edição de PJ
@@ -258,20 +258,12 @@ db.session.commit()
 
 ### API de Criação de Usuário PJ
 
-#### **Rota:** [app/routes/api.py - criar_usuario_api()](app/routes/api.py#L376)
+#### **Rota:** `criar_usuario_api()` em [`../app/routes/api.py`](../app/routes/api.py)
 
-**Diferenças em relação ao fluxo web:**
-- Não suporta campos PJ via API (falta implementação)
-- API apenas cria CLT atualmente:
-  ```python
-  tipo_contrato = (dados.get('tipo_contrato') or 'CLT').strip().upper()
-  # ... validação ...
-  novo_usuario = User(
-      # ... campos CLT apenas ...
-      tipo_contrato=tipo_contrato  # Mas aceita 'PJ' se informado
-  )
-  ```
-- **BUG/LIMITAÇÃO:** API valida tipo_contrato mas não captura/processa campos PJ
+A API tem **paridade total** com o fluxo web para PJ:
+- Captura todos os campos PJ (`pj_contratante`, `pj_contratante_cnpj`, `pj_contratante_endereco`, `pj_contratada`, `pj_contratada_cnpj`, `pj_data_contrato`).
+- Valida os obrigatórios de PJ (`pj_contratante` e `pj_contratante_cnpj`).
+- Persiste os campos no `User` e gera o `TermoEntrega` PJ automaticamente.
 
 ---
 
@@ -285,7 +277,7 @@ db.session.commit()
 | **Campos Obrigatórios** | Nenhum | `pj_contratante`, `pj_contratante_cnpj` |
 | **Campos Opcionais (CLT)** | `empresa`, `cnpj`, `endereco`, `cargo`, `cpf`, `data_admissao`, `departamento`, `local_trabalho` | Não utilizados (vazios) |
 | **Campos Opcionais (PJ)** | Não utilizados (vazios) | `pj_contratante_endereco`, `pj_contratada`, `pj_contratada_cnpj`, `pj_data_contrato` |
-| **Geração Termo Entrega** | ✅ Automático | ❌ Não |
+| **Geração Termo Entrega** | ✅ Automático | ✅ Automático (dados do contrato PJ) |
 | **Armazenamento Banco** | Mesma tabela `users` | Mesma tabela `users` |
 | **Modo UI** | Campos CLT visíveis | Campos PJ visíveis |
 | **Ordenação Listagem** | Primeiro (0) | Segundo (1) |
@@ -305,7 +297,7 @@ db.session.commit()
 
 #### Rotas Admin (RBAC)
 
-**Arquivo:** [app/routes/admin.py](app/routes/admin.py)
+**Arquivo:** [app/routes/admin.py](../app/routes/admin.py)
 
 | Rota | Método | Função | Permissão |
 |------|--------|--------|-----------|
@@ -326,7 +318,7 @@ def before_admin_request():
 
 #### Rotas API
 
-**Arquivo:** [app/routes/api.py](app/routes/api.py)
+**Arquivo:** [app/routes/api.py](../app/routes/api.py)
 
 | Rota | Método | Função | Autenticação |
 |------|--------|--------|-------------|
@@ -350,7 +342,7 @@ usuarios = User.query.order_by(
 
 #### Template de Listagem
 
-**Arquivo:** [templates/admin/usuarios.html](templates/admin/usuarios.html)
+**Arquivo:** [templates/admin/usuarios.html](../templates/admin/usuarios.html)
 
 **Funcionalidades:**
 - Lista usuários com paginação (10 por página)
@@ -371,7 +363,7 @@ usuarios = User.query.order_by(
 
 #### Template de Criação de Usuário (Dual-Mode)
 
-**Arquivo:** [templates/admin/user_form.html](templates/admin/user_form.html) (modo 'create')
+**Arquivo:** [templates/admin/user_form.html](../templates/admin/user_form.html) (modo 'create')
 
 **Fluxo UI:**
 
@@ -414,16 +406,16 @@ usuarios = User.query.order_by(
    - Contratante, CNPJ Contratante, Endereço Contratante, Contratada, CNPJ Contratada, Data Contrato
 
 **Design Visual:**
-- Seção CLT tem **borda azul** (`border-left: 3px solid #198754`)
-- Seção PJ tem **borda verde** (`border-left: 3px solid #0d6efd`)
+- Seção CLT tem **borda verde** (`border-left: 3px solid #198754`)
+- Seção PJ tem **borda azul** (`border-left: 3px solid #0d6efd`)
 - Campos organizados em divs com `id="clt-fields"` e `id="pj-fields"`
 
 #### Template de Edição de Usuário
 
-**Arquivo:** [templates/admin/user_form.html](templates/admin/user_form.html) (modo 'edit')
+**Arquivo:** [templates/admin/user_form.html](../templates/admin/user_form.html) (modo 'edit')
 
 **Diferenças em relação à criação:**
-- Username pré-preenchido (não editável neste template)
+- Username pré-preenchido e editável (unicidade validada no backend)
 - Campos pré-preenchidos com valores do usuário
 - Permite trocar entre CLT e PJ (limpa campos antigos)
 - Checkbox "Ativo" para bloquear/desbloquear
@@ -431,13 +423,13 @@ usuarios = User.query.order_by(
 
 #### Template Admin Dashboard (Criação Inline)
 
-**Arquivo:** [templates/admin.html](templates/admin.html) - linha ~50
+**Arquivo:** [templates/admin.html](../templates/admin.html) - linha ~50
 
 **Criação Inline com AJAX:**
 - Formulário `form-adicionar-usuario` com integração JavaScript
 - Mesma estrutura de toggle que user_form.html
-- Campos CLT com border esquerda verde
-- Campos PJ com border esquerda azul
+- Bloco CLT (`#clt-fields`) sem `border-left` definido
+- Campos PJ com borda esquerda azul (`#0d6efd`)
 - Validação frontend antes de envio
 
 ---
@@ -509,43 +501,43 @@ usuarios = User.query.order_by(
 ## 7. ARQUIVOS E LOCALIZAÇÃO RESUMIDA
 
 ### Modelo de Dados
-- **[app/models/__init__.py](app/models/__init__.py)** - Classe User (linha 13-200)
+- **[app/models/__init__.py](../app/models/__init__.py)** - Classe User (linha 13-200)
   - Definição de campos CLT/PJ
   - Método `__init__`
   - Método `to_dict()`
 
 ### Rotas Web
-- **[app/routes/admin.py](app/routes/admin.py)** 
+- **[app/routes/admin.py](../app/routes/admin.py)** 
   - `criar_usuario()` (GET/POST) - linha 82
   - `editar_usuario()` (GET/POST) - linha 209
   - `deletar_usuario()` (POST) - linha 275
   - `listar_usuarios()` (GET) - linha 43
 
 ### API REST
-- **[app/routes/api.py](app/routes/api.py)**
+- **[app/routes/api.py](../app/routes/api.py)**
   - `get_users()` (GET) - linha 65
   - `get_user_details()` (GET) - linha 79
   - `criar_usuario_api()` (POST) - linha 376
   - `deletar_usuario_api()` (DELETE) - linha ~475
 
 ### Templates
-- **[templates/admin.html](templates/admin.html)** - Dashboard admin com criação inline
+- **[templates/admin.html](../templates/admin.html)** - Dashboard admin com criação inline
   - Formulário `form-adicionar-usuario` - linha 50
   - Campos CLT - linha 70+
   - Campos PJ - linha 138+
 
-- **[templates/admin/user_form.html](templates/admin/user_form.html)** - Formulário criar/editar
+- **[templates/admin/user_form.html](../templates/admin/user_form.html)** - Formulário criar/editar
   - Modo create/edit - linha 8
   - Toggle JavaScript - linha 126+
   - Campos CLT - linha 45+
   - Campos PJ - linha 80+
 
-- **[templates/admin/usuarios.html](templates/admin/usuarios.html)** - Listagem de usuários
+- **[templates/admin/usuarios.html](../templates/admin/usuarios.html)** - Listagem de usuários
   - Display tipo_contrato - linha 53
   - Filtros CLT/PJ - linha 25+
 
 ### Migrações
-- **[migrations/versions/f1a2b3c4d5e6_add_tipo_contrato_to_users.py](migrations/versions/f1a2b3c4d5e6_add_tipo_contrato_to_users.py)**
+- **[migrations/versions/f1a2b3c4d5e6_add_tipo_contrato_to_users.py](../migrations/versions/f1a2b3c4d5e6_add_tipo_contrato_to_users.py)**
   - Adição do campo `tipo_contrato`
   - Valor padrão: 'CLT'
 
@@ -563,19 +555,15 @@ usuarios = User.query.order_by(
 7. Proteção com RBAC e permissões
 
 ### ⚠️ Limitações/Gaps
-1. **API não suporta campos PJ** - criar_usuario_api() não captura dados PJ
-2. **PJ não gera Termo de Entrega** - Apenas CLT gera
-3. **Campos vazios persistem** - PJ guarda campos CLT vazios e vice-versa
-4. **Sem validação de CNPJ/CPF** - Aceita qualquer string
-5. **Sem filtro de tipo na API** - GET /api/users retorna ambos sem filtro
+1. **Campos vazios persistem** - PJ guarda campos CLT vazios e vice-versa
+2. **Sem validação de CNPJ/CPF** - Aceita qualquer string
+3. **Sem filtro de tipo na API** - GET /api/users retorna ambos sem filtro
 
 ### 💡 Sugestões de Melhoria
-1. Adicionar suporte PJ na API
-2. Implementar Termo de Entrega para PJ
-3. Validar formato de CNPJ/CPF antes de salvar
-4. Adicionar endpoint `/api/users?tipo=PJ` para filtro
-5. Criar índice no banco para `tipo_contrato` (melhora filtros)
-6. Limpeza de campos não-utilizados ao salvar (dados mais limpos)
+1. Validar formato de CNPJ/CPF antes de salvar
+2. Adicionar endpoint `/api/users?tipo=PJ` para filtro
+3. Criar índice no banco para `tipo_contrato` (melhora filtros)
+4. Limpeza de campos não-utilizados ao salvar (dados mais limpos)
 
 ---
 

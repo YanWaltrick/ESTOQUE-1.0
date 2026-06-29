@@ -1,8 +1,8 @@
 # Plano: Padronização em MySQL (um dialeto em todos os ambientes)
 
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
-> **Status geral:** 🟡 Em implementação — E1/E2/E4/E6 aplicados (verificação da suíte
-> contra MySQL pendente até o container subir); E3/E5/E7 pendentes; E8 parcial.
+> **Status geral:** 🟡 Em implementação — E1/E2/E4/E6 aplicados (container MySQL já
+> sobe via `docker compose up -d`); E3/E5/E7 pendentes; E8 parcial.
 >
 > **Última atualização:** 2026-06-27 — remoção do SQLite (100% MySQL)
 
@@ -42,10 +42,10 @@ introduzir PostgreSQL.
 | Aspecto | Hoje | Alvo |
 |---------|------|------|
 | Produção | MySQL (Azure) | MySQL (Azure) — inalterado |
-| Dev local | SQLite (default em `database.py`) | MySQL via container |
-| Testes | SQLite temporário (isolamento **quebrado**) | MySQL via container, isolamento por transação externa |
+| Dev local | MySQL via container (SQLite removido) | MySQL via container |
+| Testes | MySQL via container, isolamento por transação externa | MySQL via container, isolamento por transação externa |
 | CI | Não roda testes | `pytest` contra MySQL (`services: mysql` no GitHub Actions) |
-| `DocumentoArquivo.content` | `LargeBinary` → `BLOB` (limite 64 KB no MySQL) | `LONGBLOB` explícito |
+| `DocumentoArquivo.content` | `LONGBLOB` (E4 aplicado) | `LONGBLOB` explícito |
 | Schema | Alembic + fallback `_ensure_schema_columns` (ALTER TABLE no boot) | Alembic como única fonte; fallback removido |
 
 ---
@@ -73,10 +73,10 @@ SELECT @@collation_server;
 
 Ou no Azure Portal → recurso MySQL → *Overview / Server version*.
 
-**PEND-2 — Docker adiado.** A decisão atual é **documentar, não implementar**. O
-container MySQL e a troca do `conftest.py` para MySQL **não serão feitos agora**;
-ficam registrados aqui como próximo passo quando o plano for retomado. Usar
-**Docker** (e não podman) na implementação.
+**PEND-2 — Concluída.** O container MySQL (`compose.yml`) e a troca do
+`conftest.py` para MySQL (`estoque_test`) **já foram implementados** (ver E1/E2). O
+ambiente usa **Docker** (`docker compose up -d`). Resta apenas o gate de CI (E7)
+para rodar a suíte contra esse MySQL automaticamente.
 
 ---
 

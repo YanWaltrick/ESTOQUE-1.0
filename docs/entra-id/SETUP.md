@@ -6,13 +6,12 @@ A integração foi implementada de forma modular com:
 
 1. **`app/auth/entra_id.py`** - Classes e funções utilitárias
    - `EntraIDConfig`: Gerencia configurações de ambiente
-   - `EntraIDClient`: Cliente MSAL para fluxo OIDC
-   - `validate_email_in_database()`: Valida email no BD
-   - `create_csrf_token()`: Proteção CSRF
+   - `EntraIDClient`: Cliente MSAL (`get_auth_url`, `validate_token`, `extract_user_info`)
+   - `create_entra_client()`: Factory que devolve o cliente se o Entra ID estiver configurado
 
 2. **`app/routes/entra_auth.py`** - Blueprint com 3 rotas
    - `/entra/login`: Inicia autenticação
-   - `/entra/callback`: Processa resposta do Entra ID
+   - `/entra/callback`: Processa resposta do Entra ID e faz `login_user` (Flask-Login)
    - `/entra/logout`: Faz logout
 
 ## ⚙️ Configuração no Azure Portal
@@ -25,7 +24,7 @@ A integração foi implementada de forma modular com:
 4. Preenchaa:
    - **Nome**: `ESTOQUE Sistema`
    - **Tipos de conta suportados**: `Contas desta organização apenas` (ou conforme necessário)
-   - **URI de redirecionamento**: `http://localhost:5000/entra-callback` (alterar para URL de produção depois)
+   - **URI de redirecionamento**: `http://localhost:5000/entra/callback` (alterar para URL de produção depois)
 
 ### 2. Obter Credenciais
 
@@ -44,9 +43,9 @@ Após criar a aplicação:
 
 Na aba **Autenticação**:
 - **Redirect URIs**: Adicione todas as URLs onde sua app rodará
-  - Desenvolvimento: `http://localhost:5000/entra-callback`
-  - Produção: `https://seu-dominio.com/entra-callback`
-  - QA/Staging: `https://qa.seu-dominio.com/entra-callback`
+  - Desenvolvimento: `http://localhost:5000/entra/callback`
+  - Produção: `https://seu-dominio.com/entra/callback`
+  - QA/Staging: `https://qa.seu-dominio.com/entra/callback`
 
 ## 🔒 Configurar .env
 
@@ -64,11 +63,16 @@ Editado `.env`:
 ENTRA_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ENTRA_CLIENT_SECRET=seu-cliente-secret-muito-seguro
 ENTRA_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-ENTRA_REDIRECT_PATH=/entra-callback
+ENTRA_REDIRECT_PATH=/entra/callback
 
 # Opcional (auto-preenchido):
 # ENTRA_AUTHORITY=https://login.microsoftonline.com/seu-tenant-id
 ```
+
+> ℹ️ **`ENTRA_REDIRECT_PATH`** (padrão `/entra/callback`) precisa casar com a rota real
+> do callback (blueprint `entra_bp`, prefixo `/entra`) **e** com a Redirect URI
+> registrada no Azure. Use exatamente o mesmo valor nos três lugares — senão o retorno
+> do login Microsoft cai em 404.
 
 ## 📦 Instalar Dependência
 
@@ -101,41 +105,29 @@ Adicione um link na sua página de login/index:
 ### Acessar Dados do Usuário
 
 ```python
-from flask import session
-from app.routes.entra_auth import is_entra_authenticated, get_entra_user_info
+from flask_login import login_required, current_user
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
-    if not is_entra_authenticated():
-        return redirect(url_for('entra_auth.login'))
-    
-    user_info = get_entra_user_info()
-    # user_info = {
-    #     'id': 'entra-id-do-usuario',
-    #     'name': 'João Silva',
-    #     'email': 'joao.silva@empresa.com',
-    #     'upn': 'joao.silva@empresa.com'
-    # }
-    return render_template('dashboard.html', user=user_info)
+    # Após o callback do Entra ID, o usuário é autenticado via Flask-Login.
+    # Use current_user normalmente (mesmo objeto User do login tradicional).
+    return render_template('dashboard.html', user=current_user)
 ```
 
 ## ⚠️ Pontos Importantes
 
-### 1. Validação de Email (CRÍTICO)
+### 1. Vínculo por e-mail (CRÍTICO)
 
-A função `validate_email_in_database()` em `app/auth/entra_id.py` verifica se o email existe no BD:
-
-```python
-def validate_email_in_database(email: str) -> bool:
-    from app.models import User
-    user = User.query.filter_by(email=email.strip().lower()).first()
-    return user is not None and user.ativo
-```
+O callback (`entra_auth_callback` em `app/routes/entra_auth.py`) busca o usuário
+pelo e-mail retornado pelo Entra ID (`User.query.filter_by(email=...)`):
+- se **existir**, faz `login_user` e preenche `entra_id` (OID) caso vazio;
+- se **não existir**, abre uma `Chamada` para o admin e **não** autentica.
 
 **Antes de usar em PRODUÇÃO**, garanta que:
-- Os usuários têm email preenchido no BD
-- O email no BD é igual ao email do Entra ID
-- Considere validações adicionais (role, departamento, etc)
+- Os usuários têm e-mail preenchido no BD
+- O e-mail no BD é igual ao e-mail (UPN) do Entra ID
+- Considere validações adicionais (role, departamento, etc.)
 
 ### 2. Segurança
 
@@ -160,11 +152,11 @@ Validar CSRF token ✓
     ↓
 Trocar código por token (usando Client Secret) ✓
     ↓
-Buscar dados do usuário (nome, email, ID) ✓
+Buscar dados do usuário (nome, email, OID) ✓
     ↓
-Validar email no BD ✓
+Buscar usuário por e-mail no BD (ou abrir Chamada ao admin) ✓
     ↓
-Salvar dados na sessão Flask ✓
+Autenticar via Flask-Login (login_user) ✓
     ↓
 Redirecionar para página principal
 ```
@@ -210,7 +202,7 @@ Verificar SESSION_COOKIE_SECURE e SAMESITE.
 ```
 Solução: Verificar em Azure Portal:
 - App Registration → Autenticação
-- Adicione a URL exata: https://seu-dominio.com/entra-callback
+- Adicione a URL exata: https://seu-dominio.com/entra/callback
 ```
 
 ## 📚 Recursos
@@ -223,9 +215,8 @@ Solução: Verificar em Azure Portal:
 
 **Próximos passos opcionais:**
 
-1. Integrar com Flask-Login (criar User session automáticamente)
-2. Adicionar refresh tokens para sessões longas
-3. Implementar "Remember Me" com tokens
-4. Sincronizar dados do usuário com BD periodicamente
-5. Adicionar MFA (Multi-Factor Authentication)
-6. Integrar com Microsoft Graph API para mais dados
+1. Adicionar refresh tokens para sessões longas
+2. Implementar "Remember Me" com tokens
+3. Sincronizar dados do usuário com BD periodicamente
+4. Adicionar MFA (Multi-Factor Authentication)
+5. Integrar com Microsoft Graph API para mais dados

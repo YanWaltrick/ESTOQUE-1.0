@@ -2,7 +2,7 @@
 
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 >
-> **Última atualização:** 2026-06-27 — branch `feature/implementacao-testes`
+> **Última atualização:** 2026-06-29 — integração do upstream (Entra ID reescrito; testes de Entra ID removidos)
 
 Visão geral da suíte de testes automatizados do projeto. As **pendências e
 próximos passos** ficam em [`ROADMAP.md`](ROADMAP.md); o histórico de revisões de
@@ -23,13 +23,12 @@ código fica em [`REVISAO_CODIGO.md`](REVISAO_CODIGO.md).
 | Fixtures base (`conftest.py`) — app, banco isolado, client autenticado | 🟢 Concluído |
 | Fixtures auxiliares (`criar_usuario`, `usuario_comum`, `user_client`) | 🟢 Concluído |
 | Testes de fumaça do fluxo de login | 🟢 Concluído (4 testes) |
-| Cobertura das rotas/serviços | 🟢 **76%** (289 testes) |
+| Cobertura das rotas/serviços | 🟢 **73%** (266 testes) |
 | Gate de CI rodando `pytest` | 🔴 Pendente — ver [ROADMAP](ROADMAP.md#1-gate-de-ci) |
 
-**Cobertura atual: 76%** (`pytest --cov=app`), partindo de 22%. A suíte cobre os
+**Cobertura atual: 73%** (`pytest --cov=app`), partindo de 22%. A suíte cobre os
 modelos, os serviços (estoque, notificações, geração de PDF do termo), as rotas
-JSON (`/api`), administrativas (`/admin`), de autenticação/perfil e a integração
-Entra ID (caminhos de erro). Os fluxos de maior risco do
+JSON (`/api`), administrativas (`/admin`) e de autenticação/perfil. Os fluxos de maior risco do
 [ROADMAP](ROADMAP.md#2-cobertura-das-rotas-de-maior-risco) — bloqueio por força
 bruta, RBAC, geração do Termo (CLT/PJ), estoque e API — estão cobertos.
 
@@ -90,20 +89,12 @@ Todo teste novo reutiliza as fixtures dele em vez de montar a própria app ou ba
   **antes** de importar a aplicação — porque `app/database.py` resolve a URL no
   momento do import. Isso mantém o banco de teste (`estoque_test`) separado do de dev.
 - `create_app()` chama `init_database()` na criação (cria tabelas + admin padrão).
-  Hoje não há revisões Alembic, então cai em `db.create_all()`. **Quando a primeira
-  migração for criada, o isolamento precisa ser revalidado** — ver
-  [ROADMAP](ROADMAP.md#3-revalidar-isolamento-com-a-primeira-migração-alembic).
+  Há revisões Alembic em `migrations/versions/`, aplicadas no boot, com
+  `db.create_all()` + `_ensure_schema_columns()` como complemento. O isolamento dos
+  testes deve ser revalidado contra esse caminho — ver
+  [ROADMAP](ROADMAP.md#3-revalidar-isolamento-da-suíte-com-as-migrações-alembic).
 - `WTF_CSRF_ENABLED=False` na config de teste permite POSTs sem token CSRF.
 
 **Ao escrever um teste novo, copie o estilo de
 [`tests/test_smoke.py`](../../tests/test_smoke.py):** nomes em português `test_*`,
 asserts sobre status/redirecionamento, uma camada por teste.
-
----
-
-## 4. Relação com o smoke test legado
-
-O arquivo `tests/test_entra_id.py` é um smoke test antigo baseado em `print`
-(validação de imports da integração Entra ID). Continua executável via
-`python tests/test_entra_id.py`, mas **novos testes seguem o padrão pytest** acima.
-Migrá-lo para pytest é um item de baixa prioridade no [ROADMAP](ROADMAP.md).

@@ -16,20 +16,22 @@ não interfere no login tradicional por usuário/senha.
 
 Código da integração (fonte da verdade — não duplicar aqui):
 
-- `app/auth/entra_id.py` — `EntraIDConfig`, `EntraIDClient`, `validate_email_in_database()`, `create_csrf_token()`
-- `app/routes/entra_auth.py` — blueprint `entra_bp` e helpers `is_entra_authenticated()`, `get_entra_user_info()`
+- `app/auth/entra_id.py` — `EntraIDConfig`, `EntraIDClient` (`get_auth_url`, `validate_token`, `extract_user_info`), `create_entra_client()`
+- `app/routes/entra_auth.py` — blueprint `entra_bp` e as views `login`, `entra_auth_callback`, `entra_logout`
 
 ### Rotas
 
 | Rota | Descrição |
 |------|-----------|
 | `GET /entra/login` | Gera CSRF token e redireciona ao Entra ID. |
-| `GET /entra/callback` | Valida CSRF, troca código por token, valida e-mail no BD, popula a sessão. |
+| `GET /entra/callback` | Valida o state (CSRF), troca código por token, busca o usuário por e-mail e faz `login_user` (Flask-Login); se o e-mail não existir, abre uma `Chamada` para o admin. |
 | `GET /entra/logout` | Limpa a sessão Flask e faz logout no Entra ID. |
 
-### Dados na sessão após login
+### Autenticação após login
 
-`is_entra_authenticated`, `entra_id`, `name`, `email`, `upn`.
+O callback usa **Flask-Login** (`login_user`): o usuário autenticado fica em
+`current_user`, como no login tradicional. A sessão guarda apenas `auth_state`
+(state temporário do fluxo OAuth, removido ao final).
 
 ### Checklist antes de produção
 
@@ -37,5 +39,4 @@ Código da integração (fonte da verdade — não duplicar aqui):
 - [ ] `SESSION_COOKIE_SECURE=True` no `.env`.
 - [ ] `DATABASE_URL` correto e usuários com e-mail preenchido no BD.
 - [ ] `CLIENT_SECRET` apenas em variável de ambiente (nunca commitado) — considerar Azure Key Vault.
-
-Smoke test: `python tests/test_entra_id.py`.
+- [ ] `ENTRA_REDIRECT_PATH` deve casar com a rota real do callback (`/entra/callback`) e com a Redirect URI registrada no Azure.

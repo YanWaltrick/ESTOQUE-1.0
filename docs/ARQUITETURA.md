@@ -23,7 +23,7 @@ flowchart TD
 
     BP --> R1["auth_bp /<br/>login, logout, recuperação"]
     BP --> R2["main_bp /<br/>dashboard, estoque, chamados, docs, perfil"]
-    BP --> R3["admin_bp /<br/>usuários, relatórios"]
+    BP --> R3["admin_bp /admin<br/>usuários, relatórios"]
     BP --> R4["api_bp /api<br/>JSON assíncrono"]
     BP --> R5["entra_bp /<br/>SSO Entra ID (opcional)"]
 

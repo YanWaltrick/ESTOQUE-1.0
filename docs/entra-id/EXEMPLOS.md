@@ -28,124 +28,94 @@ Snippets prontos para copiar e adaptar. Para o passo a passo de configuração, 
 {% endblock %}
 ```
 
-## 2. Decorator para exigir autenticação Entra ID
+## 2. Exigir autenticação numa rota
 
-`app/auth/decorators.py`:
+Como o callback do Entra ID usa Flask-Login (`login_user`), basta o `@login_required`
+padrão — não há necessidade de um decorator próprio de Entra ID:
 
 ```python
-from functools import wraps
-from flask import redirect, url_for, flash
-from app.routes.entra_auth import is_entra_authenticated
+from flask_login import login_required, current_user
 
-def require_entra_auth(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not is_entra_authenticated():
-            flash('Você precisa estar autenticado no Entra ID', 'warning')
-            return redirect(url_for('entra_auth.login'))
-        return f(*args, **kwargs)
-    return decorated_function
+@app.route('/area-restrita')
+@login_required
+def area_restrita():
+    return f"Olá, {current_user.username}"
 ```
 
-## 3. Rota protegida usando o decorator
+## 3. Rota protegida com dados do usuário
 
 ```python
 from flask import Blueprint, render_template
-from app.auth.decorators import require_entra_auth
-from app.routes.entra_auth import get_entra_user_info
+from flask_login import login_required, current_user
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/dashboard')
-@require_entra_auth
+@login_required
 def dashboard():
-    user_info = get_entra_user_info()
     return render_template('dashboard.html',
-                           user_name=user_info['name'],
-                           user_email=user_info['email'])
+                           user_name=current_user.username,
+                           user_email=current_user.email)
 ```
 
-## 4. Sincronizar usuário Entra ID com o banco
+## 4. Sincronizar dados do usuário
 
-Chame em `before_request`:
+O callback já preenche `entra_id` no primeiro login. Para sincronizar outros campos,
+use `current_user` (Flask-Login) num `before_request` ou no próprio callback:
 
 ```python
-from flask import g
 from datetime import datetime
-from app.models import User
+from flask_login import current_user
 from app.database import db
-from app.routes.entra_auth import get_entra_user_info
 
-def sync_entra_user_to_db():
-    user_info = get_entra_user_info()
-    if not user_info:
+def sync_entra_user():
+    if not current_user.is_authenticated:
         return
-    email = user_info.get('email')
-    user = User.query.filter_by(email=email).first()
-    if user:
-        user.username = email.split('@')[0]
-        user.ultimo_login = datetime.now()
-        db.session.commit()
-        g.user = user
-    # Para criar automaticamente quando não existir, instancie um novo User
-    # (password vazio, role='usuario') e faça db.session.add/commit.
+    current_user.ultimo_login = datetime.now()
+    db.session.commit()
 ```
 
-## 5. Injetar helpers no contexto dos templates
+## 5. Mostrar o usuário logado no template
 
-Em `create_app()` (`app/__init__.py`):
-
-```python
-@app.context_processor
-def inject_entra_auth():
-    from app.routes.entra_auth import is_entra_authenticated, get_entra_user_info
-    return {
-        'is_entra_authenticated': is_entra_authenticated,
-        'get_entra_user_info': get_entra_user_info,
-    }
-```
-
-Uso no template:
+O Flask-Login injeta `current_user` em todos os templates automaticamente — não é
+preciso context processor:
 
 ```html
-{% if is_entra_authenticated() %}
-  <p>Olá {{ get_entra_user_info().name }}!</p>
-  <a href="{{ url_for('entra_auth.logout') }}">Logout</a>
+{% if current_user.is_authenticated %}
+  <p>Olá {{ current_user.username }}!</p>
+  <a href="{{ url_for('entra_auth.entra_logout') }}">Logout</a>
 {% else %}
   <a href="{{ url_for('entra_auth.login') }}">Login com Entra ID</a>
 {% endif %}
 ```
 
-## 6. Validação de e-mail com regras extras
+## 6. Regras de acesso extras no callback
 
-Variação de `validate_email_in_database()` com checagens adicionais (bloqueio, departamento):
+O callback (`app/routes/entra_auth.py`) hoje só exige que o e-mail exista no BD. Para
+restringir mais (conta ativa, não bloqueada, departamento), adicione as checagens
+antes do `login_user`:
 
 ```python
-def validate_email_in_database(email: str) -> bool:
-    from app.models import User
-    if not email:
-        return False
-    try:
-        email = email.strip().lower()
-        user = User.query.filter_by(email=email).first()
-        if not user or not user.ativo:
-            return False
-        if user.bloqueado_ate and user.bloqueado_ate > datetime.now():
-            return False
-        if user.departamento not in ('TI', 'RH', 'Admin'):
-            return False
-        user.ultimo_login = datetime.now()
-        user.tentativas_login_falhas = 0
-        db.session.commit()
-        return True
-    except Exception as e:
-        logging.error(f"Erro na validação: {e}")
-        return False
+# dentro de entra_auth_callback, após obter `user` por e-mail:
+from datetime import datetime
+
+if not user.ativo:
+    flash("Conta inativa.", "error")
+    return redirect(url_for('auth.login'))
+if user.bloqueado_ate and user.bloqueado_ate > datetime.now():
+    flash("Conta temporariamente bloqueada.", "error")
+    return redirect(url_for('auth.login'))
+if user.departamento not in ('TI', 'RH', 'Admin'):
+    flash("Departamento sem acesso.", "error")
+    return redirect(url_for('auth.login'))
+
+login_user(user, remember=False)
 ```
 
-## 7. Integração com Flask-Login
+## 7. Como o callback autentica (Flask-Login)
 
-No `callback`, após validar o e-mail no BD:
+É exatamente o que `entra_auth_callback` faz: busca o usuário por e-mail e chama
+`login_user` (sem chaves de sessão próprias — `current_user` basta):
 
 ```python
 from flask_login import login_user
@@ -154,38 +124,23 @@ from app.models import User
 user = User.query.filter_by(email=email).first()
 if user:
     login_user(user, remember=False)
-    session['is_entra_authenticated'] = True
-    session['email'] = email
-    session['name'] = user_info.get('name')
-return redirect(url_for('main.index'))
+    return redirect(url_for('main.index'))
+# Se o e-mail não existir, o callback abre uma Chamada para o admin (ver código).
 ```
 
-## 8. Teste de integração
+## 8. Teste de integração (padrão pytest do projeto)
 
-`tests/test_entra_auth.py`:
+Use as fixtures de `tests/conftest.py`. Sem `ENTRA_*` configurado, `/entra/login`
+redireciona para o login tradicional; o logout encerra a sessão Flask-Login:
 
 ```python
-from app import create_app
+def test_entra_login_redireciona(client):
+    resp = client.get('/entra/login')
+    assert resp.status_code == 302  # vai ao Microsoft ou, sem config, ao /login
 
-class TestEntraAuth:
-    def setup_method(self):
-        self.app = create_app()
-        self.app.config['TESTING'] = True
-        self.client = self.app.test_client()
-
-    def test_login_route_redirects(self):
-        response = self.client.get('/entra/login')
-        assert response.status_code == 302
-        assert 'login.microsoftonline.com' in response.location
-
-    def test_logout_clears_session(self):
-        with self.client.session_transaction() as sess:
-            sess['is_entra_authenticated'] = True
-            sess['email'] = 'teste@empresa.com'
-        self.client.get('/entra/logout')
-        with self.client.session_transaction() as sess:
-            assert 'is_entra_authenticated' not in sess
-            assert 'email' not in sess
+def test_entra_logout_encerra_sessao(auth_client):
+    resp = auth_client.get('/entra/logout')
+    assert resp.status_code == 302
 ```
 
 ## 9. Proxy reverso com HTTPS (Nginx)

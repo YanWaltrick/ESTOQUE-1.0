@@ -8,8 +8,8 @@ Este documento descreve as práticas e mecanismos de segurança implementados no
 ## 1. Autenticação & Autorização
 
 ### Credenciais
-- ✅ **Não há credenciais hard-coded**: Todas as credenciais são carregadas de variáveis de ambiente (`.env`)
-- ✅ **Hashing de senhas**: Utilizamos `werkzeug.security.generate_password_hash()` com `pbkdf2:sha256`
+- ⚠️ **Credencial admin default**: na primeira inicialização o sistema cria `admin`/`admin` — senha hard-coded e **impressa no log** em texto claro. **Trocar imediatamente**; é bloqueio de produção (ver [PRONTIDAO_PRODUCAO.md](../infraestrutura/PRONTIDAO_PRODUCAO.md), P1). As demais credenciais (banco, e-mail, secrets) vêm de variáveis de ambiente (`.env`).
+- ✅ **Hashing de senhas**: usuários cadastrados usam `pbkdf2:sha256` via `PasswordValidator` (`app/auth/security.py`); o admin default cai no algoritmo padrão do Werkzeug (`scrypt`)
 - ✅ **Força Bruta**: Proteção contra tentativas múltiplas falhas
   - Bloqueio temporário após falhas repetidas
   - Registro de tentativas (`tentativas_login_falhas`)
@@ -41,10 +41,10 @@ Este documento descreve as práticas e mecanismos de segurança implementados no
 - ✅ **Sem SQL Injection**: Uso de SQLAlchemy ORM (queries parametrizadas)
 
 ### Uploads de Arquivos
-- ✅ **Validação de tipo**: Apenas `png, jpg, jpeg, gif` permitidos
-- ✅ **Limite de tamanho**: Máximo 2MB por arquivo
+- ✅ **Validação de tipo**: imagens — `png, jpg, jpeg, gif, webp`; documentos — `pdf, doc, docx, xls, xlsx, txt`
+- ✅ **Limite de tamanho**: Máximo 2MB por imagem de perfil
 - ✅ **Nomes seguros**: `secure_filename()` + timestamp único
-- ✅ **Armazenamento**: Fora da raiz pública (`static/uploads/`)
+- ⚠️ **Armazenamento**: em `static/uploads/` — **dentro** da árvore pública servida em `/static`; não há controle de acesso por enquanto
 
 ---
 

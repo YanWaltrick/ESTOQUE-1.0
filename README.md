@@ -51,41 +51,42 @@ concluído.
 - Termos de entrega e responsabilidade são associados aos usuários.
 
 ## Requisitos
-- Python 3.10+ (recomendado)
-- pip
+- **Python 3.13** (fixado em [`mise.toml`](mise.toml))
+- **Docker** — para subir o MySQL local. O projeto é **100% MySQL**, sem fallback SQLite.
 - Git (opcional)
 
 ## Instalação
 
-### 1. Entrar na pasta do projeto
+> Guia detalhado com troubleshooting em [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
+### 1. Subir o banco MySQL (Docker)
+O [`compose.yml`](compose.yml) provê o MySQL local (banco `estoque_db`, usuário `estoque` / `estoque123`, porta 3306):
 ```bash
-cd sistema-estoque
+docker compose up -d
 ```
 
-### 2. Criar ambiente virtual
+### 2. Criar o ambiente virtual e instalar dependências
 ```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Instalar dependências
-```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows (PowerShell/CMD)
+# source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variáveis de ambiente
-Crie um arquivo `.env` com as configurações necessárias. O projeto usa variáveis como:
-- `SECRET_KEY`
-- `FLASK_ENV`
-- `DATABASE_URL` (opcional; se não for informado, o sistema usa SQLite local)
-- `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`
-- `ADMIN_EMAILS`
-- `TEAMS_CHANNEL_WEBHOOK_URL`
-- `POWER_AUTOMATE_WEBHOOK_URL`
-- `APP_PUBLIC_BASE_URL`
-- `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_TENANT_ID` (opcionais para login corporativo)
+### 3. Configurar variáveis de ambiente
+Copie `.env.example` para `.env` e ajuste os valores. Para desenvolvimento, o mínimo é:
+```env
+FLASK_ENV=development
+SECRET_KEY=qualquer-chave-para-dev
+DATABASE_URL=mysql+pymysql://estoque:estoque123@127.0.0.1:3306/estoque_db?charset=utf8mb4
+```
+`DATABASE_URL` é **obrigatória** — o projeto usa MySQL em todos os ambientes (dev, teste e produção); não há fallback SQLite. Em produção, `SECRET_KEY` também é obrigatória.
 
-Se necessário, copie o exemplo existente para a raiz do projeto e ajuste os valores.
+As demais variáveis são opcionais (lista completa em [`.env.example`](.env.example)):
+- `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE`
+- `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`, `ADMIN_EMAILS`
+- `TEAMS_CHANNEL_WEBHOOK_URL`, `POWER_AUTOMATE_WEBHOOK_URL`, `APP_PUBLIC_BASE_URL`
+- `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_TENANT_ID` (login corporativo opcional)
 
 ## Execução
 
@@ -129,6 +130,7 @@ docs/                 # documentação do projeto (ver docs/README.md)
 
 ## Documentação
 A documentação detalhada fica em [docs/](docs/README.md):
+- [docs/ONBOARDING.md](docs/ONBOARDING.md) — **passo a passo para rodar a aplicação localmente do zero** (comece por aqui).
 - [docs/ANALISE_CLT_PJ.md](docs/ANALISE_CLT_PJ.md) — análise dos fluxos CLT e PJ.
 - [docs/SETUP_REMOTO.md](docs/SETUP_REMOTO.md) — configuração de acesso remoto.
 - [docs/SECURITY.md](docs/SECURITY.md) — política de segurança.
@@ -143,7 +145,7 @@ A documentação detalhada fica em [docs/](docs/README.md):
 
 ## Observações
 - O projeto usa SQLAlchemy e Flask-Login.
-- O banco pode ser SQLite no ambiente local ou MySQL/PostgreSQL conforme configuração.
+- O banco é **MySQL** em todos os ambientes (dev, teste e produção); `DATABASE_URL` é obrigatória e não há fallback SQLite.
 - Logs e eventos são registrados durante login, operações de estoque, upload de documentos, alterações de status e outras ações relevantes.
 - Uploads de arquivos são salvos em pastas da aplicação sob o diretório de static.
 
