@@ -27,8 +27,8 @@ flask --app manage db downgrade                # Reverte última migração
 
 ## Configuração de ambiente
 
-**Python 3.13** (fixado em `mise.toml` via [mise](https://mise.jdx.dev/)). Com mise
-instalado, `mise install` provê o interpretador; sem mise, use Python 3.13 manualmente.
+**Python 3.14** (fixado em `mise.toml` via [mise](https://mise.jdx.dev/)). Com mise
+instalado, `mise install` provê o interpretador; sem mise, use Python 3.14 manualmente.
 O ambiente virtual (`.venv/`) e as dependências (`pip install -r requirements.txt`)
 seguem normalmente.
 

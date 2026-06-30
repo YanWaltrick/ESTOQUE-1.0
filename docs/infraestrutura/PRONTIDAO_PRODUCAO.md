@@ -3,13 +3,15 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize status e checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-29 — P2 avançado: a **escrita** de documentos foi
-> unificada — upload (usuário e admin) e geração de termo agora gravam o blob em
-> `DocumentoArquivo` no mesmo fluxo (helper `DocumentoArquivo.salvar_do_arquivo`, upsert
-> por `filename`), então novos documentos/termos já nascem resilientes ao disco efêmero;
-> a migração manual passa a cobrir só o legado já em disco. Persistência de
-> avatares/anexos/fotos segue pendente. Antes: `static/uploads/` deixou de ser versionado
-> e documentos ganharam fallback ao banco também no admin.
+> **Última atualização:** 2026-06-30 — **P5 resolvido**: `mise.toml` subiu para
+> **Python 3.14**, alinhando o ambiente local ao runtime do build/deploy (que já usava
+> 3.14). A divergência testa-num-runtime-entrega-noutro deixou de existir; a paridade
+> "suíte na mesma versão do deploy" fica garantida pelo gate de CI (ver
+> [Qualidade de Código](../qualidade/ROADMAP.md) e [testes/ROADMAP #1](../testes/ROADMAP.md)).
+> Antes (2026-06-29): P2 avançado — a **escrita** de documentos foi unificada (upload e
+> geração de termo gravam o blob em `DocumentoArquivo` via `salvar_do_arquivo`, upsert por
+> `filename`), então novos documentos/termos já nascem resilientes ao disco efêmero;
+> persistência de avatares/anexos/fotos segue pendente.
 
 **Origem:** veredito do [Conselho de LLMs sobre a escolha de stack (2026-06-29)](../adr/0001-manter-flask-como-stack.md).
 O conselho foi unânime: **a stack (Flask) está validada** — o risco real é
@@ -30,7 +32,7 @@ rastreia os bloqueios entre o estado atual e um go-live seguro.
 | P2 | Uploads gravados em disco efêmero do App Service | 🔺 Alta | 🟡 Parcial | **este doc** + [custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P3 | Migrations/`ALTER` no boot com múltiplos workers | 🔺 Alta | 🔴 Pendente | ↪ [custo/latência A1](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P4 | Secrets, cookie seguro e startup command explícito | 🔺 Alta | 🔴 Pendente | **este doc** |
-| P5 | Parity de Python: 3.13 local × 3.14 no build | ▪ Média | 🔴 Pendente | **este doc** |
+| P5 | Parity de Python: local × build | ▪ Média | ✅ Resolvido (2026-06-30) — local subiu p/ 3.14 | **este doc** |
 | P6 | Observabilidade (health check, App Insights, alertas) | ▪ Média | 🔴 Pendente | **este doc** |
 | P7 | Gate de testes no CI + staging/rollback | 🔺 Alta | 🟡 Parcial | ↪ [testes/ROADMAP #1](../testes/ROADMAP.md) |
 | P8 | LGPD dos documentos pessoais (CLT/PJ) | ▪ Média | 🔴 Pendente | ↪ [custo/latência §4.3](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
@@ -189,19 +191,23 @@ não duplicar aqui — atualizar lá.
 
 ---
 
-## P5. Parity de Python: 3.13 local × 3.14 no build
+## P5. Parity de Python: local × build
 
-**Prioridade:** ▪ Média · **Status:** 🔴 Pendente
+**Prioridade:** ▪ Média · **Status:** ✅ Resolvido (2026-06-30)
 
-**Por quê:** `mise.toml` fixa **Python 3.13**; o workflow
-`.github/workflows/main_somasgt.yml` builda em **3.14** (`setup-python` com
-`python-version: '3.14'`). Testa-se num runtime e entrega-se em outro — divergências
-de comportamento de ReportLab/PyMySQL/MSAL só apareceriam em produção.
+**Por quê (resolvido):** `mise.toml` fixava **Python 3.13** enquanto o workflow
+`.github/workflows/main_somasgt.yml` buildava em **3.14** (`setup-python` com
+`python-version: '3.14'`) — testava-se num runtime e entregava-se em outro, e
+divergências de ReportLab/PyMySQL/MSAL só apareceriam em produção. **Resolução:** o
+`mise.toml` foi alinhado para **3.14** (a versão de produção), eliminando a divergência.
 
-**Checklist:**
+**Feito:**
 
-- [ ] Alinhar a versão: subir o `mise.toml` para 3.14 **ou** travar o build em 3.13.
-- [ ] Garantir que a suíte roda na **mesma** versão usada no deploy.
+- [x] Alinhar a versão: `mise.toml` subiu para 3.14 (= versão do build/deploy). Docs de
+      setup atualizadas (`README.md`, `docs/ONBOARDING.md`, `CLAUDE.md`).
+- [ ] Garantir que a suíte roda na **mesma** versão no CI — herdado pelo gate de CI, que
+      deve fixar 3.14 no job (ver [Qualidade #4](../qualidade/ROADMAP.md) e
+      [testes/ROADMAP #1](../testes/ROADMAP.md)).
 
 ---
 

@@ -53,9 +53,9 @@ Este é o mecanismo que realmente impõe consistência num time pequeno.
   para `estoque_test` no import. O job de CI precisa de um **service container MySQL**
   (ou MySQL gerenciado no runner), criar o banco `estoque_test` e exportar
   `TEST_DATABASE_URL` antes de `pytest`. Sem isso o import da app falha na coleta.
-- Fixar a **versão do Python igual à do deploy** (hoje o build usa 3.14 e o local 3.13 —
-  ver [P5 em PRONTIDAO_PRODUCAO.md](../infraestrutura/PRONTIDAO_PRODUCAO.md)); o gate é a
-  oportunidade natural de alinhar 3.13/3.14.
+- Fixar a **versão do Python do job em 3.14** (= local e deploy, já alinhados — ver
+  [P5 ✅ em PRONTIDAO_PRODUCAO.md](../infraestrutura/PRONTIDAO_PRODUCAO.md)); o job de CI
+  apenas herda essa versão única.
 
 **Checklist:**
 
@@ -64,7 +64,7 @@ Este é o mecanismo que realmente impõe consistência num time pequeno.
 - [ ] Fazer o job **bloquear** o merge/deploy quando os testes falharem.
 - [ ] Rodar `pytest` **antes** do passo de deploy no `main_somasgt.yml` (ou em
       workflow separado exigido como status check obrigatório na branch protegida).
-- [ ] Fixar a versão do Python do job igual à do deploy (resolve P5 junto).
+- [ ] Fixar a versão do Python do job em **3.14** (= local e deploy; P5 já resolvido).
 - [ ] Documentar no [README de testes](README.md) que o CI é obrigatório.
 
 ---
