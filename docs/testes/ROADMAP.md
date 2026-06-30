@@ -3,7 +3,7 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-29 — integração do upstream (Entra ID reescrito); testes de Entra ID removidos (289→266 testes, 76%→73%); item #6 encerrado. Antes: item #2 concluído (cobertura 22%→76%); itens #10 (rotas órfãs) e #11 (fuso no ORM) registrados na revisão `xhigh`
+> **Última atualização:** 2026-06-29 — item #1 (gate de CI) detalhado com as restrições concretas de implementação (service container MySQL, paridade de versão do Python com o deploy); suíte atual em 274 testes verdes. Antes: integração do upstream (Entra ID reescrito); testes de Entra ID removidos (289→266 testes, 76%→73%); item #6 encerrado
 
 Origem da maioria destes itens: veredito do Conselho de LLMs sobre a estratégia de
 testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
@@ -42,16 +42,29 @@ preservado em cada item.
 **Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
 
 **Por quê:** o workflow `.github/workflows/main_somasgt.yml` hoje faz **deploy
-automático para o Azure a cada push na `main` sem rodar nenhum teste**. Sem um gate,
-qualquer padrão de testes é opcional e a suíte não impede regressões. Este é o
-mecanismo que realmente impõe consistência num time pequeno.
+automático para o Azure a cada push na `main` sem rodar nenhum teste** (é o único
+workflow, e só dispara em `push` na `main` — push em `develop` **não aciona nada**).
+Sem um gate, qualquer padrão de testes é opcional e a suíte não impede regressões.
+Este é o mecanismo que realmente impõe consistência num time pequeno.
+
+**Restrições concretas de implementação (verificadas em 2026-06-29):**
+
+- A suíte é **100% MySQL** — o `conftest.py` resolve `DATABASE_URL`/`TEST_DATABASE_URL`
+  para `estoque_test` no import. O job de CI precisa de um **service container MySQL**
+  (ou MySQL gerenciado no runner), criar o banco `estoque_test` e exportar
+  `TEST_DATABASE_URL` antes de `pytest`. Sem isso o import da app falha na coleta.
+- Fixar a **versão do Python igual à do deploy** (hoje o build usa 3.14 e o local 3.13 —
+  ver [P5 em PRONTIDAO_PRODUCAO.md](../infraestrutura/PRONTIDAO_PRODUCAO.md)); o gate é a
+  oportunidade natural de alinhar 3.13/3.14.
 
 **Checklist:**
 
-- [ ] Adicionar job de CI que instala `requirements-dev.txt` e roda `pytest`.
+- [ ] Adicionar job de CI (push/PR em `develop` e `main`) com **service container MySQL**,
+      que instala `requirements-dev.txt`, cria `estoque_test` e roda `pytest`.
 - [ ] Fazer o job **bloquear** o merge/deploy quando os testes falharem.
 - [ ] Rodar `pytest` **antes** do passo de deploy no `main_somasgt.yml` (ou em
-      workflow separado exigido como status check).
+      workflow separado exigido como status check obrigatório na branch protegida).
+- [ ] Fixar a versão do Python do job igual à do deploy (resolve P5 junto).
 - [ ] Documentar no [README de testes](README.md) que o CI é obrigatório.
 
 ---
