@@ -3,7 +3,10 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize status e checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-29 — criação a partir do veredito do Conselho.
+> **Última atualização:** 2026-06-29 — P2 revisado: `static/uploads/` deixou de ser
+> versionado (rede de proteção do git removida) e documentos ganharam fallback ao banco
+> também no admin; persistência de avatares/anexos/fotos segue pendente. Antes: criação a
+> partir do veredito do Conselho.
 
 **Origem:** veredito do [Conselho de LLMs sobre a escolha de stack (2026-06-29)](../adr/0001-manter-flask-como-stack.md).
 O conselho foi unânime: **a stack (Flask) está validada** — o risco real é
@@ -21,7 +24,7 @@ rastreia os bloqueios entre o estado atual e um go-live seguro.
 | # | Bloqueio | Prioridade | Status | Dono / referência |
 |---|----------|-----------|--------|-------------------|
 | P1 | Credencial admin default (`admin`/`admin`) + senha em log | 🔺 Alta | 🔴 Pendente | **este doc** |
-| P2 | Uploads gravados em disco efêmero do App Service | 🔺 Alta | 🔴 Pendente | **este doc** + [custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
+| P2 | Uploads gravados em disco efêmero do App Service | 🔺 Alta | 🟡 Parcial | **este doc** + [custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P3 | Migrations/`ALTER` no boot com múltiplos workers | 🔺 Alta | 🔴 Pendente | ↪ [custo/latência A1](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P4 | Secrets, cookie seguro e startup command explícito | 🔺 Alta | 🔴 Pendente | **este doc** |
 | P5 | Parity de Python: 3.13 local × 3.14 no build | ▪ Média | 🔴 Pendente | **este doc** |
@@ -61,7 +64,7 @@ com credencial pública conhecida cai no primeiro scan de rede.
 
 ## P2. Uploads gravados em disco efêmero do App Service
 
-**Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
+**Prioridade:** 🔺 Alta · **Status:** 🟡 Parcial (documentos com fallback ao banco; avatares/anexos/fotos ainda só no disco)
 
 **Por quê:** avatares, fotos e anexos são salvos no filesystem local em
 `static/uploads/` (`auth.py:370`, `api.py:660`/`915`, `admin.py:201`/`385`/`438`/`658`,
@@ -70,14 +73,43 @@ scale-out. Hoje há **duas estratégias simultâneas** de armazenamento (disco *
 no banco via `DocumentoArquivo`), o que não é redundância: é indecisão arquitetural —
 metade dos arquivos sobrevive, metade evapora.
 
+> **Mudança de contexto (2026-06-29):** até então o `static/uploads/` era **versionado no
+> git**, e o deploy (`path: .` no `main_somasgt.yml`) reentregava esses arquivos ao App
+> Service a cada release — o que **mascarava** o problema (o disco "se reenchia" sozinho).
+> Esse versionamento foi **removido** (inchava o repo e expunha dados pessoais — ver P8).
+> A partir daqui o disco **não se reenche** no deploy, o que torna P2 **acionável antes do
+> próximo deploy na `main`**, não mais uma melhoria adiável.
+
+**Estado por tipo de arquivo:**
+
+| Tipo | Persistência fora do disco | Leitura resiliente |
+|------|----------------------------|--------------------|
+| Documentos (`documentos/`, inclui termos PDF) | `DocumentoArquivo` (banco) — **se** migrados | ✅ usuário (`main.py`) **e** admin (`admin.py`) com fallback ao banco |
+| Avatares (`avatars/`) | ❌ nenhuma | ❌ só disco |
+| Anexos de chamados (`chamadas/`) | ❌ nenhuma | ❌ só disco |
+| Fotos de termos (`termos/`) | ❌ nenhuma | ❌ só disco |
+
 **Checklist:**
 
+- [ ] **Antes do próximo deploy na `main`:** rodar `python scripts/migrate_docs_to_db.py`
+      **no ambiente de produção** — sem isso o fallback ao banco não tem o que servir e os
+      documentos hoje no disco somem no deploy.
+- [ ] **Confirmar a premissa do disco efêmero:** validar empiricamente se o App Service
+      persiste o filesystem entre deploys (subir um arquivo, dar deploy, ver se sobrevive).
+      Se **não** persistir, os itens abaixo deixam de ser melhoria e viram bloqueio de go-live.
 - [ ] Definir **uma** fonte de verdade para arquivos: **Azure Blob Storage**
       (recomendado) ou coluna no MySQL — disco local **não** é opção em App Service.
-- [ ] Migrar os pontos de `save()` em disco para a fonte escolhida.
+- [ ] Levar **avatares, anexos de chamados e fotos de termos** para a fonte escolhida —
+      hoje **não têm** nenhuma cópia fora do disco; migrar os respectivos pontos de `save()`.
 - [ ] Conciliar com a decisão de mover BLOBs do banco
       ([custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md)) — idealmente o mesmo
       destino para tudo.
+
+**Feito:**
+
+- [x] (2026-06-29) Documentos do admin passam a cair para o banco quando o disco está
+      vazio (`admin.py`: `visualizar_documento`/`download_documento`), espelhando a rota
+      do usuário (`main.py`) — leitura resiliente de documentos em ambas as telas.
 
 > Relacionado: a arquitetura de armazenamento de documentos é decidida em conjunto com
 > o [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) e a
