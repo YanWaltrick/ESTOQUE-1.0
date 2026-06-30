@@ -4,3 +4,9 @@
 
 pytest>=8.3
 pytest-cov>=6.0
+
+# Qualidade de código — Ruff (lint + formatação).
+# Versão FIXADA de propósito: Ruff é binário estático; sem pin, um release novo
+# traz regras novas e quebra o CI sozinho (ver docs/adr/0002 e docs/qualidade/ROADMAP.md).
+# O job de CI e o pre-commit usam exatamente esta versão.
+ruff==0.15.20
