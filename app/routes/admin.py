@@ -1,6 +1,7 @@
 import os
 import io
 import json
+import mimetypes
 from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
@@ -748,13 +749,19 @@ def _servir_documento(documento, as_attachment, download_name=None):
     blob = DocumentoArquivo.query.filter_by(filename=documento.arquivo).first()
     if not blob:
         return None
+    # Para preview inline, um mimetype genérico força download. Quando o blob não
+    # tem mime útil (legado/migração), inferimos pela extensão do arquivo — assim o
+    # banco serve com o mesmo Content-Type que o disco inferiria.
+    mime = blob.mime_type
+    if not mime or mime == 'application/octet-stream':
+        mime = mimetypes.guess_type(documento.arquivo)[0] or 'application/octet-stream'
     bio = io.BytesIO(blob.content)
     bio.seek(0)
     return send_file(
         bio,
         as_attachment=as_attachment,
         download_name=download_name if as_attachment else None,
-        mimetype=blob.mime_type or 'application/octet-stream',
+        mimetype=mime,
     )
 
 
@@ -789,10 +796,13 @@ def download_documento(documento_id):
     try:
         download_name = f'{documento.nome_documento}.{documento.tipo_arquivo}'
         if documento.tipo_arquivo.lower() == 'pdf' and documento.usuario:
+            # Casa apenas os nomes gerados pelo TermoService ('Termo de Entrega',
+            # 'Aditivo ao Termo de Entrega #N') — não qualquer PDF que por acaso
+            # contenha as palavras "termo"/"aditivo" (ex.: "Termo de garantia").
             doc_name = documento.nome_documento.lower()
-            if 'aditivo' in doc_name:
+            if doc_name.startswith('aditivo ao termo'):
                 download_name = f'Aditivo ao Termo de Responsabilidade de {documento.usuario.username}.pdf'
-            elif 'termo' in doc_name:
+            elif doc_name.startswith('termo de entrega'):
                 download_name = f'Termo de responsabilidade de {documento.usuario.username}.pdf'
 
         resposta = _servir_documento(documento, as_attachment=True, download_name=download_name)
