@@ -657,7 +657,11 @@ def upload_documento_usuario(user_id):
     try:
         # Salvar arquivo
         arquivo.save(caminho_arquivo)
-        
+
+        # Espelhar no banco para sobreviver ao disco efêmero do App Service
+        # (ver DocumentoArquivo.salvar_do_arquivo). Falha é não-crítica.
+        DocumentoArquivo.salvar_do_arquivo(caminho_arquivo, filename=nome_arquivo_seguro, tamanho=tamanho)
+
         # Criar registro no banco de dados
         novo_documento = DocumentoUsuario(
             id_usuario=usuario.id,
@@ -1501,6 +1505,12 @@ def exportar_termo_pdf(user_id):
         TermoService.gerar_pdf(user_id, caminho, eh_aditivo)
 
         tamanho = os.path.getsize(caminho)
+
+        # Espelhar o PDF no banco para sobreviver ao disco efêmero do App Service.
+        # O nome do termo é fixo (termo_<id>.pdf), então o upsert por filename
+        # substitui a versão anterior quando o termo é regenerado.
+        DocumentoArquivo.salvar_do_arquivo(caminho, filename=nome_arquivo, tamanho=tamanho, mime_type='application/pdf')
+
         usuario_enviador = getattr(current_user, 'username', None) or 'sistema'
 
         # If regenerating the base Termo (not an aditivo) and a Termo document already exists,

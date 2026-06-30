@@ -5,11 +5,18 @@ Todo o blueprint exige login + role admin (`before_request`). Usam
 `static/uploads/` — efeito colateral aceito nos testes.
 """
 
+import os
 from io import BytesIO
 
 import pytest
 
-from app.models import DocumentoUsuario, TermoEntrega, User
+from app.models import DocumentoArquivo, DocumentoUsuario, TermoEntrega, User
+
+
+def _pasta_documentos_teste():
+    """Pasta física onde as rotas gravam os documentos (raiz do projeto)."""
+    raiz = os.path.dirname(os.path.dirname(__file__))
+    return os.path.join(raiz, "static", "uploads", "documentos")
 
 # O fixture `admin_user` vem do `conftest.py` (compartilhado com test_api.py).
 
@@ -402,3 +409,69 @@ def test_editar_usuario_propria_conta_bloqueado(auth_client, admin_user):
         follow_redirects=False,
     )
     assert resp.status_code == 302
+
+
+# --- Persistência de documentos no banco (resiliência ao disco efêmero) ------
+
+
+def test_upload_documento_persiste_blob(auth_client, db_session, criar_usuario):
+    """O upload do admin deve espelhar o arquivo em DocumentoArquivo (não só em disco)."""
+    alvo = criar_usuario(username="doc_blob")
+    conteudo = b"conteudo de teste do pdf"
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(conteudo), "documento.pdf"), "nome": "Doc Blob"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+    blob = DocumentoArquivo.query.filter_by(filename=doc.arquivo).first()
+    assert blob is not None, "upload do admin não gravou o blob no banco"
+    assert blob.content == conteudo
+    assert blob.size == len(conteudo)
+
+
+def test_visualizar_e_download_caem_para_o_banco_sem_disco(auth_client, db_session, criar_usuario):
+    """Sem o arquivo no disco (disco efêmero), as rotas servem o conteúdo do banco."""
+    alvo = criar_usuario(username="doc_fallback")
+    conteudo = b"conteudo somente no banco"
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(conteudo), "fallback.pdf"), "nome": "Doc Fallback"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    # Simula a reciclagem do disco efêmero: remove o arquivo, deixa só o blob.
+    caminho = os.path.join(_pasta_documentos_teste(), doc.arquivo)
+    if os.path.exists(caminho):
+        os.remove(caminho)
+
+    resp_view = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/visualizar")
+    assert resp_view.status_code == 200
+    assert resp_view.data == conteudo
+
+    resp_dl = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/download")
+    assert resp_dl.status_code == 200
+    assert resp_dl.data == conteudo
+
+
+def test_exportar_termo_persiste_blob_com_upsert(auth_client, db_session, criar_usuario):
+    """O termo gerado deve ser espelhado no banco, e regerar não deve duplicar o blob."""
+    alvo = criar_usuario(username="termo_blob", tipo_contrato="CLT")
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/termo-entrega/equipamentos/adicionar",
+        data={"descricao": "Notebook", "marca": "Dell"},
+        content_type="multipart/form-data",
+    )
+    auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
+
+    nome_arquivo = f"termo_{alvo.id}.pdf"
+    blobs = DocumentoArquivo.query.filter_by(filename=nome_arquivo).all()
+    assert len(blobs) == 1, "geração do termo não gravou exatamente um blob no banco"
+    assert blobs[0].size > 0
+    assert blobs[0].mime_type == "application/pdf"
+
+    # Regenera o termo (mesmo nome fixo): o upsert por filename substitui, não duplica.
+    auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
+    blobs = DocumentoArquivo.query.filter_by(filename=nome_arquivo).all()
+    assert len(blobs) == 1, "regerar o termo duplicou o blob em vez de fazer upsert"

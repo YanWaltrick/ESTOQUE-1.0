@@ -1,3 +1,5 @@
+import os
+import mimetypes
 from datetime import datetime, timezone, timedelta
 from app.database import db
 from flask_login import UserMixin
@@ -431,6 +433,41 @@ class DocumentoArquivo(db.Model):
             'size': self.size,
             'uploaded_at': self.uploaded_at.strftime('%d/%m/%Y %H:%M:%S') if self.uploaded_at else None,
         }
+
+    @classmethod
+    def salvar_do_arquivo(cls, caminho_arquivo, filename=None, tamanho=None, mime_type=None, commit=True):
+        """Espelha no banco (upsert por ``filename``) o conteúdo de um arquivo em disco.
+
+        É a fonte única de persistência de blob usada pelas rotas que gravam
+        documentos (upload do usuário e do admin, geração de termo). Existe porque
+        o disco do App Service é efêmero: as rotas de leitura caem para este blob
+        quando o arquivo some do disco (ver ``admin.py``/``main.py``).
+
+        O ``filename`` é a chave — já é único por rota, pois o ``save()``/geração
+        sobrescreve o arquivo de mesmo nome no disco. Removemos blobs antigos de
+        mesmo ``filename`` antes de inserir, de modo que a leitura por
+        ``filter_by(filename=...).first()`` nunca devolva conteúdo obsoleto nem
+        duplicado (ex.: termo regenerado, que mantém o nome ``termo_<id>.pdf``).
+
+        A falha é tratada como **não-crítica** (rollback + retorna ``None``): o
+        disco continua sendo a fonte primária e o upload/geração não deve quebrar
+        por causa do blob.
+        """
+        filename = filename or os.path.basename(caminho_arquivo)
+        try:
+            with open(caminho_arquivo, 'rb') as arquivo:
+                conteudo = arquivo.read()
+            tamanho = len(conteudo) if tamanho is None else tamanho
+            mime = mime_type or mimetypes.guess_type(caminho_arquivo)[0] or 'application/octet-stream'
+            cls.query.filter_by(filename=filename).delete()
+            blob = cls(filename=filename, content=conteudo, mime_type=mime, size=tamanho)
+            db.session.add(blob)
+            if commit:
+                db.session.commit()
+            return blob
+        except Exception:
+            db.session.rollback()
+            return None
 
 
 class ItemRecebido(db.Model):
