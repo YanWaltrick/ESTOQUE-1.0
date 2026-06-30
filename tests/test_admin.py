@@ -5,11 +5,18 @@ Todo o blueprint exige login + role admin (`before_request`). Usam
 `static/uploads/` — efeito colateral aceito nos testes.
 """
 
+import os
 from io import BytesIO
 
 import pytest
 
-from app.models import DocumentoUsuario, TermoEntrega, User
+from app.models import DocumentoArquivo, DocumentoUsuario, TermoEntrega, User
+
+
+def _pasta_documentos_teste():
+    """Pasta física onde as rotas gravam os documentos (raiz do projeto)."""
+    raiz = os.path.dirname(os.path.dirname(__file__))
+    return os.path.join(raiz, "static", "uploads", "documentos")
 
 # O fixture `admin_user` vem do `conftest.py` (compartilhado com test_api.py).
 
@@ -402,3 +409,168 @@ def test_editar_usuario_propria_conta_bloqueado(auth_client, admin_user):
         follow_redirects=False,
     )
     assert resp.status_code == 302
+
+
+# --- Persistência de documentos no banco (resiliência ao disco efêmero) ------
+
+
+def test_upload_documento_persiste_blob(auth_client, db_session, criar_usuario):
+    """O upload do admin deve espelhar o arquivo em DocumentoArquivo (não só em disco)."""
+    alvo = criar_usuario(username="doc_blob")
+    conteudo = b"conteudo de teste do pdf"
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(conteudo), "documento.pdf"), "nome": "Doc Blob"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+    blob = DocumentoArquivo.query.filter_by(filename=doc.arquivo).first()
+    assert blob is not None, "upload do admin não gravou o blob no banco"
+    assert blob.content == conteudo
+    assert blob.size == len(conteudo)
+
+
+def test_visualizar_e_download_caem_para_o_banco_sem_disco(auth_client, db_session, criar_usuario):
+    """Sem o arquivo no disco (disco efêmero), as rotas servem o conteúdo do banco."""
+    alvo = criar_usuario(username="doc_fallback")
+    conteudo = b"conteudo somente no banco"
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(conteudo), "fallback.pdf"), "nome": "Doc Fallback"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    # Simula a reciclagem do disco efêmero: remove o arquivo, deixa só o blob.
+    caminho = os.path.join(_pasta_documentos_teste(), doc.arquivo)
+    if os.path.exists(caminho):
+        os.remove(caminho)
+
+    resp_view = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/visualizar")
+    assert resp_view.status_code == 200
+    assert resp_view.data == conteudo
+
+    resp_dl = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/download")
+    assert resp_dl.status_code == 200
+    assert resp_dl.data == conteudo
+
+
+def test_exportar_termo_persiste_blob_com_upsert(auth_client, db_session, criar_usuario):
+    """O termo gerado deve ser espelhado no banco, e regerar não deve duplicar o blob."""
+    alvo = criar_usuario(username="termo_blob", tipo_contrato="CLT")
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/termo-entrega/equipamentos/adicionar",
+        data={"descricao": "Notebook", "marca": "Dell"},
+        content_type="multipart/form-data",
+    )
+    auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
+
+    nome_arquivo = f"termo_{alvo.id}.pdf"
+    blobs = DocumentoArquivo.query.filter_by(filename=nome_arquivo).all()
+    assert len(blobs) == 1, "geração do termo não gravou exatamente um blob no banco"
+    assert blobs[0].size > 0
+    assert blobs[0].mime_type == "application/pdf"
+
+    # Regenera o termo (mesmo nome fixo): o upsert por filename substitui, não duplica.
+    auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
+    blobs = DocumentoArquivo.query.filter_by(filename=nome_arquivo).all()
+    assert len(blobs) == 1, "regerar o termo duplicou o blob em vez de fazer upsert"
+
+
+def test_leitura_ignora_arquivo_vazio_e_cai_para_o_banco(auth_client, db_session, criar_usuario):
+    """Arquivo de 0 byte no disco (disco efêmero corrompido) é ignorado em favor do blob."""
+    alvo = criar_usuario(username="doc_zero")
+    conteudo = b"conteudo integro no banco"
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(conteudo), "zero.pdf"), "nome": "Doc Zero"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    # Trunca o arquivo no disco para 0 byte, simulando reciclagem parcial do disco.
+    caminho = os.path.join(_pasta_documentos_teste(), doc.arquivo)
+    open(caminho, "wb").close()
+    assert os.path.getsize(caminho) == 0
+
+    resp_view = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/visualizar")
+    assert resp_view.status_code == 200
+    assert resp_view.data == conteudo
+
+    resp_dl = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/download")
+    assert resp_dl.status_code == 200
+    assert resp_dl.data == conteudo
+
+
+@pytest.mark.parametrize("acao", ["visualizar", "download"])
+def test_erro_na_leitura_retorna_json_sem_vazar(auth_client, db_session, criar_usuario, monkeypatch, acao):
+    """Erro inesperado na leitura vira JSON genérico (não HTML) e não vaza str(e)."""
+    import app.routes.admin as admin_module
+
+    alvo = criar_usuario(username=f"doc_erro_{acao}")
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(b"x"), "erro.pdf"), "nome": "Doc Erro"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    segredo = "DETALHE_INTERNO_SECRETO"
+
+    def explode(*args, **kwargs):
+        raise RuntimeError(segredo)
+
+    monkeypatch.setattr(admin_module, "_servir_documento", explode)
+
+    resp = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/{acao}")
+    assert resp.status_code == 500
+    assert resp.is_json, "erro deveria retornar JSON, não HTML 500 padrão do Flask"
+    corpo = resp.get_data(as_text=True)
+    assert segredo not in corpo, "a mensagem de erro vazou detalhes internos (str(e))"
+    assert resp.get_json()["success"] is False
+
+
+def test_preview_infere_mimetype_quando_blob_e_generico(auth_client, db_session, criar_usuario):
+    """Blob legado com mime genérico é servido com o Content-Type inferido pela extensão."""
+    alvo = criar_usuario(username="doc_mime")
+    nome_arquivo = f"{alvo.id}_mime_teste.pdf"
+    # Documento + blob com mime_type genérico (cenário de migração legada), sem disco.
+    doc = DocumentoUsuario(
+        id_usuario=alvo.id,
+        nome_documento="Doc Mime",
+        arquivo=nome_arquivo,
+        tipo_arquivo="pdf",
+        tamanho_arquivo=4,
+        usuario_enviador="admin",
+    )
+    db_session.add(doc)
+    db_session.add(
+        DocumentoArquivo(
+            filename=nome_arquivo,
+            content=b"%PDF",
+            mime_type="application/octet-stream",
+            size=4,
+        )
+    )
+    db_session.commit()
+
+    resp = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/visualizar")
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/pdf"
+
+
+def test_download_nao_renomeia_pdf_nao_relacionado(auth_client, db_session, criar_usuario):
+    """PDF cujo nome só contém 'termo'/'aditivo' como substring mantém o próprio nome."""
+    alvo = criar_usuario(username="doc_garantia")
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(b"conteudo"), "garantia.pdf"), "nome": "Termo de garantia"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    resp = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/download")
+    assert resp.status_code == 200
+    # Não deve ser renomeado para "Termo de responsabilidade de ...".
+    assert "responsabilidade" not in resp.headers.get("Content-Disposition", "").lower()
+    assert "Termo de garantia.pdf" in resp.headers.get("Content-Disposition", "")

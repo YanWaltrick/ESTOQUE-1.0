@@ -3,7 +3,13 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize status e checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-29 — criação a partir do veredito do Conselho.
+> **Última atualização:** 2026-06-29 — P2 avançado: a **escrita** de documentos foi
+> unificada — upload (usuário e admin) e geração de termo agora gravam o blob em
+> `DocumentoArquivo` no mesmo fluxo (helper `DocumentoArquivo.salvar_do_arquivo`, upsert
+> por `filename`), então novos documentos/termos já nascem resilientes ao disco efêmero;
+> a migração manual passa a cobrir só o legado já em disco. Persistência de
+> avatares/anexos/fotos segue pendente. Antes: `static/uploads/` deixou de ser versionado
+> e documentos ganharam fallback ao banco também no admin.
 
 **Origem:** veredito do [Conselho de LLMs sobre a escolha de stack (2026-06-29)](../adr/0001-manter-flask-como-stack.md).
 O conselho foi unânime: **a stack (Flask) está validada** — o risco real é
@@ -21,7 +27,7 @@ rastreia os bloqueios entre o estado atual e um go-live seguro.
 | # | Bloqueio | Prioridade | Status | Dono / referência |
 |---|----------|-----------|--------|-------------------|
 | P1 | Credencial admin default (`admin`/`admin`) + senha em log | 🔺 Alta | 🔴 Pendente | **este doc** |
-| P2 | Uploads gravados em disco efêmero do App Service | 🔺 Alta | 🔴 Pendente | **este doc** + [custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
+| P2 | Uploads gravados em disco efêmero do App Service | 🔺 Alta | 🟡 Parcial | **este doc** + [custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P3 | Migrations/`ALTER` no boot com múltiplos workers | 🔺 Alta | 🔴 Pendente | ↪ [custo/latência A1](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md) |
 | P4 | Secrets, cookie seguro e startup command explícito | 🔺 Alta | 🔴 Pendente | **este doc** |
 | P5 | Parity de Python: 3.13 local × 3.14 no build | ▪ Média | 🔴 Pendente | **este doc** |
@@ -61,7 +67,7 @@ com credencial pública conhecida cai no primeiro scan de rede.
 
 ## P2. Uploads gravados em disco efêmero do App Service
 
-**Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
+**Prioridade:** 🔺 Alta · **Status:** 🟡 Parcial (documentos com fallback ao banco; avatares/anexos/fotos ainda só no disco)
 
 **Por quê:** avatares, fotos e anexos são salvos no filesystem local em
 `static/uploads/` (`auth.py:370`, `api.py:660`/`915`, `admin.py:201`/`385`/`438`/`658`,
@@ -70,14 +76,74 @@ scale-out. Hoje há **duas estratégias simultâneas** de armazenamento (disco *
 no banco via `DocumentoArquivo`), o que não é redundância: é indecisão arquitetural —
 metade dos arquivos sobrevive, metade evapora.
 
+> **Mudança de contexto (2026-06-29):** até então o `static/uploads/` era **versionado no
+> git**, e o deploy (`path: .` no `main_somasgt.yml`) reentregava esses arquivos ao App
+> Service a cada release — o que **mascarava** o problema (o disco "se reenchia" sozinho).
+> Esse versionamento foi **removido** (inchava o repo e expunha dados pessoais — ver P8).
+> A partir daqui o disco **não se reenche** no deploy, o que torna P2 **acionável antes do
+> próximo deploy na `main`**, não mais uma melhoria adiável.
+
+**Estado por tipo de arquivo:**
+
+| Tipo | Persistência fora do disco | Leitura resiliente |
+|------|----------------------------|--------------------|
+| Documentos (`documentos/`, inclui termos PDF) | `DocumentoArquivo` (banco) — **automática** na escrita (upload e geração de termo); legado anterior depende de migração | ✅ usuário (`main.py`) **e** admin (`admin.py`) com fallback ao banco |
+| Avatares (`avatars/`) | ❌ nenhuma | ❌ só disco |
+| Anexos de chamados (`chamadas/`) | ❌ nenhuma | ❌ só disco |
+| Fotos de termos (`termos/`) | ❌ nenhuma | ❌ só disco |
+
 **Checklist:**
 
+- [ ] **Legado em disco (uma vez, antes do próximo deploy na `main`):** rodar
+      `python scripts/migrate_docs_to_db.py` **no ambiente de produção** para levar ao banco
+      os documentos/termos que já existiam **antes** desta mudança (uploads e termos novos
+      já se auto-persistem). Sem isso, esses arquivos antigos somem no primeiro deploy e o
+      fallback não tem o que servir.
+- [ ] **Confirmar a premissa do disco efêmero:** validar empiricamente se o App Service
+      persiste o filesystem entre deploys (subir um arquivo, dar deploy, ver se sobrevive).
+      Se **não** persistir, os itens abaixo deixam de ser melhoria e viram bloqueio de go-live.
 - [ ] Definir **uma** fonte de verdade para arquivos: **Azure Blob Storage**
       (recomendado) ou coluna no MySQL — disco local **não** é opção em App Service.
-- [ ] Migrar os pontos de `save()` em disco para a fonte escolhida.
+- [ ] Levar **avatares, anexos de chamados e fotos de termos** para a fonte escolhida —
+      hoje **não têm** nenhuma cópia fora do disco. **Adiado de propósito** até a decisão de
+      destino abaixo, para não fazer trabalho jogado fora (decisão de 2026-06-29). Escopo
+      quando for feito:
+      - **Avatares:** persistir nos 5 pontos de `save()` (`auth.py`, `admin.py` ×3,
+        `api.py`) **e** trocar a entrega — hoje são servidos como **URL estática**
+        (`/static/uploads/avatars/...` em `base.html`, `profile_photo.html`,
+        `user_form.html`, `admin.html`, `admin/usuarios.html` e nos campos
+        `usuario_foto_url`/`foto_url` do modelo), o que **não** tem fallback; precisa de uma
+        rota de serviço que caia para a fonte escolhida.
+      - **Anexos/fotos de chamados:** persistir no upload e dar fallback em
+        `auth.py:download_file` (já é rota Python — mais contido); fotos do problema também
+        são servidas como URL estática (`chamada.foto_url`).
 - [ ] Conciliar com a decisão de mover BLOBs do banco
       ([custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md)) — idealmente o mesmo
-      destino para tudo.
+      destino para tudo. **Esta decisão destrava o item acima:** se o destino for Azure Blob
+      Storage, avatares/anexos devem ir direto para lá (não para BLOB no banco).
+
+**Feito:**
+
+- [x] (2026-06-29) **Leitura de documentos endurecida** (`admin.py`: helper
+      `_servir_documento` usado por `visualizar_documento`/`download_documento`): arquivo
+      de **0 byte** no disco é ignorado em favor do blob íntegro do banco; arquivo que some
+      entre o *check* e o envio faz fallback ao banco em vez de erro; ambas as rotas
+      retornam **JSON** em falha (não a página HTML 500) e **não expõem** mais `str(e)` —
+      o erro vai para `current_app.logger`. O preview de blob com mime genérico passa a
+      **inferir o Content-Type pela extensão** (evita forçar download), e o renome de PDF
+      no download casa só os nomes reais de termo/aditivo (`startswith`), não qualquer PDF
+      que contenha as palavras como substring. Coberto por testes em `tests/test_admin.py`.
+- [x] (2026-06-29) **Escrita unificada de documentos:** upload do usuário (`main.py`),
+      upload do admin (`admin.py:upload_documento_usuario`) e geração/regeneração de termo
+      (`admin.py:exportar_termo_pdf`) gravam o blob em `DocumentoArquivo` no mesmo fluxo,
+      via o helper único `DocumentoArquivo.salvar_do_arquivo` (upsert por `filename` — não
+      duplica nem serve conteúdo obsoleto quando o termo de nome fixo é regenerado).
+      Documentos e termos **novos** já nascem resilientes ao disco efêmero. Coberto por
+      testes em `tests/test_admin.py` (persistência do blob no upload, no termo com upsert,
+      e leitura caindo para o banco sem o arquivo em disco).
+- [x] (2026-06-29) Documentos do admin passam a cair para o banco quando o disco está
+      vazio (`admin.py`: `visualizar_documento`/`download_documento`), espelhando a rota
+      do usuário (`main.py`) — leitura resiliente de documentos em ambas as telas.
 
 > Relacionado: a arquitetura de armazenamento de documentos é decidida em conjunto com
 > o [Plano de Padronização MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) e a

@@ -4,7 +4,6 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-import mimetypes
 
 from app import estoque
 from app.database import db
@@ -127,18 +126,9 @@ def upload_documento():
     try:
         arquivo.save(caminho_arquivo)
 
-        # também salvar no banco (mantém DB em sincronia)
-        try:
-            with open(caminho_arquivo, 'rb') as f:
-                data = f.read()
-            exists = DocumentoArquivo.query.filter_by(filename=nome_arquivo_seguro, size=tamanho).first()
-            if not exists:
-                novo_blob = DocumentoArquivo(filename=nome_arquivo_seguro, content=data, mime_type=mimetypes.guess_type(caminho_arquivo)[0] or 'application/octet-stream', size=tamanho)
-                db.session.add(novo_blob)
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
-            # não é crítico; prosseguir mesmo se falhar salvar no blob
+        # Espelhar no banco para sobreviver ao disco efêmero do App Service
+        # (ver DocumentoArquivo.salvar_do_arquivo). Falha é não-crítica.
+        DocumentoArquivo.salvar_do_arquivo(caminho_arquivo, filename=nome_arquivo_seguro, tamanho=tamanho)
 
         novo_documento = DocumentoUsuario(
             id_usuario=usuario_destino.id,

@@ -1,12 +1,16 @@
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Ambiente / segredos
 .env
-
-# IDEs
-.idea/
-.vscode/
-
-# Ambientes virtuais
+.env.*
+!.env.example
+!.env.entra-id-example
 venv/
 .venv/
 
@@ -14,14 +18,34 @@ venv/
 mise.local.toml
 .mise.local.toml
 
+# IDEs
+.idea/
+.vscode/
+
 # Logs
 logs/*.log
 
-# Testes
+# Testes / caches de ferramentas
 .pytest_cache/
 .coverage
 htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Banco local: o projeto usa MySQL; SQLite é legado e não deve ser versionado
+*.db
+*.sqlite
+*.sqlite3
 
 # Pasta instance do Flask: bancos locais nao versionados (pasta preservada via .gitkeep)
 instance/*
 !instance/.gitkeep
+
+# Uploads de runtime (dados de usuário — recriados pela app na inicialização).
+# Não versionar: incham o repo e expõem dados pessoais (LGPD).
+static/uploads/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
