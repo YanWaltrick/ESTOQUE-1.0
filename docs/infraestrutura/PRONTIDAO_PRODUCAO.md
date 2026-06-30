@@ -112,6 +112,12 @@ metade dos arquivos sobrevive, metade evapora.
 
 **Feito:**
 
+- [x] (2026-06-29) **Leitura de documentos endurecida** (`admin.py`: helper
+      `_servir_documento` usado por `visualizar_documento`/`download_documento`): arquivo
+      de **0 byte** no disco é ignorado em favor do blob íntegro do banco; arquivo que some
+      entre o *check* e o envio faz fallback ao banco em vez de erro; ambas as rotas
+      retornam **JSON** em falha (não a página HTML 500) e **não expõem** mais `str(e)` —
+      o erro vai para `current_app.logger`. Coberto por testes em `tests/test_admin.py`.
 - [x] (2026-06-29) **Escrita unificada de documentos:** upload do usuário (`main.py`),
       upload do admin (`admin.py:upload_documento_usuario`) e geração/regeneração de termo
       (`admin.py:exportar_termo_pdf`) gravam o blob em `DocumentoArquivo` no mesmo fluxo,
