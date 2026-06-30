@@ -528,3 +528,49 @@ def test_erro_na_leitura_retorna_json_sem_vazar(auth_client, db_session, criar_u
     corpo = resp.get_data(as_text=True)
     assert segredo not in corpo, "a mensagem de erro vazou detalhes internos (str(e))"
     assert resp.get_json()["success"] is False
+
+
+def test_preview_infere_mimetype_quando_blob_e_generico(auth_client, db_session, criar_usuario):
+    """Blob legado com mime genérico é servido com o Content-Type inferido pela extensão."""
+    alvo = criar_usuario(username="doc_mime")
+    nome_arquivo = f"{alvo.id}_mime_teste.pdf"
+    # Documento + blob com mime_type genérico (cenário de migração legada), sem disco.
+    doc = DocumentoUsuario(
+        id_usuario=alvo.id,
+        nome_documento="Doc Mime",
+        arquivo=nome_arquivo,
+        tipo_arquivo="pdf",
+        tamanho_arquivo=4,
+        usuario_enviador="admin",
+    )
+    db_session.add(doc)
+    db_session.add(
+        DocumentoArquivo(
+            filename=nome_arquivo,
+            content=b"%PDF",
+            mime_type="application/octet-stream",
+            size=4,
+        )
+    )
+    db_session.commit()
+
+    resp = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/visualizar")
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/pdf"
+
+
+def test_download_nao_renomeia_pdf_nao_relacionado(auth_client, db_session, criar_usuario):
+    """PDF cujo nome só contém 'termo'/'aditivo' como substring mantém o próprio nome."""
+    alvo = criar_usuario(username="doc_garantia")
+    auth_client.post(
+        f"/admin/usuarios/{alvo.id}/documentos/upload",
+        data={"arquivo": (BytesIO(b"conteudo"), "garantia.pdf"), "nome": "Termo de garantia"},
+        content_type="multipart/form-data",
+    )
+    doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
+
+    resp = auth_client.get(f"/admin/usuarios/documentos/{doc.id_documento}/download")
+    assert resp.status_code == 200
+    # Não deve ser renomeado para "Termo de responsabilidade de ...".
+    assert "responsabilidade" not in resp.headers.get("Content-Disposition", "").lower()
+    assert "Termo de garantia.pdf" in resp.headers.get("Content-Disposition", "")

@@ -105,10 +105,22 @@ metade dos arquivos sobrevive, metade evapora.
 - [ ] Definir **uma** fonte de verdade para arquivos: **Azure Blob Storage**
       (recomendado) ou coluna no MySQL — disco local **não** é opção em App Service.
 - [ ] Levar **avatares, anexos de chamados e fotos de termos** para a fonte escolhida —
-      hoje **não têm** nenhuma cópia fora do disco; migrar os respectivos pontos de `save()`.
+      hoje **não têm** nenhuma cópia fora do disco. **Adiado de propósito** até a decisão de
+      destino abaixo, para não fazer trabalho jogado fora (decisão de 2026-06-29). Escopo
+      quando for feito:
+      - **Avatares:** persistir nos 5 pontos de `save()` (`auth.py`, `admin.py` ×3,
+        `api.py`) **e** trocar a entrega — hoje são servidos como **URL estática**
+        (`/static/uploads/avatars/...` em `base.html`, `profile_photo.html`,
+        `user_form.html`, `admin.html`, `admin/usuarios.html` e nos campos
+        `usuario_foto_url`/`foto_url` do modelo), o que **não** tem fallback; precisa de uma
+        rota de serviço que caia para a fonte escolhida.
+      - **Anexos/fotos de chamados:** persistir no upload e dar fallback em
+        `auth.py:download_file` (já é rota Python — mais contido); fotos do problema também
+        são servidas como URL estática (`chamada.foto_url`).
 - [ ] Conciliar com a decisão de mover BLOBs do banco
       ([custo/latência A4](PLANO_INVESTIGACAO_CUSTO_LATENCIA.md)) — idealmente o mesmo
-      destino para tudo.
+      destino para tudo. **Esta decisão destrava o item acima:** se o destino for Azure Blob
+      Storage, avatares/anexos devem ir direto para lá (não para BLOB no banco).
 
 **Feito:**
 
@@ -117,7 +129,10 @@ metade dos arquivos sobrevive, metade evapora.
       de **0 byte** no disco é ignorado em favor do blob íntegro do banco; arquivo que some
       entre o *check* e o envio faz fallback ao banco em vez de erro; ambas as rotas
       retornam **JSON** em falha (não a página HTML 500) e **não expõem** mais `str(e)` —
-      o erro vai para `current_app.logger`. Coberto por testes em `tests/test_admin.py`.
+      o erro vai para `current_app.logger`. O preview de blob com mime genérico passa a
+      **inferir o Content-Type pela extensão** (evita forçar download), e o renome de PDF
+      no download casa só os nomes reais de termo/aditivo (`startswith`), não qualquer PDF
+      que contenha as palavras como substring. Coberto por testes em `tests/test_admin.py`.
 - [x] (2026-06-29) **Escrita unificada de documentos:** upload do usuário (`main.py`),
       upload do admin (`admin.py:upload_documento_usuario`) e geração/regeneração de termo
       (`admin.py:exportar_termo_pdf`) gravam o blob em `DocumentoArquivo` no mesmo fluxo,
