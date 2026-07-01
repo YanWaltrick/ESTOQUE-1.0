@@ -3,7 +3,7 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-29 — item #1 (gate de CI) detalhado com as restrições concretas de implementação (service container MySQL, paridade de versão do Python com o deploy); suíte atual em 274 testes verdes. Antes: integração do upstream (Entra ID reescrito); testes de Entra ID removidos (289→266 testes, 76%→73%); item #6 encerrado
+> **Última atualização:** 2026-06-30 — reconciliada a contagem de testes na tabela do item #2 (266 → **274**, a contagem real coletada pelo `pytest --collect-only`), alinhando-a ao cabeçalho. Antes (2026-06-29): item #1 (gate de CI) detalhado com as restrições concretas de implementação (service container MySQL, paridade de versão do Python com o deploy); suíte atual em 274 testes verdes; integração do upstream (Entra ID reescrito); testes de Entra ID removidos (289→266 testes, 76%→73%); item #6 encerrado
 
 Origem da maioria destes itens: veredito do Conselho de LLMs sobre a estratégia de
 testes (ver `## A Recomendação` / `## Pontos Cegos`). Os itens #8 e #9 vêm da
@@ -24,7 +24,7 @@ preservado em cada item.
 | # | Item | Prioridade | Status |
 |---|------|-----------|--------|
 | 1 | Gate de CI rodando `pytest` | 🔺 Alta | 🔴 Pendente |
-| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28); atualmente 73% / 266 testes (era 76%/289 antes da integração do upstream) |
+| 2 | Cobertura das rotas de maior risco | 🔺 Alta | 🟢 Concluído (2026-06-28); suíte atual em 274 testes verdes; cobertura 73% na última medição (era 76%/289 antes da integração do upstream) |
 | 3 | Revalidar isolamento da suíte com as migrações Alembic | ▪ Média | 🔴 Pendente |
 | 4 | Estratégia para divergência SQLite (teste) × MySQL (prod) | ▪ Média | 🟢 Decidido → [Plano MySQL](../banco-de-dados/PLANO_PADRONIZACAO_MYSQL.md) (teste = MySQL) |
 | 5 | Dívida: `datetime.utcnow()` deprecado em `app/__init__.py` | ▫ Baixa | 🔴 Pendente |
