@@ -3,9 +3,12 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-30 — criação do roadmap a partir do veredito do
-> Conselho de LLMs ([ADR 0002](../adr/0002-ruff-para-lint-format-e-type-checking.md)).
-> Pré-requisito de paridade de Python (3.14) **já resolvido** nesta tarefa
+> **Última atualização:** 2026-06-30 — itens #1, #2 e #3 **implementados**: baseline do
+> Ruff (`0.15.20`) aplicada e registrada no `.git-blame-ignore-revs`, triagem dos 54
+> avisos concluída, gate de CI de lint (`ci.yml`) em PR e `pre-commit`/`.editorconfig`/
+> `.vscode`. Resta uma ação manual: marcar o job como *required status check* na proteção
+> de branch. Type checking (#4) segue adiado. Antes (2026-06-30): criação do roadmap a
+> partir do veredito do Conselho de LLMs; paridade de Python (3.14) resolvida
 > ([P5 ✅](../infraestrutura/PRONTIDAO_PRODUCAO.md)).
 
 **Origem da decisão:** [ADR 0002 — Ruff para lint + formatação; type checking adiado](../adr/0002-ruff-para-lint-format-e-type-checking.md)
@@ -25,7 +28,7 @@ o type checking.
 | 0 | Paridade de Python (pré-requisito) | 🔺 Alta | ✅ Resolvido (2026-06-30) — `mise.toml` em 3.14 |
 | 1 | Baseline do Ruff (config + format + `.git-blame-ignore-revs`) | 🔺 Alta | ✅ Concluído (2026-06-30) — `ruff==0.15.20`, baseline em commit isolado, triagem dos 54 avisos restantes |
 | 2 | Gate de CI de lint (job dedicado, bloqueante) | 🔺 Alta | 🟡 Quase — workflow `ci.yml` criado; **falta** marcar como *required status check* (ação manual no GitHub) |
-| 3 | `pre-commit` + paridade de editor (conveniência) | ▪ Média | 🔴 Pendente |
+| 3 | `pre-commit` + paridade de editor (conveniência) | ▪ Média | ✅ Concluído (2026-06-30) — `.pre-commit-config.yaml`, `.editorconfig`, `.vscode/` |
 | 4 | Type checking (adiado) | ▫ Futuro | ⚪ Adiado (condicional) |
 
 > **Baseline aplicada (item #1 ✅).** O `pyproject.toml`, a baseline em commit isolado e o
@@ -125,20 +128,23 @@ separado e rápido**, que roda mesmo se o de testes falhar.
 
 ## 3. `pre-commit` + paridade de editor
 
-**Prioridade:** ▪ Média · **Status:** 🔴 Pendente
+**Prioridade:** ▪ Média · **Status:** ✅ Concluído (2026-06-30)
 
 **Por quê:** conveniência — feedback local antes do push, e formatação automática no
 editor para o dev nunca brigar com o gate. **Não é a fundação** (o CI é); é uma camada
 de conforto que reduz idas e vindas no PR.
 
-**Checklist:**
+**Feito:**
 
-- [ ] `.pre-commit-config.yaml` com os hooks `ruff` (lint) + `ruff-format`, com a `rev`
-      **fixada** na mesma versão do `requirements-dev.txt`. `pip install pre-commit` (no
-      `requirements-dev.txt`) e `pre-commit install`.
-- [ ] `.editorconfig` na raiz (charset, indentação, `line-length` coerente com o Ruff).
-- [ ] Settings de editor compartilhados (ex.: `.vscode/settings.json` com a extensão
-      Ruff + format-on-save) para alinhar o dev ao CI.
+- [x] `.pre-commit-config.yaml` com os hooks `ruff-check` (lint, `--fix`) + `ruff-format`,
+      `rev: v0.15.20` **fixada** na mesma versão do `requirements-dev.txt` (o id atual é
+      `ruff-check`; `ruff` é alias legado). `pre-commit>=3.7` adicionado ao
+      `requirements-dev.txt`; ativar com `pre-commit install`.
+- [x] `.editorconfig` na raiz (charset UTF-8, indentação, `max_line_length = 100` coerente
+      com o Ruff; fim de linha deixado a cargo do git/`autocrlf`).
+- [x] `.vscode/settings.json` (format-on-save + fix/organize-imports via Ruff,
+      `importStrategy: fromEnvironment`) e `.vscode/extensions.json` (recomenda a extensão
+      Ruff). O `.gitignore` passou a versionar só esses dois arquivos do `.vscode/`.
 
 ---
 
@@ -166,6 +172,17 @@ módulos, contratos que valha proteger), ou se bugs de tipo passarem a recorrer.
 
 ## Histórico (itens concluídos)
 
+- 🟢 **2026-06-30** — Itens #1, #2 e #3 implementados na branch
+  `chore/qualidade-ruff-baseline`. **#1:** `pyproject.toml` + `ruff==0.15.20` fixado;
+  baseline (`ruff format` + `ruff check --fix`, 39 arquivos + 95 auto-fixes) em commit
+  isolado `275d4768`, registrado no `.git-blame-ignore-revs`; triagem manual dos 54
+  avisos restantes (E722/B904/B905/B023/B007/F401/F811/F841 corrigidos; `# noqa` só em
+  B018 e E402). **#2:** `.github/workflows/ci.yml` com job `lint` (Ruff em PR para
+  `develop`/`main`, sem banco, Python 3.14, versão do Ruff lida do `requirements-dev.txt`)
+  — falta só marcar como *required status check* no GitHub. **#3:** `.pre-commit-config.yaml`
+  (`ruff-check` + `ruff-format`, `rev` fixada), `.editorconfig`, `.vscode/settings.json` +
+  `extensions.json`, `pre-commit>=3.7`. Validação possível: `ruff check .` verde e imports
+  OK; a suíte `pytest` não foi executada (MySQL/Docker indisponível no ambiente).
 - 🟢 **2026-06-30** — Decisão registrada na
   [ADR 0002](../adr/0002-ruff-para-lint-format-e-type-checking.md) (veredito do Conselho
   de LLMs) e roadmap criado. Pré-requisito de paridade de Python resolvido: `mise.toml`

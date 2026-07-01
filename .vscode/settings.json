@@ -1,0 +1,15 @@
+{
+  // Alinha o VS Code ao gate de lint do CI (Ruff). Requer a extensão charliermarsh.ruff
+  // (recomendada em .vscode/extensions.json). Ver docs/qualidade/ROADMAP.md.
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  // Usa o Ruff do ambiente (a versão fixada no .venv) em vez do embutido na extensão,
+  // para o editor casar exatamente com o CI.
+  "ruff.importStrategy": "fromEnvironment"
+}

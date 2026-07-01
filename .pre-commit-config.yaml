@@ -1,0 +1,19 @@
+# Hooks locais de conveniência — feedback antes do push. NÃO é a fundação: o gate
+# de CI (.github/workflows/ci.yml) é o que realmente enforça (morre no primeiro
+# `git commit --no-verify`). Ver docs/adr/0002 e docs/qualidade/ROADMAP.md.
+#
+# Instalar uma vez:
+#   pip install -r requirements-dev.txt   # traz o pre-commit
+#   pre-commit install
+# Rodar em todos os arquivos:
+#   pre-commit run --all-files
+#
+# A `rev` está FIXADA na MESMA versão do Ruff em requirements-dev.txt (0.15.20).
+# Ao subir o Ruff, atualize os dois juntos, senão o hook local e o CI divergem.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
