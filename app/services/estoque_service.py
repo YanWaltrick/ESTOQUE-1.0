@@ -2,13 +2,12 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
+from app.database import db
+from app.models import Movimentacao, Produto
+
 
 def now_gmt3():
     return datetime.now(timezone(timedelta(hours=-3)))
-
-
-from app.database import db
-from app.models import Movimentacao, Produto
 
 
 class EstoqueService:
@@ -54,7 +53,7 @@ class EstoqueService:
         """Verifica se o banco já tem dados"""
         try:
             return Produto.query.count() > 0
-        except:
+        except Exception:
             return False
 
     def adicionar_produto(

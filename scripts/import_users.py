@@ -91,7 +91,7 @@ def read_excel(filepath):
         try:
             import xlrd
         except ImportError:
-            raise RuntimeError("xlrd não está instalado. Execute: pip install xlrd")
+            raise RuntimeError("xlrd não está instalado. Execute: pip install xlrd") from None
 
         workbook = xlrd.open_workbook(filepath)
         sheet = workbook.sheet_by_index(0)
@@ -121,7 +121,9 @@ def read_excel(filepath):
         try:
             import openpyxl
         except ImportError:
-            raise RuntimeError("openpyxl não está instalado. Execute: pip install openpyxl")
+            raise RuntimeError(
+                "openpyxl não está instalado. Execute: pip install openpyxl"
+            ) from None
 
         workbook = openpyxl.load_workbook(filepath, data_only=True)
         sheet = workbook.active
@@ -286,7 +288,7 @@ def import_users(filepath):
                 )
         except Exception as exc:
             db.session.rollback()
-            raise RuntimeError(f"Erro ao salvar no banco: {exc}")
+            raise RuntimeError(f"Erro ao salvar no banco: {exc}") from exc
 
 
 if __name__ == "__main__":

@@ -17,11 +17,11 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from app.database import create_app, db
+from app.database import create_app, db  # noqa: E402  (import após sys.path.insert)
 
 # Reutiliza o modelo canônico em vez de redefinir a tabela inline (a redefinição
 # colide com o `DocumentoArquivo` já registrado ao importar o pacote `app`).
-from app.models import DocumentoArquivo
+from app.models import DocumentoArquivo  # noqa: E402  (import após sys.path.insert)
 
 
 def main(delete_files: bool):

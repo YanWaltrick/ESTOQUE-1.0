@@ -597,7 +597,7 @@ def criar_usuario_api():
                 from datetime import datetime
 
                 data_admissao = datetime.strptime(data_admissao_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 return jsonify({"erro": "Erro ao processar a data de admissão."}), 400
 
         pj_data_contrato = None
@@ -606,7 +606,7 @@ def criar_usuario_api():
                 from datetime import datetime
 
                 pj_data_contrato = datetime.strptime(pj_data_contrato_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 return jsonify({"erro": "Erro ao processar a data do contrato PJ."}), 400
 
         is_valid_user, user_error = validate_username(username)

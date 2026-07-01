@@ -1,18 +1,17 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
-from flask import Flask, flash, g, redirect, render_template_string, request, session, url_for
+from flask import flash, g, redirect, render_template_string, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
-from flask_mail import Message
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import inspect, text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .auth import ROLES_PERMISSIONS, can_perform, get_user_permissions
 from .database import create_app as create_db_app
-from .database import db, mail
+from .database import db
 from .migrate import migrate
-from .models import Chamada, Historico, Movimentacao, Produto, User
+from .models import User
 from .services import EstoqueService
 from .utils.logger import criar_logger, registrar_erro, registrar_seguranca
 
@@ -27,13 +26,13 @@ def create_app():
     """Application Factory Pattern"""
     global estoque
 
-    # Criar app com database
-    app, db, mail = create_db_app()
+    # Criar app com database (mail é inicializado dentro de create_db_app)
+    app, db, _ = create_db_app()
     app.logger.handlers = app_logger.handlers
     app.logger.setLevel(app_logger.level)
 
-    # Proteger contra CSRF em formulários
-    csrf = CSRFProtect(app)
+    # Proteger contra CSRF em formulários (o construtor registra a proteção no app)
+    CSRFProtect(app)
 
     # Configurar LoginManager
     login_manager = LoginManager()

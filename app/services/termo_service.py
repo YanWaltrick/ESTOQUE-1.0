@@ -142,15 +142,10 @@ class TermoService:
         black_6 = colors.HexColor("#000000")
         brown_7562 = colors.HexColor("#bd9a5f")
 
-        black_6_80 = _tint_color("#000000", 80)
-        black_6_60 = _tint_color("#000000", 60)
         black_6_40 = _tint_color("#000000", 40)
-        black_6_20 = _tint_color("#000000", 20)
 
-        brown_7562_80 = _tint_color("#bd9a5f", 80)
         brown_7562_60 = _tint_color("#bd9a5f", 60)
         brown_7562_40 = _tint_color("#bd9a5f", 40)
-        brown_7562_20 = _tint_color("#bd9a5f", 20)
 
         style_title = ParagraphStyle(
             "Title",
@@ -178,16 +173,6 @@ class TermoService:
             textColor=brown_7562,
             spaceBefore=12,
             spaceAfter=8,
-        )
-
-        style_item_header = ParagraphStyle(
-            "ItemHeader",
-            parent=styles["Heading3"],
-            fontSize=10,
-            leading=12,
-            textColor=colors.HexColor("#1f2937"),
-            spaceBefore=8,
-            spaceAfter=6,
         )
 
         style_foto_caption = ParagraphStyle(
@@ -294,10 +279,6 @@ class TermoService:
                 nome_item = valor_texto(equipamento.get("descricao", ""), "Item sem descricao")
                 service_tag = valor_texto(equipamento.get("service_tag", ""))
                 fotos = equipamento.get("fotos") or []
-
-                titulo_item = nome_item
-                if service_tag:
-                    titulo_item = f"{nome_item} - ServiceTag: {service_tag}"
 
                 blocos.append(Paragraph("LAUDO FOTOGRAFICO - ITEM INSPECIONADO", style_laudo_item))
 
@@ -458,9 +439,9 @@ class TermoService:
                 ),
             ]
 
-            for tpl, val in zip(campos_template, valores):
+            for tpl, val in zip(campos_template, valores, strict=False):
                 if val and val != "":
-                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
+                    new_line = re.sub(r"_{2,}", lambda m, val=val: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -911,9 +892,9 @@ Local e Data: _________________________________________________
                     valor_data(termo.data_admissao or usuario.data_admissao),
                 ]
 
-                for tpl, val in zip(campos_template, valores):
+                for tpl, val in zip(campos_template, valores, strict=False):
                     if val and val != "":
-                        new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
+                        new_line = re.sub(r"_{2,}", lambda m, val=val: val, tpl, count=1)
                     else:
                         new_line = tpl
 
@@ -1116,9 +1097,9 @@ Local e Data: _________________________________________________
                 valor_data(usuario.pj_data_contrato or usuario.data_admissao),
             ]
 
-            for tpl, val in zip(campos_template, valores):
+            for tpl, val in zip(campos_template, valores, strict=False):
                 if val and val != "":
-                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
+                    new_line = re.sub(r"_{2,}", lambda m, val=val: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -1370,9 +1351,9 @@ Local e Data: _________________________________________________
                 valor_texto(termo.local_trabalho, usuario.local_trabalho),
             ]
 
-            for tpl, val in zip(campos_template, valores):
+            for tpl, val in zip(campos_template, valores, strict=False):
                 if val and val != "":
-                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
+                    new_line = re.sub(r"_{2,}", lambda m, val=val: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -1637,9 +1618,9 @@ Local e Data: _________________________________________________
             valor_texto(termo.local_trabalho, usuario.local_trabalho),
         ]
 
-        for tpl, val in zip(campos_template, valores):
+        for tpl, val in zip(campos_template, valores, strict=False):
             if val and val != "":
-                new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
+                new_line = re.sub(r"_{2,}", lambda m, val=val: val, tpl, count=1)
             else:
                 new_line = tpl
 

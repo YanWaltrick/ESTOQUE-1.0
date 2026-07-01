@@ -24,8 +24,8 @@ def add_entra_id_column():
             # Verificar se coluna existe
             with db.engine.connect() as connection:
                 try:
-                    # Tentar ler a coluna
-                    result = connection.execute(text("SELECT entra_id FROM users LIMIT 1"))
+                    # Tentar ler a coluna (a própria execução testa a existência)
+                    connection.execute(text("SELECT entra_id FROM users LIMIT 1"))
                     print("✓ Coluna 'entra_id' já existe na tabela users")
                     return True
                 except Exception:

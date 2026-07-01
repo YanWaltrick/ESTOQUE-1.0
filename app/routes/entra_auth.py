@@ -64,9 +64,8 @@ def entra_auth_callback():
     Valida token e faz login ou cria chamado de solicitação
     """
     try:
-        # Capturar código e state da query string
+        # Capturar código da query string
         code = request.args.get("code")
-        state = request.args.get("state")
         error = request.args.get("error")
         error_description = request.args.get("error_description")
 

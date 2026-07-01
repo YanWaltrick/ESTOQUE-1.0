@@ -119,7 +119,7 @@ def criar_usuario():
                 from datetime import datetime
 
                 data_admissao = datetime.strptime(data_admissao_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 flash("Erro ao processar a data de admissão.", "error")
                 return redirect(url_for("admin.criar_usuario"))
 
@@ -130,7 +130,7 @@ def criar_usuario():
                 from datetime import datetime
 
                 pj_data_contrato = datetime.strptime(pj_data_contrato_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 flash("Erro ao processar a data do contrato PJ.", "error")
                 return redirect(url_for("admin.criar_usuario"))
 
@@ -214,7 +214,6 @@ def criar_usuario():
 
             upload_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
             os.makedirs(upload_dir, exist_ok=True)
-            safe_name = secure_filename(os.path.splitext(filename)[0]) or "user"
             saved_filename = f"user_{novo_usuario.id}_{int(datetime.now().timestamp())}.{extension}"
             try:
                 foto_perfil_file.save(os.path.join(upload_dir, saved_filename))
@@ -316,7 +315,7 @@ def editar_usuario(user_id):
                 from datetime import datetime
 
                 data_admissao = datetime.strptime(data_admissao_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 flash("Erro ao processar a data de admissão.", "error")
                 return redirect(url_for("admin.editar_usuario", user_id=user_id))
 
@@ -327,7 +326,7 @@ def editar_usuario(user_id):
                 from datetime import datetime
 
                 pj_data_contrato = datetime.strptime(pj_data_contrato_str, "%Y-%m-%d").date()
-            except:
+            except Exception:
                 flash("Erro ao processar a data do contrato PJ.", "error")
                 return redirect(url_for("admin.editar_usuario", user_id=user_id))
 
@@ -460,7 +459,6 @@ def upload_usuario_foto(user_id):
 
     upload_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
     os.makedirs(upload_dir, exist_ok=True)
-    safe_name = secure_filename(os.path.splitext(filename)[0]) or "user"
     saved_filename = f"user_{usuario.id}_{int(datetime.now().timestamp())}.{extension}"
 
     try:
@@ -1071,7 +1069,7 @@ def gerar_relatorio_itens_usuario(user_id):
         pdf.setFont("Times-Roman", 9)
         data_y = header_y - header_height
 
-        for row_idx, row in enumerate(table_data[1:]):
+        for row in table_data[1:]:
             col_x = left
             for col_idx, cell in enumerate(row):
                 # Desenhar célula
@@ -1202,7 +1200,6 @@ def editar_item_recebido(item_id):
 def deletar_item_recebido(item_id):
     """Deletar item recebido"""
     item = ItemRecebido.query.get_or_404(item_id)
-    id_usuario = item.id_usuario
     descricao = item.descricao_item
 
     db.session.delete(item)
@@ -1326,12 +1323,7 @@ def atualizar_termo_entrega(user_id):
             )
         db.session.add(termo)
 
-    # Note: allow updating termo fields even if a Termo document exists.
-    termo_documento = DocumentoUsuario.query.filter_by(
-        id_usuario=user_id, nome_documento="Termo de Entrega"
-    ).first()
-
-    # Atualizar informações do termo
+    # Atualizar informações do termo (permitido mesmo que já exista documento de Termo)
     termo.empresa = request.form.get("empresa", termo.empresa or "").strip()
     termo.cnpj = request.form.get("cnpj", termo.cnpj or "").strip()
     termo.endereco = request.form.get("endereco", termo.endereco or "").strip()
@@ -1576,8 +1568,7 @@ def deletar_equipamento_termo(user_id, eq_id):
 @admin_bp.route("/usuarios/<int:user_id>/termo-entrega/assinar", methods=["POST"])
 def assinar_termo_entrega(user_id):
     """Rota descontinuada: a geração agora depende apenas do documento salvo."""
-    usuario = User.query.get_or_404(user_id)
-    termo = TermoEntrega.query.filter_by(id_usuario=user_id).first()
+    User.query.get_or_404(user_id)  # mantém o 404 para usuário inexistente
 
     return jsonify(
         {
@@ -1608,7 +1599,7 @@ def exportar_termo_pdf(user_id):
             ), 404
 
         try:
-            TermoService
+            TermoService  # noqa: B018  (checagem de disponibilidade do serviço importado)
         except Exception:
             return jsonify({"success": False, "message": "Serviço de Termo não disponível"}), 500
 
@@ -1632,7 +1623,6 @@ def exportar_termo_pdf(user_id):
             except Exception:
                 equipamentos = []
 
-        tem_tipo_documento = any("tipo_documento" in eq for eq in equipamentos)
         tem_equipamento_aditivo = any(eq.get("tipo_documento") == "aditivo" for eq in equipamentos)
 
         # Criar aditivo somente se for explicitamente forçado, ou se houver
@@ -1737,9 +1727,6 @@ def exportar_termo_pdf(user_id):
         )
 
     except Exception as e:
-        import traceback
-
-        erro_details = traceback.format_exc()
         registrar_evento(
             tipo_evento="erro_geracao_pdf",
             descricao=f"Erro ao gerar PDF para usuário {user_id}: {str(e)}",

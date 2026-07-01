@@ -185,7 +185,6 @@ def montar_payload_notificacao_chamada(
     mencoes_texto = " ".join(item["text"] for item in mencoes).strip()
     data_texto = chamada.data_criacao.strftime("%d/%m/%Y %H:%M") if chamada.data_criacao else "N/A"
     status_label = _obter_label_status(status_atual)
-    status_color = _obter_cor_status(status_atual)
 
     body = [
         {
