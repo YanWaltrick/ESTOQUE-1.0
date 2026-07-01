@@ -699,10 +699,8 @@ def upload_documento_usuario(user_id):
         return jsonify({"success": False, "message": "Arquivo vazio."}), 400
 
     # Criar pasta se não existir
-    pasta_documentos = os.path.join(current_app.root_path, "..", "static", "uploads", "documentos")
-    pasta_documentos = os.path.abspath(pasta_documentos)
-    if not os.path.exists(pasta_documentos):
-        os.makedirs(pasta_documentos, exist_ok=True)
+    pasta_documentos = _caminho_documentos()
+    os.makedirs(pasta_documentos, exist_ok=True)
 
     # Gerar nome único para o arquivo
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -715,9 +713,7 @@ def upload_documento_usuario(user_id):
 
         # Espelhar no banco para sobreviver ao disco efêmero do App Service
         # (ver DocumentoArquivo.salvar_do_arquivo). Falha é não-crítica.
-        DocumentoArquivo.salvar_do_arquivo(
-            caminho_arquivo, filename=nome_arquivo_seguro, tamanho=tamanho
-        )
+        DocumentoArquivo.salvar_do_arquivo(caminho_arquivo, filename=nome_arquivo_seguro)
 
         # Criar registro no banco de dados
         novo_documento = DocumentoUsuario(
@@ -1598,14 +1594,7 @@ def exportar_termo_pdf(user_id):
                 {"success": False, "message": "Termo não encontrado para este usuário"}
             ), 404
 
-        try:
-            TermoService  # noqa: B018  (checagem de disponibilidade do serviço importado)
-        except Exception:
-            return jsonify({"success": False, "message": "Serviço de Termo não disponível"}), 500
-
-        pasta = os.path.abspath(
-            os.path.join(current_app.root_path, "..", "static", "uploads", "documentos")
-        )
+        pasta = _caminho_documentos()
         os.makedirs(pasta, exist_ok=True)
 
         termo_documento = DocumentoUsuario.query.filter_by(
@@ -1657,7 +1646,7 @@ def exportar_termo_pdf(user_id):
         # O nome do termo é fixo (termo_<id>.pdf), então o upsert por filename
         # substitui a versão anterior quando o termo é regenerado.
         DocumentoArquivo.salvar_do_arquivo(
-            caminho, filename=nome_arquivo, tamanho=tamanho, mime_type="application/pdf"
+            caminho, filename=nome_arquivo, mime_type="application/pdf"
         )
 
         usuario_enviador = getattr(current_user, "username", None) or "sistema"

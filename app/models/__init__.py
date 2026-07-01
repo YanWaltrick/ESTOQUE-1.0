@@ -510,9 +510,7 @@ class DocumentoArquivo(db.Model):
         }
 
     @classmethod
-    def salvar_do_arquivo(
-        cls, caminho_arquivo, filename=None, tamanho=None, mime_type=None, commit=True
-    ):
+    def salvar_do_arquivo(cls, caminho_arquivo, filename=None, mime_type=None):
         """Espelha no banco (upsert por ``filename``) o conteúdo de um arquivo em disco.
 
         É a fonte única de persistência de blob usada pelas rotas que gravam
@@ -534,15 +532,13 @@ class DocumentoArquivo(db.Model):
         try:
             with open(caminho_arquivo, "rb") as arquivo:
                 conteudo = arquivo.read()
-            tamanho = len(conteudo) if tamanho is None else tamanho
             mime = (
                 mime_type or mimetypes.guess_type(caminho_arquivo)[0] or "application/octet-stream"
             )
             cls.query.filter_by(filename=filename).delete()
-            blob = cls(filename=filename, content=conteudo, mime_type=mime, size=tamanho)
+            blob = cls(filename=filename, content=conteudo, mime_type=mime, size=len(conteudo))
             db.session.add(blob)
-            if commit:
-                db.session.commit()
+            db.session.commit()
             return blob
         except Exception:
             db.session.rollback()

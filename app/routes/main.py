@@ -140,9 +140,7 @@ def upload_documento():
 
         # Espelhar no banco para sobreviver ao disco efêmero do App Service
         # (ver DocumentoArquivo.salvar_do_arquivo). Falha é não-crítica.
-        DocumentoArquivo.salvar_do_arquivo(
-            caminho_arquivo, filename=nome_arquivo_seguro, tamanho=tamanho
-        )
+        DocumentoArquivo.salvar_do_arquivo(caminho_arquivo, filename=nome_arquivo_seguro)
 
         novo_documento = DocumentoUsuario(
             id_usuario=usuario_destino.id,
