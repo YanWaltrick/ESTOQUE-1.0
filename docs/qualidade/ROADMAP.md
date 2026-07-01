@@ -23,15 +23,14 @@ o type checking.
 | # | Item | Prioridade | Status |
 |---|------|-----------|--------|
 | 0 | Paridade de Python (pré-requisito) | 🔺 Alta | ✅ Resolvido (2026-06-30) — `mise.toml` em 3.14 |
-| 1 | Baseline do Ruff (config + format + `.git-blame-ignore-revs`) | 🔺 Alta | 🔴 Pendente |
+| 1 | Baseline do Ruff (config + format + `.git-blame-ignore-revs`) | 🔺 Alta | ✅ Concluído (2026-06-30) — `ruff==0.15.20`, baseline em commit isolado, triagem dos 54 avisos restantes |
 | 2 | Gate de CI de lint (job dedicado, bloqueante) | 🔺 Alta | 🔴 Pendente |
 | 3 | `pre-commit` + paridade de editor (conveniência) | ▪ Média | 🔴 Pendente |
 | 4 | Type checking (adiado) | ▫ Futuro | ⚪ Adiado (condicional) |
 
-> **A única coisa a fazer primeiro:** **item #1** — criar o `pyproject.toml` e aplicar a
-> baseline (`ruff format` + `ruff check --fix`) num único commit isolado. É o passo
-> irreversível-de-ruído que desbloqueia todo o resto, e é seguro (só formatação e
-> auto-fix).
+> **Baseline aplicada (item #1 ✅).** O `pyproject.toml`, a baseline em commit isolado e o
+> `.git-blame-ignore-revs` já existem. **Próximo passo:** **item #2** — enforçar o Ruff via
+> gate de CI bloqueante em PR (o único mecanismo que realmente impede regressão de estilo).
 
 ---
 
@@ -53,7 +52,7 @@ produção roda. O `mise.toml` fixava 3.13 enquanto o build/deploy usava 3.14 (d
 
 ## 1. Baseline do Ruff
 
-**Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
+**Prioridade:** 🔺 Alta · **Status:** ✅ Concluído (2026-06-30)
 
 **Por quê:** estabelece a fundação (config única) e aplica a formatação a todo o
 codebase de uma vez. Lint gradual deixa ruído eterno no diff; a baseline única encerra
@@ -61,34 +60,29 @@ isso. O primeiro `ruff format` reescreve muitos arquivos — **tem de** ser um c
 isolado + `.git-blame-ignore-revs`, senão polui o `git blame` (ponto cego pego na
 revisão por pares).
 
-**Checklist:**
+**Feito:**
 
-- [ ] Adicionar ao `requirements-dev.txt`, com **versão fixada** (Ruff é binário
-      estático — sem pin, um release novo traz regras novas e quebra o CI sozinho):
-      `ruff==0.x.y` (fixar o patch exato vigente).
-- [ ] Criar `pyproject.toml` na raiz, começando **frouxo**:
-      ```toml
-      [tool.ruff]
-      target-version = "py314"
-      line-length = 100
-      extend-exclude = ["migrations", ".venv", "antenv"]
+- [x] `requirements-dev.txt` com a **versão fixada** `ruff==0.15.20` (o patch exato vigente).
+- [x] `pyproject.toml` na raiz, começando **frouxo** (regras `E`, `F`, `I`, `UP`, `B`;
+      `ignore = ["E501"]`; `target-version = "py314"`; `line-length = 100`;
+      `extend-exclude = ["migrations", ".venv", "antenv"]`).
+- [x] Baseline (`ruff format .` + `ruff check . --fix`) em **commit isolado** noise-only
+      (`275d4768`), sem misturar lógica. Reescreveu 39 arquivos + 95 auto-fixes seguros
+      (remoção de BOM, aspas, ordenação de imports, `UP` para py314, f-strings vazias).
+- [x] `.git-blame-ignore-revs` na raiz com o hash da baseline; git local configurado
+      (`git config blame.ignoreRevsFile .git-blame-ignore-revs`). O GitHub usa o arquivo
+      automaticamente; o time faz o `git config` uma vez.
+- [x] **Triagem dos 54 avisos** que o `--fix` seguro não resolve, em **commit separado**
+      da baseline: E722 (`except Exception:`), B904 (`raise ... from`), B905
+      (`strict=False`), B023 (bind `val=val`), B007, F401/F811/F841 (remoção de código
+      morto, preservando chamadas com efeito colateral e o re-export de `db`), com `# noqa`
+      pontual e justificado apenas em B018 e E402 (imports após `sys.path.insert`).
 
-      [tool.ruff.lint]
-      select = ["E", "F", "I", "UP", "B"]  # erros, pyflakes, imports, pyupgrade, bugbear
-      ignore = ["E501"]                    # comprimento de linha fica com o formatter
-      ```
-- [ ] Rodar a baseline e commitar **isolado** (sem misturar lógica):
-      ```bash
-      ruff format .
-      ruff check . --fix
-      git add -A && git commit -m "chore(qualidade): aplica baseline do Ruff (format + auto-fix)"
-      ```
-- [ ] Criar `.git-blame-ignore-revs` na raiz com o hash desse commit e configurar o git
-      a ignorá-lo: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
-      (e documentar para o time/CI fazerem o mesmo).
-- [ ] **Triagem do que sobrar** (erros que o `--fix` não resolve): corrigir na hora ou
-      anotar `# noqa: <regra>` pontual e justificado — **commit separado** da baseline,
-      para a revisão não misturar ruído com correção real.
+> **Achados de código morto expostos pela triagem** (pré-existentes, candidatos a
+> revisão futura — nenhum corrigido além da remoção do dead code): título com ServiceTag
+> montado mas não renderizado no laudo (`termo_service.py`), `status_color` calculado sem
+> uso (`notification_service.py`), traceback capturado sem ser logado (`admin.py`), e o
+> parâmetro OAuth `state` lido sem validação anti-CSRF (`entra_auth.py`).
 
 ---
 
