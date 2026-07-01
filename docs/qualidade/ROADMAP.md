@@ -24,7 +24,7 @@ o type checking.
 |---|------|-----------|--------|
 | 0 | Paridade de Python (pré-requisito) | 🔺 Alta | ✅ Resolvido (2026-06-30) — `mise.toml` em 3.14 |
 | 1 | Baseline do Ruff (config + format + `.git-blame-ignore-revs`) | 🔺 Alta | ✅ Concluído (2026-06-30) — `ruff==0.15.20`, baseline em commit isolado, triagem dos 54 avisos restantes |
-| 2 | Gate de CI de lint (job dedicado, bloqueante) | 🔺 Alta | 🔴 Pendente |
+| 2 | Gate de CI de lint (job dedicado, bloqueante) | 🔺 Alta | 🟡 Quase — workflow `ci.yml` criado; **falta** marcar como *required status check* (ação manual no GitHub) |
 | 3 | `pre-commit` + paridade de editor (conveniência) | ▪ Média | 🔴 Pendente |
 | 4 | Type checking (adiado) | ▫ Futuro | ⚪ Adiado (condicional) |
 
@@ -88,7 +88,7 @@ revisão por pares).
 
 ## 2. Gate de CI de lint
 
-**Prioridade:** 🔺 Alta · **Status:** 🔴 Pendente
+**Prioridade:** 🔺 Alta · **Status:** 🟡 Quase (workflow criado; falta o *required status check*)
 
 **Por quê:** `pre-commit` local morre no primeiro `--no-verify`. O gate de CI é o que
 **realmente** enforça num time de 1–2 devs ([ADR 0002](../adr/0002-ruff-para-lint-format-e-type-checking.md)).
@@ -109,18 +109,17 @@ separado e rápido**, que roda mesmo se o de testes falhar.
 
 **Checklist:**
 
-- [ ] Adicionar job de CI (em `pull_request` para `develop` e `main`) que instala
-      `requirements-dev.txt` e roda:
-      ```bash
-      ruff format --check .
-      ruff check .
-      ```
-- [ ] Garantir que o job **falha o PR** quando houver violação (sem `continue-on-error`).
-- [ ] Marcar o job como **status check obrigatório** na proteção de branch da `main`
-      (e `develop`, se protegida).
-- [ ] Conviver com o gate de `pytest` ([testes/ROADMAP #1](../testes/ROADMAP.md)) — jobs
-      separados no mesmo workflow; o de lint não depende do MySQL.
-- [ ] Documentar no [índice de docs](../README.md) e no `CLAUDE.md` que lint é obrigatório.
+- [x] Job de CI (`.github/workflows/ci.yml`, job `lint`) em `pull_request` para `develop`
+      e `main` que roda `ruff format --check .` e `ruff check .`. Instala **só** o Ruff na
+      versão fixada, lendo-a do `requirements-dev.txt` (`grep '^ruff==' …`) — fonte única,
+      sem drift e sem puxar o stack pesado da app (o lint não precisa de banco).
+- [x] O job **falha o PR** em violação (sem `continue-on-error`); Python 3.14; cache de pip.
+- [ ] **Marcar o job `Lint (Ruff)` como *required status check*** na proteção de branch da
+      `main` (e `develop`, se protegida). **Ação manual no GitHub** (Settings → Branches),
+      não versionável — sem isso o job roda mas não bloqueia o merge.
+- [x] Convive com o futuro gate de `pytest` ([testes/ROADMAP #1](../testes/ROADMAP.md)) — o
+      `ci.yml` recebe o job de testes como um job separado (que aí sim precisa do MySQL).
+- [x] Documentado no [índice de docs](../README.md) e no `CLAUDE.md` (lint obrigatório).
 
 ---
 
