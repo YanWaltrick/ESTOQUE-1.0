@@ -5,10 +5,12 @@ or Gunicorn on Linux.
 """
 
 import os
+
 from app import create_app
 
 app = create_app()
-app.debug = os.getenv('FLASK_ENV') == 'development'
+app.debug = os.getenv("FLASK_ENV") == "development"
 if __name__ == "__main__":
     from waitress import serve
+
     serve(app, host="0.0.0.0", port=5000)

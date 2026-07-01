@@ -1,7 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Optional
+from datetime import datetime, timedelta, timezone
 
 
 def now_gmt3():
@@ -9,7 +8,7 @@ def now_gmt3():
 
 
 from app.database import db
-from app.models import Produto, Movimentacao, Categoria
+from app.models import Movimentacao, Produto
 
 
 class EstoqueService:
@@ -24,7 +23,7 @@ class EstoqueService:
         if os.path.exists(arquivo_json) and not self._banco_tem_dados():
             try:
                 print("Migrando dados do JSON para banco de dados...")
-                with open(arquivo_json, 'r', encoding='utf-8') as f:
+                with open(arquivo_json, encoding="utf-8") as f:
                     dados = json.load(f)
 
                 for id_prod, prod_dict in dados.items():
@@ -35,7 +34,7 @@ class EstoqueService:
                         preco=prod_dict["preco"],
                         quantidade=prod_dict["quantidade"],
                         minimo=prod_dict["minimo"],
-                        localizacao=prod_dict.get("localizacao", "")
+                        localizacao=prod_dict.get("localizacao", ""),
                     )
                     db.session.add(produto)
 
@@ -58,9 +57,16 @@ class EstoqueService:
         except:
             return False
 
-    def adicionar_produto(self, id_produto: str, nome: str, categoria: str,
-                         preco: float, quantidade: int, minimo: int,
-                         localizacao: str = "") -> bool:
+    def adicionar_produto(
+        self,
+        id_produto: str,
+        nome: str,
+        categoria: str,
+        preco: float,
+        quantidade: int,
+        minimo: int,
+        localizacao: str = "",
+    ) -> bool:
         """Adiciona um novo produto ao estoque"""
         try:
             if Produto.query.get(id_produto):
@@ -103,11 +109,11 @@ class EstoqueService:
             print(f"[ERRO] Erro ao remover produto: {e}")
             return False
 
-    def buscar_produto(self, id_produto: str) -> Optional[Produto]:
+    def buscar_produto(self, id_produto: str) -> Produto | None:
         """Busca um produto pelo ID"""
         return Produto.query.get(id_produto)
 
-    def listar_produtos(self) -> List[Produto]:
+    def listar_produtos(self) -> list[Produto]:
         """Retorna lista de todos os produtos"""
         return Produto.query.all()
 
@@ -134,7 +140,9 @@ class EstoqueService:
             print(f"[ERRO] Erro ao atualizar quantidade: {e}")
             return False
 
-    def entrada_estoque(self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = "") -> bool:
+    def entrada_estoque(
+        self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = ""
+    ) -> bool:
         """Registra entrada de produtos no estoque"""
         try:
             produto = Produto.query.get(id_produto)
@@ -149,7 +157,7 @@ class EstoqueService:
             produto.quantidade += quantidade
 
             # Registrar movimentação
-            movimentacao = Movimentacao(id_produto, 'ENTRADA', quantidade, motivo, usuario)
+            movimentacao = Movimentacao(id_produto, "ENTRADA", quantidade, motivo, usuario)
             db.session.add(movimentacao)
 
             db.session.commit()
@@ -161,7 +169,9 @@ class EstoqueService:
             print(f"[ERRO] Erro na entrada de estoque: {e}")
             return False
 
-    def saida_estoque(self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = "") -> bool:
+    def saida_estoque(
+        self, id_produto: str, quantidade: int, motivo: str = "", usuario: str = ""
+    ) -> bool:
         """Registra saída de produtos do estoque"""
         try:
             produto = Produto.query.get(id_produto)
@@ -180,7 +190,7 @@ class EstoqueService:
             produto.quantidade -= quantidade
 
             # Registrar movimentação
-            movimentacao = Movimentacao(id_produto, 'SAIDA', quantidade, motivo, usuario)
+            movimentacao = Movimentacao(id_produto, "SAIDA", quantidade, motivo, usuario)
             db.session.add(movimentacao)
 
             db.session.commit()
@@ -201,18 +211,18 @@ class EstoqueService:
                 return False
 
             # Atualizar campos permitidos com conversão de tipos
-            if 'nome' in dados:
-                produto.nome = str(dados['nome'])
-            if 'categoria' in dados:
-                produto.categoria = str(dados['categoria'])
-            if 'preco' in dados:
-                produto.preco = float(dados['preco'])
-            if 'quantidade' in dados:
-                produto.quantidade = int(dados['quantidade'])
-            if 'minimo' in dados:
-                produto.minimo = int(dados['minimo'])
-            if 'localizacao' in dados:
-                produto.localizacao = str(dados['localizacao'])
+            if "nome" in dados:
+                produto.nome = str(dados["nome"])
+            if "categoria" in dados:
+                produto.categoria = str(dados["categoria"])
+            if "preco" in dados:
+                produto.preco = float(dados["preco"])
+            if "quantidade" in dados:
+                produto.quantidade = int(dados["quantidade"])
+            if "minimo" in dados:
+                produto.minimo = int(dados["minimo"])
+            if "localizacao" in dados:
+                produto.localizacao = str(dados["localizacao"])
 
             produto.data_atualizacao = now_gmt3()
             db.session.commit()
@@ -224,11 +234,11 @@ class EstoqueService:
             print(f"[ERRO] Erro ao atualizar produto: {e}")
             return False
 
-    def relatorio_estoque_baixo(self) -> List[Produto]:
+    def relatorio_estoque_baixo(self) -> list[Produto]:
         """Retorna produtos com estoque abaixo do mínimo"""
         return Produto.query.filter(Produto.quantidade < Produto.minimo).all()
 
-    def relatorio_valor_total(self) -> Dict:
+    def relatorio_valor_total(self) -> dict:
         """Retorna estatísticas do valor total do estoque"""
         try:
             produtos = Produto.query.all()
@@ -237,36 +247,44 @@ class EstoqueService:
             total_unidades = sum(p.quantidade for p in produtos)
 
             return {
-                'valor_total': valor_total,
-                'total_produtos': total_produtos,
-                'total_unidades': total_unidades
+                "valor_total": valor_total,
+                "total_produtos": total_produtos,
+                "total_unidades": total_unidades,
             }
         except Exception as e:
             print(f"[ERRO] Erro no relatório: {e}")
-            return {'valor_total': 0, 'total_produtos': 0, 'total_unidades': 0}
+            return {"valor_total": 0, "total_produtos": 0, "total_unidades": 0}
 
-    def relatorio_por_categoria(self) -> Dict:
+    def relatorio_por_categoria(self) -> dict:
         """Retorna relatório agrupado por categoria"""
         try:
             from sqlalchemy import func
-            resultado = db.session.query(
-                Produto.categoria,
-                func.count(Produto.id_produto).label('total_produtos'),
-                func.sum(Produto.quantidade).label('total_unidades'),
-                func.sum(Produto.quantidade * Produto.preco).label('valor_total')
-            ).group_by(Produto.categoria).all()
 
-            return {row.categoria: {
-                'total_produtos': row.total_produtos,
-                'total_unidades': row.total_unidades,
-                'valor_total': row.valor_total
-            } for row in resultado}
+            resultado = (
+                db.session.query(
+                    Produto.categoria,
+                    func.count(Produto.id_produto).label("total_produtos"),
+                    func.sum(Produto.quantidade).label("total_unidades"),
+                    func.sum(Produto.quantidade * Produto.preco).label("valor_total"),
+                )
+                .group_by(Produto.categoria)
+                .all()
+            )
+
+            return {
+                row.categoria: {
+                    "total_produtos": row.total_produtos,
+                    "total_unidades": row.total_unidades,
+                    "valor_total": row.valor_total,
+                }
+                for row in resultado
+            }
 
         except Exception as e:
             print(f"[ERRO] Erro no relatório por categoria: {e}")
             return {}
 
-    def get_movimentacoes(self, id_produto: str = None, limit: int = 50) -> List[Movimentacao]:
+    def get_movimentacoes(self, id_produto: str = None, limit: int = 50) -> list[Movimentacao]:
         """Retorna histórico de movimentações"""
         try:
             query = Movimentacao.query.order_by(Movimentacao.data_movimentacao.desc())

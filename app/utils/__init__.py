@@ -1,6 +1,8 @@
 from flask_login import current_user
+
 from app.database import db
 from app.models import Historico
+
 
 def registrar_evento(tipo_evento, descricao, usuario_responsavel=None, detalhes=None):
     """Registra um evento no histórico do sistema"""
@@ -12,7 +14,7 @@ def registrar_evento(tipo_evento, descricao, usuario_responsavel=None, detalhes=
             tipo_evento=tipo_evento,
             descricao=descricao,
             usuario_responsavel=usuario_responsavel,
-            detalhes=detalhes
+            detalhes=detalhes,
         )
         db.session.add(evento)
         db.session.commit()

@@ -1,36 +1,23 @@
 import json
-from io import BytesIO
-
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-    PageBreak
-)
-
-from reportlab.platypus import Image as RLImage
-
-from PIL import Image as PILImage
-
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
-
-from app.models import TermoEntrega, User
-from flask import current_app, url_for
-
 import os
 import re
 import shutil
+from io import BytesIO
+
+from flask import current_app, url_for
+from PIL import Image as PILImage
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import Image as RLImage
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from app.models import TermoEntrega, User
 
 
 class TermoService:
-
     @staticmethod
     def gerar_pdf(usuario_id, nome_arquivo=None, aditivo=False):
 
@@ -44,12 +31,12 @@ class TermoService:
         if not termo:
             raise ValueError(f"Termo para usuario {usuario_id} nao encontrado")
 
-        def valor_texto(valor, fallback=''):
-            texto = valor if valor not in (None, '') else fallback
-            return str(texto) if texto not in (None, '') else ''
+        def valor_texto(valor, fallback=""):
+            texto = valor if valor not in (None, "") else fallback
+            return str(texto) if texto not in (None, "") else ""
 
-        def valor_data(data, formato='%d/%m/%Y'):
-            return data.strftime(formato) if data else ''
+        def valor_data(data, formato="%d/%m/%Y"):
+            return data.strftime(formato) if data else ""
 
         equipamentos = []
 
@@ -68,31 +55,39 @@ class TermoService:
         # ---------------------------------------------------------
 
         if equipamentos:
-
-            table_data = [[
-                "Equipamento / Acessorio",
-                "Marca",
-                "Modelo",
-                "Estado",
-                "Data Entrega",
-                "Valor Aproximado"
-            ]]
+            table_data = [
+                [
+                    "Equipamento / Acessorio",
+                    "Marca",
+                    "Modelo",
+                    "Estado",
+                    "Data Entrega",
+                    "Valor Aproximado",
+                ]
+            ]
 
             for equipamento in equipamentos:
-
-                table_data.append([
-                    valor_texto(equipamento.get('descricao', '')),
-                    valor_texto(equipamento.get('marca', '')),
-                    valor_texto(equipamento.get('modelo', '')),
-                    valor_texto(equipamento.get('estado', '')),
-                    valor_texto(equipamento.get('data_entrega', '')),
-                    valor_texto(equipamento.get('valor', '')),
-                ])
+                table_data.append(
+                    [
+                        valor_texto(equipamento.get("descricao", "")),
+                        valor_texto(equipamento.get("marca", "")),
+                        valor_texto(equipamento.get("modelo", "")),
+                        valor_texto(equipamento.get("estado", "")),
+                        valor_texto(equipamento.get("data_entrega", "")),
+                        valor_texto(equipamento.get("valor", "")),
+                    ]
+                )
 
         else:
-
             table_data = [
-                ["Equipamento / Acessorio", "Marca", "Modelo", "Estado", "Data Entrega", "Valor Aproximado"],
+                [
+                    "Equipamento / Acessorio",
+                    "Marca",
+                    "Modelo",
+                    "Estado",
+                    "Data Entrega",
+                    "Valor Aproximado",
+                ],
                 ["", "", "", "", "", ""],
                 ["", "", "", "", "", ""],
                 ["", "", "", "", "", ""],
@@ -108,18 +103,16 @@ class TermoService:
         buffer = None
 
         if nome_arquivo:
-
             doc = SimpleDocTemplate(
                 nome_arquivo,
                 pagesize=A4,
                 rightMargin=2 * cm,
                 leftMargin=2 * cm,
                 topMargin=2 * cm,
-                bottomMargin=2 * cm
+                bottomMargin=2 * cm,
             )
 
         else:
-
             buffer = BytesIO()
 
             doc = SimpleDocTemplate(
@@ -128,7 +121,7 @@ class TermoService:
                 rightMargin=2 * cm,
                 leftMargin=2 * cm,
                 topMargin=2 * cm,
-                bottomMargin=2 * cm
+                bottomMargin=2 * cm,
             )
 
         # ---------------------------------------------------------
@@ -146,83 +139,79 @@ class TermoService:
                 blue=(base_color.blue * percent) + (1 - percent),
             )
 
-        black_6 = colors.HexColor('#000000')
-        brown_7562 = colors.HexColor('#bd9a5f')
+        black_6 = colors.HexColor("#000000")
+        brown_7562 = colors.HexColor("#bd9a5f")
 
-        black_6_80 = _tint_color('#000000', 80)
-        black_6_60 = _tint_color('#000000', 60)
-        black_6_40 = _tint_color('#000000', 40)
-        black_6_20 = _tint_color('#000000', 20)
+        black_6_80 = _tint_color("#000000", 80)
+        black_6_60 = _tint_color("#000000", 60)
+        black_6_40 = _tint_color("#000000", 40)
+        black_6_20 = _tint_color("#000000", 20)
 
-        brown_7562_80 = _tint_color('#bd9a5f', 80)
-        brown_7562_60 = _tint_color('#bd9a5f', 60)
-        brown_7562_40 = _tint_color('#bd9a5f', 40)
-        brown_7562_20 = _tint_color('#bd9a5f', 20)
+        brown_7562_80 = _tint_color("#bd9a5f", 80)
+        brown_7562_60 = _tint_color("#bd9a5f", 60)
+        brown_7562_40 = _tint_color("#bd9a5f", 40)
+        brown_7562_20 = _tint_color("#bd9a5f", 20)
 
         style_title = ParagraphStyle(
-            'Title',
-            parent=styles['Heading1'],
+            "Title",
+            parent=styles["Heading1"],
             alignment=TA_CENTER,
             fontSize=14,
             leading=18,
-            spaceAfter=20
+            spaceAfter=20,
         )
 
         style_normal = ParagraphStyle(
-            'Normal',
-            parent=styles['BodyText'],
+            "Normal",
+            parent=styles["BodyText"],
             alignment=TA_JUSTIFY,
             fontSize=10,
             leading=14,
-            spaceAfter=10
+            spaceAfter=10,
         )
 
         style_section = ParagraphStyle(
-            'Section',
-            parent=styles['Heading2'],
+            "Section",
+            parent=styles["Heading2"],
             fontSize=11,
             leading=14,
             textColor=brown_7562,
             spaceBefore=12,
-            spaceAfter=8
+            spaceAfter=8,
         )
 
         style_item_header = ParagraphStyle(
-            'ItemHeader',
-            parent=styles['Heading3'],
+            "ItemHeader",
+            parent=styles["Heading3"],
             fontSize=10,
             leading=12,
-            textColor=colors.HexColor('#1f2937'),
+            textColor=colors.HexColor("#1f2937"),
             spaceBefore=8,
-            spaceAfter=6
+            spaceAfter=6,
         )
 
         style_foto_caption = ParagraphStyle(
-            'FotoCaption',
-            parent=styles['BodyText'],
+            "FotoCaption",
+            parent=styles["BodyText"],
             fontSize=8,
             leading=10,
             alignment=TA_CENTER,
             textColor=black_6,
-            spaceAfter=2
+            spaceAfter=2,
         )
 
         style_laudo_item = ParagraphStyle(
-            'LaudoItem',
-            parent=styles['Heading3'],
+            "LaudoItem",
+            parent=styles["Heading3"],
             fontSize=9,
             leading=11,
             textColor=black_6,
             spaceBefore=8,
-            spaceAfter=4
+            spaceAfter=4,
         )
 
         style_meta_value = ParagraphStyle(
-            'MetaValue',
-            parent=styles['BodyText'],
-            fontSize=8,
-            leading=10,
-            textColor=black_6
+            "MetaValue", parent=styles["BodyText"], fontSize=8, leading=10, textColor=black_6
         )
 
         # ---------------------------------------------------------
@@ -232,46 +221,24 @@ class TermoService:
         def _foto_url_publica(nome_foto: str) -> str:
 
             try:
-                return url_for(
-                    'static',
-                    filename=f'uploads/termos/{nome_foto}',
-                    _external=True
-                )
+                return url_for("static", filename=f"uploads/termos/{nome_foto}", _external=True)
 
             except Exception:
-                return f'/static/uploads/termos/{nome_foto}'
+                return f"/static/uploads/termos/{nome_foto}"
 
         def _resolver_caminho_foto(nome_foto: str):
 
             caminhos = [
-                os.path.join(
-                    current_app.static_folder,
-                    'uploads',
-                    'termos',
-                    nome_foto
-                ),
-
-                os.path.join(
-                    current_app.root_path,
-                    'static',
-                    'uploads',
-                    'termos',
-                    nome_foto
-                ),
+                os.path.join(current_app.static_folder, "uploads", "termos", nome_foto),
+                os.path.join(current_app.root_path, "static", "uploads", "termos", nome_foto),
             ]
 
             destino = caminhos[0]
 
             for caminho in caminhos:
-
                 if os.path.exists(caminho):
-
                     if caminho != destino:
-
-                        os.makedirs(
-                            os.path.dirname(destino),
-                            exist_ok=True
-                        )
+                        os.makedirs(os.path.dirname(destino), exist_ok=True)
 
                         try:
                             shutil.copy2(caminho, destino)
@@ -292,11 +259,7 @@ class TermoService:
             with PILImage.open(img_path) as pil_img:
                 largura_original, altura_original = pil_img.size
 
-            fator = min(
-                max_largura / largura_original,
-                max_altura / altura_original,
-                1
-            )
+            fator = min(max_largura / largura_original, max_altura / altura_original, 1)
 
             largura_final = largura_original * fator
             altura_final = altura_original * fator
@@ -305,7 +268,7 @@ class TermoService:
 
             img.drawWidth = largura_final
             img.drawHeight = altura_final
-            img.hAlign = 'CENTER'
+            img.hAlign = "CENTER"
 
             return img
 
@@ -313,8 +276,9 @@ class TermoService:
 
             blocos = []
             equipamentos_validos = [
-                equipamento for equipamento in (lista_equipamentos or [])
-                if (equipamento.get('fotos') or [])
+                equipamento
+                for equipamento in (lista_equipamentos or [])
+                if (equipamento.get("fotos") or [])
             ]
 
             if not equipamentos_validos:
@@ -327,47 +291,53 @@ class TermoService:
             max_altura_foto = 4.8 * cm
 
             for equipamento in equipamentos_validos:
-                nome_item = valor_texto(
-                    equipamento.get('descricao', ''),
-                    'Item sem descricao'
-                )
-                service_tag = valor_texto(equipamento.get('service_tag', ''))
-                fotos = equipamento.get('fotos') or []
+                nome_item = valor_texto(equipamento.get("descricao", ""), "Item sem descricao")
+                service_tag = valor_texto(equipamento.get("service_tag", ""))
+                fotos = equipamento.get("fotos") or []
 
                 titulo_item = nome_item
                 if service_tag:
-                    titulo_item = f'{nome_item} - ServiceTag: {service_tag}'
+                    titulo_item = f"{nome_item} - ServiceTag: {service_tag}"
 
-                blocos.append(Paragraph('LAUDO FOTOGRAFICO - ITEM INSPECIONADO', style_laudo_item))
+                blocos.append(Paragraph("LAUDO FOTOGRAFICO - ITEM INSPECIONADO", style_laudo_item))
 
                 meta_table = Table(
-                    [[
-                        Paragraph('<b>ITEM</b>', style_foto_caption),
-                        Paragraph(valor_texto(nome_item, 'N/A'), style_meta_value),
-                        Paragraph('<b>SERVICETAG</b>', style_foto_caption),
-                        Paragraph(valor_texto(service_tag, 'N/A'), style_meta_value),
-                    ], [
-                        Paragraph('<b>QTD. EVIDENCIAS</b>', style_foto_caption),
-                        Paragraph(str(len(fotos)), style_meta_value),
-                        Paragraph('<b>ESTADO</b>', style_foto_caption),
-                        Paragraph(valor_texto(equipamento.get('estado', ''), 'N/A'), style_meta_value),
-                    ]],
+                    [
+                        [
+                            Paragraph("<b>ITEM</b>", style_foto_caption),
+                            Paragraph(valor_texto(nome_item, "N/A"), style_meta_value),
+                            Paragraph("<b>SERVICETAG</b>", style_foto_caption),
+                            Paragraph(valor_texto(service_tag, "N/A"), style_meta_value),
+                        ],
+                        [
+                            Paragraph("<b>QTD. EVIDENCIAS</b>", style_foto_caption),
+                            Paragraph(str(len(fotos)), style_meta_value),
+                            Paragraph("<b>ESTADO</b>", style_foto_caption),
+                            Paragraph(
+                                valor_texto(equipamento.get("estado", ""), "N/A"), style_meta_value
+                            ),
+                        ],
+                    ],
                     colWidths=[
                         largura_util * 0.20,
                         largura_util * 0.30,
                         largura_util * 0.20,
                         largura_util * 0.30,
-                    ]
+                    ],
                 )
-                meta_table.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.9, brown_7562_60),
-                    ('INNERGRID', (0, 0), (-1, -1), 0.65, black_6_40),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
+                meta_table.setStyle(
+                    TableStyle(
+                        [
+                            ("BOX", (0, 0), (-1, -1), 0.9, brown_7562_60),
+                            ("INNERGRID", (0, 0), (-1, -1), 0.65, black_6_40),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                            ("TOPPADDING", (0, 0), (-1, -1), 4),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ]
+                    )
+                )
 
                 blocos.append(meta_table)
                 blocos.append(Spacer(1, 4))
@@ -375,64 +345,70 @@ class TermoService:
                 celulas = []
                 for indice_foto, foto in enumerate(fotos, start=1):
                     if isinstance(foto, dict):
-                        arquivo_foto = foto.get('arquivo') or ''
-                        titulo_foto = valor_texto(foto.get('titulo'), 'Foto')
+                        arquivo_foto = foto.get("arquivo") or ""
+                        titulo_foto = valor_texto(foto.get("titulo"), "Foto")
                     else:
                         arquivo_foto = foto
-                        titulo_foto = 'Foto'
+                        titulo_foto = "Foto"
 
                     miniatura = _miniatura_foto(arquivo_foto, max_largura_foto, max_altura_foto)
                     if miniatura:
-                        titulo_evidencia = f'{indice_foto:02d} - {titulo_foto}'.upper()
+                        titulo_evidencia = f"{indice_foto:02d} - {titulo_foto}".upper()
                         card = Table(
                             [[Paragraph(titulo_evidencia, style_foto_caption)], [miniatura]],
                             colWidths=[largura_coluna - (0.2 * cm)],
-                            cornerRadii=(6, 6, 6, 6)
+                            cornerRadii=(6, 6, 6, 6),
                         )
-                        card.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9f6f4')),
-                            ('LINEABOVE', (0, 0), (-1, 0), 1.15, brown_7562),
-                            ('BOX', (0, 0), (-1, -1), 0.85, brown_7562),
-                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                            ('TOPPADDING', (0, 0), (-1, -1), 6),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ]))
+                        card.setStyle(
+                            TableStyle(
+                                [
+                                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f9f6f4")),
+                                    ("LINEABOVE", (0, 0), (-1, 0), 1.15, brown_7562),
+                                    ("BOX", (0, 0), (-1, -1), 0.85, brown_7562),
+                                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                                ]
+                            )
+                        )
                         celulas.append(card)
 
                 if celulas:
                     while len(celulas) % colunas != 0:
-                        celulas.append('')
+                        celulas.append("")
 
-                    linhas = [celulas[i:i + colunas] for i in range(0, len(celulas), colunas)]
+                    linhas = [celulas[i : i + colunas] for i in range(0, len(celulas), colunas)]
 
-                    tabela_fotos = Table(
-                        linhas,
-                        colWidths=[largura_coluna] * colunas
+                    tabela_fotos = Table(linhas, colWidths=[largura_coluna] * colunas)
+
+                    tabela_fotos.setStyle(
+                        TableStyle(
+                            [
+                                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                            ]
+                        )
                     )
-
-                    tabela_fotos.setStyle(TableStyle([
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                        ('TOPPADDING', (0, 0), (-1, -1), 3),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                    ]))
 
                     blocos.append(tabela_fotos)
                     blocos.append(Spacer(1, 8))
 
-                blocos.append(Table(
-                    [['']],
-                    colWidths=[largura_util]
-                ))
-                blocos[-1].setStyle(TableStyle([
-                    ('LINEBELOW', (0, 0), (-1, -1), 0.8, brown_7562_40),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ]))
+                blocos.append(Table([[""]], colWidths=[largura_util]))
+                blocos[-1].setStyle(
+                    TableStyle(
+                        [
+                            ("LINEBELOW", (0, 0), (-1, -1), 0.8, brown_7562_40),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                        ]
+                    )
+                )
 
                 blocos.append(Spacer(1, 4))
 
@@ -449,15 +425,16 @@ class TermoService:
         # =========================================================
         is_pj = False
         try:
-            is_pj = bool(usuario.tipo_contrato and str(usuario.tipo_contrato).strip().upper() == 'PJ')
+            is_pj = bool(
+                usuario.tipo_contrato and str(usuario.tipo_contrato).strip().upper() == "PJ"
+            )
         except Exception:
             is_pj = False
 
-        if not is_pj and getattr(usuario, 'pj_contratante', None):
+        if not is_pj and getattr(usuario, "pj_contratante", None):
             is_pj = True
 
         if is_pj and not aditivo:
-
             title = "TERMO DE ENTREGA E RESPONSABILIDADE PELO USO DE EQUIPAMENTOS"
             elements.append(Paragraph(title, style_title))
 
@@ -467,44 +444,23 @@ class TermoService:
                 "Endereço: ___________________________________________________",
                 "Contratada: __________________________________________________",
                 "CPF/CNPJ: __________________________________________________",
-                "Data do Contrato de Prestação de Serviços (se aplicável): _____________________"
+                "Data do Contrato de Prestação de Serviços (se aplicável): _____________________",
             ]
 
             valores = [
-                valor_texto(
-                    termo.empresa,
-                    usuario.pj_contratante or usuario.empresa
-                ),
-                valor_texto(
-                    termo.cnpj,
-                    usuario.pj_contratante_cnpj or usuario.cnpj
-                ),
-                valor_texto(
-                    termo.endereco,
-                    usuario.pj_contratante_endereco or usuario.endereco
-                ),
-                valor_texto(
-                    termo.nome_colaborador,
-                    usuario.pj_contratada or usuario.username
-                ),
-                valor_texto(
-                    termo.cpf_cnpj,
-                    usuario.pj_contratada_cnpj or usuario.cpf
-                ),
+                valor_texto(termo.empresa, usuario.pj_contratante or usuario.empresa),
+                valor_texto(termo.cnpj, usuario.pj_contratante_cnpj or usuario.cnpj),
+                valor_texto(termo.endereco, usuario.pj_contratante_endereco or usuario.endereco),
+                valor_texto(termo.nome_colaborador, usuario.pj_contratada or usuario.username),
+                valor_texto(termo.cpf_cnpj, usuario.pj_contratada_cnpj or usuario.cpf),
                 valor_data(
                     termo.data_admissao or usuario.pj_data_contrato or usuario.data_admissao
-                )
+                ),
             ]
 
             for tpl, val in zip(campos_template, valores):
-
-                if val and val != '':
-                    new_line = re.sub(
-                        r'_{2,}',
-                        lambda m: val,
-                        tpl,
-                        count=1
-                    )
+                if val and val != "":
+                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -702,12 +658,7 @@ com renúncia a qualquer outro, por mais privilegiado que seja.
 
             elements.append(Paragraph(texto8, style_normal))
 
-            elements.append(
-                Paragraph(
-                    "<b>9. EQUIPAMENTOS ENTREGUES</b>",
-                    style_section
-                )
-            )
+            elements.append(Paragraph("<b>9. EQUIPAMENTOS ENTREGUES</b>", style_section))
 
             texto9 = """
 A Contratante declara ter fornecido os seguintes itens à Contratada, elencada no preâmbulo:
@@ -716,28 +667,24 @@ A Contratante declara ter fornecido os seguintes itens à Contratada, elencada n
             elements.append(Paragraph(texto9, style_normal))
 
             table = Table(
-                table_data,
-                colWidths=[
-                    5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    3 * cm
-                ]
+                table_data, colWidths=[5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
             )
 
-            table.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                ('TOPPADDING', (0, 1), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                        ("TOPPADDING", (0, 1), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ]
+                )
+            )
 
             elements.append(table)
 
@@ -788,33 +735,33 @@ Local e Data: _________________________________________________
 
             tabela_assinaturas = Table(
                 [
-                    [
-                        "Assinatura da Contratada",
-                        "Assinatura da Contratante"
-                    ],
-                    [
-                        "________________________________",
-                        "________________________________"
-                    ]
+                    ["Assinatura da Contratada", "Assinatura da Contratante"],
+                    ["________________________________", "________________________________"],
                 ],
-                colWidths=[8 * cm, 8 * cm]
+                colWidths=[8 * cm, 8 * cm],
             )
 
-            tabela_assinaturas.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
-                ('TOPPADDING', (0, 1), (-1, 1), 10),
-            ]))
+            tabela_assinaturas.setStyle(
+                TableStyle(
+                    [
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 20),
+                        ("TOPPADDING", (0, 1), (-1, 1), 10),
+                    ]
+                )
+            )
 
             elements.append(tabela_assinaturas)
 
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
+                elements.append(
+                    Paragraph("LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS", style_section)
+                )
                 elements.extend(blocos_fotos)
 
             doc.build(elements)
@@ -951,7 +898,7 @@ Local e Data: _________________________________________________
                     "Colaborador: _______________________________________",
                     "Cargo/Função (se aplicável): __________________________________",
                     "CPF/CNPJ: ________________________________________________",
-                    "Data de Admissão (se aplicável): _____________________"
+                    "Data de Admissão (se aplicável): _____________________",
                 ]
 
                 valores = [
@@ -961,17 +908,12 @@ Local e Data: _________________________________________________
                     valor_texto(termo.nome_colaborador, usuario.username),
                     valor_texto(termo.cargo_funcao, usuario.cargo),
                     valor_texto(termo.cpf_cnpj, usuario.cpf),
-                    valor_data(termo.data_admissao or usuario.data_admissao)
+                    valor_data(termo.data_admissao or usuario.data_admissao),
                 ]
 
                 for tpl, val in zip(campos_template, valores):
-                    if val and val != '':
-                        new_line = re.sub(
-                            r'_{2,}',
-                            lambda m: val,
-                            tpl,
-                            count=1
-                        )
+                    if val and val != "":
+                        new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
                     else:
                         new_line = tpl
 
@@ -1038,12 +980,7 @@ da data nele indicada.
 
                 elements.append(Paragraph(texto4, style_normal))
 
-                elements.append(
-                    Paragraph(
-                        "<b>5. ITENS ADICIONAIS ENTREGUES</b>",
-                        style_section
-                    )
-                )
+                elements.append(Paragraph("<b>5. ITENS ADICIONAIS ENTREGUES</b>", style_section))
 
                 texto5 = """
 A empresa declara ter fornecido os seguintes itens adicionais ao colaborador, elencado no preâmbulo:
@@ -1052,28 +989,24 @@ A empresa declara ter fornecido os seguintes itens adicionais ao colaborador, el
                 elements.append(Paragraph(texto5, style_normal))
 
                 table = Table(
-                    table_data,
-                    colWidths=[
-                        5 * cm,
-                        2.5 * cm,
-                        2.5 * cm,
-                        2.5 * cm,
-                        2.5 * cm,
-                        3 * cm
-                    ]
+                    table_data, colWidths=[5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
                 )
 
-                table.setStyle(TableStyle([
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 9),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                    ('TOPPADDING', (0, 1), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
+                table.setStyle(
+                    TableStyle(
+                        [
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 9),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                            ("TOPPADDING", (0, 1), (-1, -1), 10),
+                            ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ]
+                    )
+                )
 
                 elements.append(table)
                 elements.append(Spacer(1, 20))
@@ -1126,33 +1059,31 @@ Local e Data: _________________________________________________
 
                 tabela_assinaturas = Table(
                     [
-                        [
-                            "Assinatura do Colaborador",
-                            "Assinatura da Empresa"
-                        ],
-                        [
-                            "________________________________",
-                            "________________________________"
-                        ]
+                        ["Assinatura do Colaborador", "Assinatura da Empresa"],
+                        ["________________________________", "________________________________"],
                     ],
-                    colWidths=[8 * cm, 8 * cm]
+                    colWidths=[8 * cm, 8 * cm],
                 )
 
-                tabela_assinaturas.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
-                    ('TOPPADDING', (0, 1), (-1, 1), 10),
-                ]))
+                tabela_assinaturas.setStyle(
+                    TableStyle(
+                        [
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 10),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 20),
+                            ("TOPPADDING", (0, 1), (-1, 1), 10),
+                        ]
+                    )
+                )
 
                 elements.append(tabela_assinaturas)
 
                 blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
                 if blocos_fotos:
                     elements.append(PageBreak())
-                    elements.append(Paragraph('FOTOS DOS EQUIPAMENTOS', style_section))
+                    elements.append(Paragraph("FOTOS DOS EQUIPAMENTOS", style_section))
                     elements.append(Spacer(1, 12))
                     elements.extend(blocos_fotos)
 
@@ -1173,7 +1104,7 @@ Local e Data: _________________________________________________
                 "Endereço: ___________________________________________________",
                 "Contratada: __________________________________________________",
                 "CPF/CNPJ: __________________________________________________",
-                "Data do Contrato de Prestação de Serviços (se aplicável): _____________________"
+                "Data do Contrato de Prestação de Serviços (se aplicável): _____________________",
             ]
 
             valores = [
@@ -1182,18 +1113,12 @@ Local e Data: _________________________________________________
                 valor_texto(usuario.pj_contratante_endereco, usuario.endereco),
                 valor_texto(usuario.pj_contratada or usuario.username, usuario.username),
                 valor_texto(usuario.pj_contratada_cnpj, usuario.cpf),
-                valor_data(usuario.pj_data_contrato or usuario.data_admissao)
+                valor_data(usuario.pj_data_contrato or usuario.data_admissao),
             ]
 
             for tpl, val in zip(campos_template, valores):
-
-                if val and val != '':
-                    new_line = re.sub(
-                        r'_{2,}',
-                        lambda m: val,
-                        tpl,
-                        count=1
-                    )
+                if val and val != "":
+                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -1274,12 +1199,7 @@ da data nele indicada.
 
             elements.append(Paragraph(texto4, style_normal))
 
-            elements.append(
-                Paragraph(
-                    "<b>5. ITENS ADICIONAIS ENTREGUES</b>",
-                    style_section
-                )
-            )
+            elements.append(Paragraph("<b>5. ITENS ADICIONAIS ENTREGUES</b>", style_section))
 
             texto5 = """
 A Contratante declara ter fornecido os seguintes itens adicionais à Contratada, elencada no preâmbulo:
@@ -1288,28 +1208,24 @@ A Contratante declara ter fornecido os seguintes itens adicionais à Contratada,
             elements.append(Paragraph(texto5, style_normal))
 
             table = Table(
-                table_data,
-                colWidths=[
-                    5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    2.5 * cm,
-                    3 * cm
-                ]
+                table_data, colWidths=[5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
             )
 
-            table.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                ('TOPPADDING', (0, 1), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                        ("TOPPADDING", (0, 1), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ]
+                )
+            )
 
             elements.append(table)
 
@@ -1366,33 +1282,33 @@ Local e Data: _________________________________________________
 
             tabela_assinaturas = Table(
                 [
-                    [
-                        "Assinatura da Contratada",
-                        "Assinatura da Contratante"
-                    ],
-                    [
-                        "________________________________",
-                        "________________________________"
-                    ]
+                    ["Assinatura da Contratada", "Assinatura da Contratante"],
+                    ["________________________________", "________________________________"],
                 ],
-                colWidths=[8 * cm, 8 * cm]
+                colWidths=[8 * cm, 8 * cm],
             )
 
-            tabela_assinaturas.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
-                ('TOPPADDING', (0, 1), (-1, 1), 10),
-            ]))
+            tabela_assinaturas.setStyle(
+                TableStyle(
+                    [
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 20),
+                        ("TOPPADDING", (0, 1), (-1, 1), 10),
+                    ]
+                )
+            )
 
             elements.append(tabela_assinaturas)
 
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS ADICIONAIS', style_section))
+                elements.append(
+                    Paragraph("LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS ADICIONAIS", style_section)
+                )
                 elements.append(Spacer(1, 12))
                 elements.extend(blocos_fotos)
 
@@ -1409,16 +1325,17 @@ Local e Data: _________________________________________________
         # =========================================================
         is_pj = False
         try:
-            is_pj = bool(usuario.tipo_contrato and str(usuario.tipo_contrato).strip().upper() == 'PJ')
+            is_pj = bool(
+                usuario.tipo_contrato and str(usuario.tipo_contrato).strip().upper() == "PJ"
+            )
         except Exception:
             is_pj = False
 
         # fallback: if PJ header fields exist, treat as PJ
-        if not is_pj and getattr(usuario, 'pj_contratante', None):
+        if not is_pj and getattr(usuario, "pj_contratante", None):
             is_pj = True
 
         if is_pj:
-
             title = "TERMO DE ENTREGA E RESPONSABILIDADE PELO USO DE EQUIPAMENTOS - PESSOA JURÍDICA"
             elements.append(Paragraph(title, style_title))
 
@@ -1431,24 +1348,31 @@ Local e Data: _________________________________________________
                 "CPF/CNPJ:  ________________________________________________",
                 "Data de Admissão  (se aplicável): _______________________________",
                 "Departamento (se aplicável): ___________________________________",
-                "Local de trabalho (se aplicável): ________________________________"
+                "Local de trabalho (se aplicável): ________________________________",
             ]
 
             valores = [
                 valor_texto(usuario.pj_contratante, termo.empresa),
                 valor_texto(usuario.pj_contratante_cnpj, termo.cnpj),
                 valor_texto(usuario.pj_contratante_endereco, termo.endereco),
-                valor_texto(usuario.pj_contratada or termo.nome_colaborador or usuario.username, usuario.username),
+                valor_texto(
+                    usuario.pj_contratada or termo.nome_colaborador or usuario.username,
+                    usuario.username,
+                ),
                 valor_texto(termo.cargo_funcao, usuario.cargo),
-                valor_texto(usuario.pj_contratada_cnpj or termo.cpf_cnpj or usuario.cpf, usuario.cpf),
-                valor_data(usuario.pj_data_contrato or termo.data_admissao or usuario.data_admissao),
+                valor_texto(
+                    usuario.pj_contratada_cnpj or termo.cpf_cnpj or usuario.cpf, usuario.cpf
+                ),
+                valor_data(
+                    usuario.pj_data_contrato or termo.data_admissao or usuario.data_admissao
+                ),
                 valor_texto(termo.departamento, usuario.departamento),
-                valor_texto(termo.local_trabalho, usuario.local_trabalho)
+                valor_texto(termo.local_trabalho, usuario.local_trabalho),
             ]
 
             for tpl, val in zip(campos_template, valores):
-                if val and val != '':
-                    new_line = re.sub(r'_{2,}', lambda m: val, tpl, count=1)
+                if val and val != "":
+                    new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
                 else:
                     new_line = tpl
 
@@ -1585,19 +1509,22 @@ A empresa declara ter fornecido os seguintes itens ao colaborador, elencado no p
             elements.append(Paragraph(texto9, style_normal))
 
             table = Table(
-                table_data,
-                colWidths=[5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3*cm]
+                table_data, colWidths=[5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
             )
 
-            table.setStyle(TableStyle([
-                ('GRID', (0,0), (-1,-1), 1, colors.black),
-                ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0,0), (-1,-1), 9),
-                ('BOTTOMPADDING', (0,0), (-1,0), 8),
-                ('TOPPADDING', (0,1), (-1,-1), 10),
-                ('BOTTOMPADDING', (0,1), (-1,-1), 10),
-            ]))
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                        ("TOPPADDING", (0, 1), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                    ]
+                )
+            )
 
             elements.append(table)
             elements.append(Spacer(1, 20))
@@ -1642,33 +1569,33 @@ Local e Data: _________________________________________________
 
             tabela_assinaturas = Table(
                 [
-                    [
-                        "Assinatura do Colaborador/Terceiro",
-                        "Assinatura da Empresa"
-                    ],
-                    [
-                        "________________________________",
-                        "________________________________"
-                    ]
+                    ["Assinatura do Colaborador/Terceiro", "Assinatura da Empresa"],
+                    ["________________________________", "________________________________"],
                 ],
-                colWidths=[8*cm, 8*cm]
+                colWidths=[8 * cm, 8 * cm],
             )
 
-            tabela_assinaturas.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
-                ('TOPPADDING', (0, 1), (-1, 1), 10),
-            ]))
+            tabela_assinaturas.setStyle(
+                TableStyle(
+                    [
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 20),
+                        ("TOPPADDING", (0, 1), (-1, 1), 10),
+                    ]
+                )
+            )
 
             elements.append(tabela_assinaturas)
 
             blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
             if blocos_fotos:
                 elements.append(PageBreak())
-                elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
+                elements.append(
+                    Paragraph("LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS", style_section)
+                )
                 elements.extend(blocos_fotos)
 
             doc.build(elements)
@@ -1695,7 +1622,7 @@ Local e Data: _________________________________________________
             "CPF/CNPJ:  ________________________________________________",
             "Data de Admissão  (se aplicável): _______________________________",
             "Departamento (se aplicável): ___________________________________",
-            "Local de trabalho (se aplicável): ________________________________"
+            "Local de trabalho (se aplicável): ________________________________",
         ]
 
         valores = [
@@ -1707,12 +1634,12 @@ Local e Data: _________________________________________________
             valor_texto(termo.cpf_cnpj, usuario.cpf),
             valor_data(termo.data_admissao or usuario.data_admissao),
             valor_texto(termo.departamento, usuario.departamento),
-            valor_texto(termo.local_trabalho, usuario.local_trabalho)
+            valor_texto(termo.local_trabalho, usuario.local_trabalho),
         ]
 
         for tpl, val in zip(campos_template, valores):
-            if val and val != '':
-                new_line = re.sub(r'_{2,}', lambda m: val, tpl, count=1)
+            if val and val != "":
+                new_line = re.sub(r"_{2,}", lambda m: val, tpl, count=1)
             else:
                 new_line = tpl
 
@@ -1851,19 +1778,22 @@ A empresa declara ter fornecido os seguintes itens ao colaborador, elencado no p
         elements.append(Paragraph(texto9, style_normal))
 
         table = Table(
-            table_data,
-            colWidths=[5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3*cm]
+            table_data, colWidths=[5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 3 * cm]
         )
 
-        table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
-            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 9),
-            ('BOTTOMPADDING', (0,0), (-1,0), 8),
-            ('TOPPADDING', (0,1), (-1,-1), 10),
-            ('BOTTOMPADDING', (0,1), (-1,-1), 10),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                    ("TOPPADDING", (0, 1), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                ]
+            )
+        )
 
         elements.append(table)
         elements.append(Spacer(1, 20))
@@ -1908,33 +1838,31 @@ Local e Data: _________________________________________________
 
         tabela_assinaturas = Table(
             [
-                [
-                    "Assinatura do Colaborador/Terceiro",
-                    "Assinatura da Empresa"
-                ],
-                [
-                    "________________________________",
-                    "________________________________"
-                ]
+                ["Assinatura do Colaborador/Terceiro", "Assinatura da Empresa"],
+                ["________________________________", "________________________________"],
             ],
-            colWidths=[8*cm, 8*cm]
+            colWidths=[8 * cm, 8 * cm],
         )
 
-        tabela_assinaturas.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 20),
-            ('TOPPADDING', (0, 1), (-1, 1), 10),
-        ]))
+        tabela_assinaturas.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 20),
+                    ("TOPPADDING", (0, 1), (-1, 1), 10),
+                ]
+            )
+        )
 
         elements.append(tabela_assinaturas)
 
         blocos_fotos = _blocos_fotos_em_uma_pagina(equipamentos)
         if blocos_fotos:
             elements.append(PageBreak())
-            elements.append(Paragraph('LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS', style_section))
+            elements.append(Paragraph("LAUDO FOTOGRAFICO TECNICO - EQUIPAMENTOS", style_section))
             elements.extend(blocos_fotos)
 
         doc.build(elements)

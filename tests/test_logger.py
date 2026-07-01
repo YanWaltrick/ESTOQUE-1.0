@@ -87,6 +87,7 @@ def test_log_resposta_http_loga_status(app, caplog, monkeypatch):
         return response
 
     with app.test_request_context("/rota-teste", method="GET"):
+
         class FakeResponse:
             status_code = 200
 

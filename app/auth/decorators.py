@@ -8,115 +8,119 @@ Uso:
 """
 
 from functools import wraps
-from flask import redirect, url_for, flash, abort, jsonify
-from flask_login import current_user
 
+from flask import abort, flash, jsonify, redirect, url_for
+from flask_login import current_user
 
 # Definição de roles e suas permissões
 ROLES_PERMISSIONS = {
-    'admin': [
-        'view_dashboard',
-        'manage_users',
-        'delete_user',
-        'create_user',
-        'edit_product',
-        'delete_product',
-        'view_reports',
-        'view_audit_log',
-        'manage_chamadas',
-        'create_produto',
-        'edit_user',
-        'registrar_entrada',
-        'registrar_saida',
-        'view_estoque',
-        'criar_chamado'
+    "admin": [
+        "view_dashboard",
+        "manage_users",
+        "delete_user",
+        "create_user",
+        "edit_product",
+        "delete_product",
+        "view_reports",
+        "view_audit_log",
+        "manage_chamadas",
+        "create_produto",
+        "edit_user",
+        "registrar_entrada",
+        "registrar_saida",
+        "view_estoque",
+        "criar_chamado",
     ],
-    'usuario': [
-        'criar_chamado'
-    ]
+    "usuario": ["criar_chamado"],
 }
 
 
 def require_role(*allowed_roles):
     """
     Decorador para exigir um ou mais roles específicos.
-    
+
     Args:
         *allowed_roles: String ou lista de strings com roles permitidos
-        
+
     Exemplo:
         @require_role('admin')
         @require_role('admin', 'usuario')
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             from flask import request
-            
+
             # Se não está autenticado
             if not current_user.is_authenticated:
                 # Verificar se é uma requisição AJAX/JSON
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Autenticação necessária'}), 401
-                flash('Por favor, faça login para acessar questa página.', 'error')
-                return redirect(url_for('auth.login'))
-            
+                if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"error": "Autenticação necessária"}), 401
+                flash("Por favor, faça login para acessar questa página.", "error")
+                return redirect(url_for("auth.login"))
+
             # Normalizar allowed_roles em lista
-            roles = allowed_roles[0] if isinstance(allowed_roles[0], (list, tuple)) else allowed_roles
-            
+            roles = (
+                allowed_roles[0] if isinstance(allowed_roles[0], (list, tuple)) else allowed_roles
+            )
+
             # Verificar se o role do usuário está na lista de permitidos
             if current_user.role not in roles:
                 # Se é uma requisição AJAX/JSON, retornar JSON
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado. Privilégios insuficientes.'}), 403
-                
-                flash(f'Acesso negado. Você precisa ser {" ou ".join(roles)}.', 'error')
+                if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"error": "Acesso negado. Privilégios insuficientes."}), 403
+
+                flash(f"Acesso negado. Você precisa ser {' ou '.join(roles)}.", "error")
                 abort(403)
-            
+
             return f(*args, **kwargs)
-        
+
         return decorated_function
+
     return decorator
 
 
 def require_permission(permission):
     """
     Decorador para exigir uma permissão específica.
-    
+
     Args:
         permission: String com o nome da permissão
-        
+
     Exemplo:
         @require_permission('delete_user')
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             from flask import request
-            
+
             # Se não está autenticado
             if not current_user.is_authenticated:
                 # Verificar se é uma requisição AJAX/JSON
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Autenticação necessária'}), 401
-                flash('Por favor, faça login para acessar esta página.', 'error')
-                return redirect(url_for('auth.login'))
-            
+                if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"error": "Autenticação necessária"}), 401
+                flash("Por favor, faça login para acessar esta página.", "error")
+                return redirect(url_for("auth.login"))
+
             # Obter permissões do role
             permissions = ROLES_PERMISSIONS.get(current_user.role, [])
-            
+
             # Verificar se tem a permissão
             if permission not in permissions:
                 # Se é uma requisição AJAX/JSON, retornar JSON
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado. Permissão insuficiente.'}), 403
-                
-                flash(f'Acesso negado. Você não tem permissão para: {permission}', 'error')
+                if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"error": "Acesso negado. Permissão insuficiente."}), 403
+
+                flash(f"Acesso negado. Você não tem permissão para: {permission}", "error")
                 abort(403)
-            
+
             return f(*args, **kwargs)
-        
+
         return decorated_function
+
     return decorator
 
 
@@ -124,19 +128,21 @@ def require_authenticated():
     """
     Decorador para exigir que o usuário esteja autenticado.
     Similar ao login_required, mas com melhor tratamento de erros.
-    
+
     Exemplo:
         @require_authenticated()
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not current_user.is_authenticated:
-                flash('Por favor, faça login para acessar esta página.', 'error')
-                return redirect(url_for('auth.login'))
+                flash("Por favor, faça login para acessar esta página.", "error")
+                return redirect(url_for("auth.login"))
             return f(*args, **kwargs)
-        
+
         return decorated_function
+
     return decorator
 
 
@@ -144,25 +150,25 @@ def can_perform(permission):
     """
     Função auxiliar para verificar se o usuário pode realizar uma ação.
     Usar em templates/views para controle condicional.
-    
+
     Args:
         permission: String com o nome da permissão
-        
+
     Retorna:
         Boolean - True se tem permissão, False caso contrário
-        
+
     Exemplo em template:
         {% if can_perform('delete_user') %}
             <button>Deletar Usuário</button>
         {% endif %}
-        
+
     Exemplo em view:
         if can_perform('edit_product'):
             # fazer algo
     """
     if not current_user.is_authenticated:
         return False
-    
+
     permissions = ROLES_PERMISSIONS.get(current_user.role, [])
     return permission in permissions
 
@@ -170,13 +176,13 @@ def can_perform(permission):
 def get_user_permissions():
     """
     Retorna lista de permissões do usuário atual.
-    
+
     Retorna:
         Lista vazia se não autenticado, lista de permissões se autenticado
     """
     if not current_user.is_authenticated:
         return []
-    
+
     return ROLES_PERMISSIONS.get(current_user.role, [])
 
 
@@ -190,10 +196,10 @@ def get_available_roles():
 def get_role_permissions(role):
     """
     Retorna lista de permissões de um role específico.
-    
+
     Args:
         role: String com o nome do role
-        
+
     Retorna:
         Lista de permissões ou lista vazia se role não existe
     """

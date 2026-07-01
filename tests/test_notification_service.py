@@ -75,9 +75,7 @@ def test_payload_adaptive_card(chamada):
 
 
 def test_payload_legacy(chamada):
-    payload = ns.montar_payload_notificacao_chamada(
-        chamada, "chamada_criada", modo="legacy"
-    )
+    payload = ns.montar_payload_notificacao_chamada(chamada, "chamada_criada", modo="legacy")
     assert payload["origem"] == "estoque"
     assert payload["evento"] == "chamada_criada"
     assert payload["chamada"]["mensagem"] == "Notebook com defeito"

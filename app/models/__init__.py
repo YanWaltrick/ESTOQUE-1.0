@@ -1,10 +1,11 @@
-import os
 import mimetypes
-from datetime import datetime, timezone, timedelta
-from app.database import db
+import os
+from datetime import datetime, timedelta, timezone
+
 from flask_login import UserMixin
 from sqlalchemy.dialects.mysql import LONGBLOB
 
+from app.database import db
 
 # Fuso-horário único da aplicação (GMT-3). Fonte de verdade para `now_gmt3()`
 # e para reanexar o fuso a valores naive lidos do banco.
@@ -32,40 +33,41 @@ def _garantir_aware_gmt3(dt):
 
 class User(db.Model, UserMixin):
     """Modelo para usuários do sistema com RBAC (Role-Based Access Control)"""
-    __tablename__ = 'users'
+
+    __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)  # Aumentado para hash seguro
-    
+
     # RBAC - Roles: 'admin', 'usuario'
-    role = db.Column(db.String(50), nullable=False, default='usuario')
+    role = db.Column(db.String(50), nullable=False, default="usuario")
 
     # Tipo de contrato/vínculo
-    tipo_contrato = db.Column(db.String(10), nullable=False, default='CLT')
-    
+    tipo_contrato = db.Column(db.String(10), nullable=False, default="CLT")
+
     # Informações do usuário
-    area = db.Column(db.String(255), nullable=False, default='')
-    localizacao = db.Column(db.String(255), nullable=False, default='')
-    
+    area = db.Column(db.String(255), nullable=False, default="")
+    localizacao = db.Column(db.String(255), nullable=False, default="")
+
     # Informações da empresa
-    empresa = db.Column(db.String(255), nullable=False, default='')
-    cnpj = db.Column(db.String(18), nullable=False, default='')
-    endereco = db.Column(db.String(500), nullable=False, default='')
-    cargo = db.Column(db.String(255), nullable=False, default='')
-    cpf = db.Column(db.String(14), nullable=False, default='')
-    email = db.Column(db.String(150), nullable=True, default='')
+    empresa = db.Column(db.String(255), nullable=False, default="")
+    cnpj = db.Column(db.String(18), nullable=False, default="")
+    endereco = db.Column(db.String(500), nullable=False, default="")
+    cargo = db.Column(db.String(255), nullable=False, default="")
+    cpf = db.Column(db.String(14), nullable=False, default="")
+    email = db.Column(db.String(150), nullable=True, default="")
     data_admissao = db.Column(db.Date, nullable=True)
-    departamento = db.Column(db.String(255), nullable=False, default='')
-    local_trabalho = db.Column(db.String(255), nullable=False, default='')
+    departamento = db.Column(db.String(255), nullable=False, default="")
+    local_trabalho = db.Column(db.String(255), nullable=False, default="")
     # Campos específicos para contratação PJ
-    pj_contratante = db.Column(db.String(255), nullable=True, default='')
-    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default='')
-    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default='')
-    pj_contratada = db.Column(db.String(255), nullable=True, default='')
-    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default='')
+    pj_contratante = db.Column(db.String(255), nullable=True, default="")
+    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default="")
+    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default="")
+    pj_contratada = db.Column(db.String(255), nullable=True, default="")
+    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default="")
     pj_data_contrato = db.Column(db.Date, nullable=True)
-    
+
     # Status e auditoria
     ativo = db.Column(db.Boolean, default=True, nullable=False)  # Se usuário está ativo/bloqueado
     data_criacao = db.Column(db.DateTime, default=now_gmt3, nullable=False)
@@ -73,42 +75,69 @@ class User(db.Model, UserMixin):
 
     # Foto de perfil
     foto_perfil = db.Column(db.String(255), nullable=True)
-    
+
     # Segurança - Último login e tentativas falhas
     ultimo_login = db.Column(db.DateTime, nullable=True)
     tentativas_login_falhas = db.Column(db.Integer, default=0)  # Para detecção de força bruta
     bloqueado_ate = db.Column(db.DateTime, nullable=True)  # Bloqueio temporário após X tentativas
-    
-    # Integração Microsoft Entra ID
-    entra_id = db.Column(db.String(255), unique=True, nullable=True)  # OID (Object ID) do usuário no Entra ID
-    
-    # Relacionamentos
-    chamadas = db.relationship('Chamada', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
-    def __init__(self, username, password, role='usuario', tipo_contrato='CLT', area='', localizacao='', empresa='', cnpj='', 
-                 endereco='', cargo='', cpf='', email='', data_admissao=None, departamento='', local_trabalho='',
-                 pj_contratante='', pj_contratante_cnpj='', pj_contratante_endereco='', pj_contratada='', pj_contratada_cnpj='', pj_data_contrato=None):
+    # Integração Microsoft Entra ID
+    entra_id = db.Column(
+        db.String(255), unique=True, nullable=True
+    )  # OID (Object ID) do usuário no Entra ID
+
+    # Relacionamentos
+    chamadas = db.relationship(
+        "Chamada", backref="usuario", lazy=True, cascade="all, delete-orphan"
+    )
+
+    def __init__(
+        self,
+        username,
+        password,
+        role="usuario",
+        tipo_contrato="CLT",
+        area="",
+        localizacao="",
+        empresa="",
+        cnpj="",
+        endereco="",
+        cargo="",
+        cpf="",
+        email="",
+        data_admissao=None,
+        departamento="",
+        local_trabalho="",
+        pj_contratante="",
+        pj_contratante_cnpj="",
+        pj_contratante_endereco="",
+        pj_contratada="",
+        pj_contratada_cnpj="",
+        pj_data_contrato=None,
+    ):
         self.username = username
         self.password = password  # Já deve vir em hash
         self.role = role
-        self.tipo_contrato = (tipo_contrato or 'CLT').strip().upper()
-        self.area = area.strip() if area else ''
-        self.localizacao = localizacao.strip() if localizacao else ''
-        self.empresa = empresa.strip() if empresa else ''
-        self.cnpj = cnpj.strip() if cnpj else ''
-        self.endereco = endereco.strip() if endereco else ''
-        self.cargo = cargo.strip() if cargo else ''
-        self.cpf = cpf.strip() if cpf else ''
-        self.email = email.strip() if email else ''
+        self.tipo_contrato = (tipo_contrato or "CLT").strip().upper()
+        self.area = area.strip() if area else ""
+        self.localizacao = localizacao.strip() if localizacao else ""
+        self.empresa = empresa.strip() if empresa else ""
+        self.cnpj = cnpj.strip() if cnpj else ""
+        self.endereco = endereco.strip() if endereco else ""
+        self.cargo = cargo.strip() if cargo else ""
+        self.cpf = cpf.strip() if cpf else ""
+        self.email = email.strip() if email else ""
         self.data_admissao = data_admissao
-        self.departamento = departamento.strip() if departamento else ''
-        self.local_trabalho = local_trabalho.strip() if local_trabalho else ''
+        self.departamento = departamento.strip() if departamento else ""
+        self.local_trabalho = local_trabalho.strip() if local_trabalho else ""
         # Atribuir campos PJ
-        self.pj_contratante = pj_contratante.strip() if pj_contratante else ''
-        self.pj_contratante_cnpj = pj_contratante_cnpj.strip() if pj_contratante_cnpj else ''
-        self.pj_contratante_endereco = pj_contratante_endereco.strip() if pj_contratante_endereco else ''
-        self.pj_contratada = pj_contratada.strip() if pj_contratada else ''
-        self.pj_contratada_cnpj = pj_contratada_cnpj.strip() if pj_contratada_cnpj else ''
+        self.pj_contratante = pj_contratante.strip() if pj_contratante else ""
+        self.pj_contratante_cnpj = pj_contratante_cnpj.strip() if pj_contratante_cnpj else ""
+        self.pj_contratante_endereco = (
+            pj_contratante_endereco.strip() if pj_contratante_endereco else ""
+        )
+        self.pj_contratada = pj_contratada.strip() if pj_contratada else ""
+        self.pj_contratada_cnpj = pj_contratada_cnpj.strip() if pj_contratada_cnpj else ""
         self.pj_data_contrato = pj_data_contrato
         self.ativo = True
         self.tentativas_login_falhas = 0
@@ -116,8 +145,8 @@ class User(db.Model, UserMixin):
     @property
     def is_admin(self):
         """Verifica se o usuário é admin"""
-        return self.role == 'admin'
-    
+        return self.role == "admin"
+
     @property
     def is_active(self):
         """Override de is_active para Flask-Login - verifica se está ativo e desbloqueado.
@@ -137,30 +166,30 @@ class User(db.Model, UserMixin):
                 return False
 
         return True
-    
+
     def registrar_login_sucesso(self):
         """Registra login bem-sucedido e reseta tentativas falhas"""
         self.ultimo_login = now_gmt3()
         self.tentativas_login_falhas = 0
         self.bloqueado_ate = None
         db.session.commit()
-    
+
     def registrar_login_falho(self, max_tentativas=5, bloqueio_minutos=15):
         """
         Registra tentativa falha e bloqueia após X tentativas.
-        
+
         Args:
             max_tentativas: Número máximo de tentativas antes de bloquear
             bloqueio_minutos: Minutos de bloqueio após máximo atingido
         """
         self.tentativas_login_falhas += 1
-        
+
         if self.tentativas_login_falhas >= max_tentativas:
             # Bloquear por X minutos
             self.bloqueado_ate = now_gmt3() + timedelta(minutes=bloqueio_minutos)
-        
+
         db.session.commit()
-    
+
     def pode_tentar_login(self) -> bool:
         """Verifica se o usuário pode tentar login (não está bloqueado)"""
         if self.bloqueado_ate:
@@ -171,55 +200,68 @@ class User(db.Model, UserMixin):
             self.bloqueado_ate = None
             self.tentativas_login_falhas = 0
             db.session.commit()
-        
+
         return True
-    
+
     def minutos_ate_desbloqueio(self) -> int:
         """Retorna quantos minutos faltam para desbloqueio"""
         if not self.bloqueado_ate:
             return 0
-        
+
         agora = now_gmt3()
         diferenca = _garantir_aware_gmt3(self.bloqueado_ate) - agora
         return max(0, int(diferenca.total_seconds() / 60))
-    
+
     def to_dict(self):
         """Converte usuário para dicionário (sem password!)"""
         return {
-            'id': self.id,
-            'username': self.username,
-            'role': self.role,
-            'tipo_contrato': self.tipo_contrato,
-            'area': self.area,
-            'localizacao': self.localizacao,
-            'empresa': self.empresa,
-            'cnpj': self.cnpj,
-            'endereco': self.endereco,
-            'cargo': self.cargo,
-            'cpf': self.cpf,
-            'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
-            'data_admissao_iso': self.data_admissao.strftime("%Y-%m-%d") if self.data_admissao else None,
-            'departamento': self.departamento,
-            'local_trabalho': self.local_trabalho,
-            'email': self.email,
-            'pj_contratante': self.pj_contratante,
-            'pj_contratante_cnpj': self.pj_contratante_cnpj,
-            'pj_contratante_endereco': self.pj_contratante_endereco,
-            'pj_contratada': self.pj_contratada,
-            'pj_contratada_cnpj': self.pj_contratada_cnpj,
-            'pj_data_contrato': self.pj_data_contrato.strftime("%d/%m/%Y") if self.pj_data_contrato else None,
-            'pj_data_contrato_iso': self.pj_data_contrato.strftime("%Y-%m-%d") if self.pj_data_contrato else None,
-            'foto_perfil': self.foto_perfil,
-            'ativo': self.ativo,
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'ultimo_login': self.ultimo_login.strftime("%d/%m/%Y %H:%M:%S") if self.ultimo_login else "Nunca",
-            'is_admin': self.is_admin
+            "id": self.id,
+            "username": self.username,
+            "role": self.role,
+            "tipo_contrato": self.tipo_contrato,
+            "area": self.area,
+            "localizacao": self.localizacao,
+            "empresa": self.empresa,
+            "cnpj": self.cnpj,
+            "endereco": self.endereco,
+            "cargo": self.cargo,
+            "cpf": self.cpf,
+            "data_admissao": self.data_admissao.strftime("%d/%m/%Y")
+            if self.data_admissao
+            else None,
+            "data_admissao_iso": self.data_admissao.strftime("%Y-%m-%d")
+            if self.data_admissao
+            else None,
+            "departamento": self.departamento,
+            "local_trabalho": self.local_trabalho,
+            "email": self.email,
+            "pj_contratante": self.pj_contratante,
+            "pj_contratante_cnpj": self.pj_contratante_cnpj,
+            "pj_contratante_endereco": self.pj_contratante_endereco,
+            "pj_contratada": self.pj_contratada,
+            "pj_contratada_cnpj": self.pj_contratada_cnpj,
+            "pj_data_contrato": self.pj_data_contrato.strftime("%d/%m/%Y")
+            if self.pj_data_contrato
+            else None,
+            "pj_data_contrato_iso": self.pj_data_contrato.strftime("%Y-%m-%d")
+            if self.pj_data_contrato
+            else None,
+            "foto_perfil": self.foto_perfil,
+            "ativo": self.ativo,
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "ultimo_login": self.ultimo_login.strftime("%d/%m/%Y %H:%M:%S")
+            if self.ultimo_login
+            else "Nunca",
+            "is_admin": self.is_admin,
         }
 
 
 class Produto(db.Model):
     """Modelo para produtos do estoque"""
-    __tablename__ = 'produtos'
+
+    __tablename__ = "produtos"
 
     id_produto = db.Column(db.String(50), primary_key=True)
     nome = db.Column(db.String(255), nullable=False)
@@ -232,7 +274,9 @@ class Produto(db.Model):
     data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
 
     # Relacionamento com movimentações
-    movimentacoes = db.relationship('Movimentacao', backref='produto', lazy=True, cascade='all, delete-orphan')
+    movimentacoes = db.relationship(
+        "Movimentacao", backref="produto", lazy=True, cascade="all, delete-orphan"
+    )
 
     def __init__(self, id_produto, nome, categoria, preco, quantidade, minimo, localizacao=""):
         self.id_produto = id_produto
@@ -246,17 +290,21 @@ class Produto(db.Model):
     def to_dict(self):
         """Converte o produto para dicionário"""
         return {
-            'id': self.id_produto,
-            'nome': self.nome,
-            'categoria': self.categoria,
-            'preco': self.preco,
-            'quantidade': self.quantidade,
-            'minimo': self.minimo,
-            'localizacao': self.localizacao,
-            'valor_total': self.valor_total(),
-            'abaixo_minimo': self.abaixo_minimo(),
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'data_atualizacao': self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_atualizacao else None
+            "id": self.id_produto,
+            "nome": self.nome,
+            "categoria": self.categoria,
+            "preco": self.preco,
+            "quantidade": self.quantidade,
+            "minimo": self.minimo,
+            "localizacao": self.localizacao,
+            "valor_total": self.valor_total(),
+            "abaixo_minimo": self.abaixo_minimo(),
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "data_atualizacao": self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_atualizacao
+            else None,
         }
 
     def valor_total(self):
@@ -270,10 +318,11 @@ class Produto(db.Model):
 
 class Movimentacao(db.Model):
     """Modelo para histórico de movimentações"""
-    __tablename__ = 'movimentacoes'
+
+    __tablename__ = "movimentacoes"
 
     id_movimentacao = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_produto = db.Column(db.String(50), db.ForeignKey('produtos.id_produto'), nullable=False)
+    id_produto = db.Column(db.String(50), db.ForeignKey("produtos.id_produto"), nullable=False)
     tipo = db.Column(db.String(20), nullable=False)  # 'ENTRADA' ou 'SAIDA'
     quantidade = db.Column(db.Integer, nullable=False)
     motivo = db.Column(db.String(255))
@@ -290,7 +339,8 @@ class Movimentacao(db.Model):
 
 class Categoria(db.Model):
     """Modelo para categorias de produtos"""
-    __tablename__ = 'categorias'
+
+    __tablename__ = "categorias"
 
     id_categoria = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nome = db.Column(db.String(100), unique=True, nullable=False)
@@ -304,15 +354,16 @@ class Categoria(db.Model):
 
 class Chamada(db.Model):
     """Modelo para chamadas/notificações de usuários para admins"""
-    __tablename__ = 'chamadas'
+
+    __tablename__ = "chamadas"
 
     id_chamada = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
     foto_anexo = db.Column(db.String(255), nullable=True)
     data_criacao = db.Column(db.DateTime, default=now_gmt3)
     lida = db.Column(db.Boolean, default=False)
-    status = db.Column(db.String(50), default='nova', nullable=False)
+    status = db.Column(db.String(50), default="nova", nullable=False)
 
     # Relacionamento com usuário (backref definido no modelo User)
     # A propriedade `usuario` será criada automaticamente pelo backref.
@@ -321,30 +372,35 @@ class Chamada(db.Model):
         self.id_usuario = id_usuario
         self.mensagem = mensagem
         self.foto_anexo = foto_anexo
-        self.status = 'nova'
+        self.status = "nova"
         self.lida = False
 
     def to_dict(self):
         return {
-            'id': self.id_chamada,
-            'id_usuario': self.id_usuario,
-            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
-            'usuario_foto': self.usuario.foto_perfil if self.usuario else None,
-            'usuario_foto_url': f'/static/uploads/avatars/{self.usuario.foto_perfil}' if self.usuario and self.usuario.foto_perfil else None,
-            'usuario_area': self.usuario.area if self.usuario else '',
-            'usuario_localizacao': self.usuario.localizacao if self.usuario else '',
-            'mensagem': self.mensagem,
-            'foto_anexo': self.foto_anexo,
-            'foto_url': f'/static/uploads/chamadas/{self.foto_anexo}' if self.foto_anexo else None,
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'lida': self.lida,
-            'status': self.status
+            "id": self.id_chamada,
+            "id_usuario": self.id_usuario,
+            "usuario": self.usuario.username if self.usuario else "Desconhecido",
+            "usuario_foto": self.usuario.foto_perfil if self.usuario else None,
+            "usuario_foto_url": f"/static/uploads/avatars/{self.usuario.foto_perfil}"
+            if self.usuario and self.usuario.foto_perfil
+            else None,
+            "usuario_area": self.usuario.area if self.usuario else "",
+            "usuario_localizacao": self.usuario.localizacao if self.usuario else "",
+            "mensagem": self.mensagem,
+            "foto_anexo": self.foto_anexo,
+            "foto_url": f"/static/uploads/chamadas/{self.foto_anexo}" if self.foto_anexo else None,
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "lida": self.lida,
+            "status": self.status,
         }
 
 
 class Historico(db.Model):
     """Modelo para histórico de mudanças no sistema (auditoria)"""
-    __tablename__ = 'historico'
+
+    __tablename__ = "historico"
 
     id_evento = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tipo_evento = db.Column(db.String(100), nullable=False)
@@ -361,21 +417,24 @@ class Historico(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id_evento,
-            'tipo_evento': self.tipo_evento,
-            'descricao': self.descricao,
-            'usuario_responsavel': self.usuario_responsavel,
-            'data_evento': self.data_evento.strftime("%d/%m/%Y %H:%M:%S") if self.data_evento else None,
-            'detalhes': self.detalhes
+            "id": self.id_evento,
+            "tipo_evento": self.tipo_evento,
+            "descricao": self.descricao,
+            "usuario_responsavel": self.usuario_responsavel,
+            "data_evento": self.data_evento.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_evento
+            else None,
+            "detalhes": self.detalhes,
         }
 
 
 class DocumentoUsuario(db.Model):
     """Modelo para documentos associados a usuários"""
-    __tablename__ = 'documentos_usuarios'
+
+    __tablename__ = "documentos_usuarios"
 
     id_documento = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     nome_documento = db.Column(db.String(255), nullable=False)
     arquivo = db.Column(db.String(255), nullable=False)  # Nome do arquivo salvo
     descricao = db.Column(db.Text, nullable=True)
@@ -384,11 +443,22 @@ class DocumentoUsuario(db.Model):
     data_criacao = db.Column(db.DateTime, default=now_gmt3)
     data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
     usuario_enviador = db.Column(db.String(150), nullable=False)  # Quem fez upload
-    
-    # Relacionamento com usuário
-    usuario = db.relationship('User', backref=db.backref('documentos', lazy=True, cascade='all, delete-orphan'))
 
-    def __init__(self, id_usuario, nome_documento, arquivo, tipo_arquivo, tamanho_arquivo, usuario_enviador, descricao=None):
+    # Relacionamento com usuário
+    usuario = db.relationship(
+        "User", backref=db.backref("documentos", lazy=True, cascade="all, delete-orphan")
+    )
+
+    def __init__(
+        self,
+        id_usuario,
+        nome_documento,
+        arquivo,
+        tipo_arquivo,
+        tamanho_arquivo,
+        usuario_enviador,
+        descricao=None,
+    ):
         self.id_usuario = id_usuario
         self.nome_documento = nome_documento
         self.arquivo = arquivo
@@ -399,22 +469,25 @@ class DocumentoUsuario(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id_documento,
-            'id_usuario': self.id_usuario,
-            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
-            'nome_documento': self.nome_documento,
-            'arquivo': self.arquivo,
-            'tipo_arquivo': self.tipo_arquivo,
-            'tamanho_arquivo': self.tamanho_arquivo,
-            'descricao': self.descricao,
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'usuario_enviador': self.usuario_enviador
+            "id": self.id_documento,
+            "id_usuario": self.id_usuario,
+            "usuario": self.usuario.username if self.usuario else "Desconhecido",
+            "nome_documento": self.nome_documento,
+            "arquivo": self.arquivo,
+            "tipo_arquivo": self.tipo_arquivo,
+            "tamanho_arquivo": self.tamanho_arquivo,
+            "descricao": self.descricao,
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "usuario_enviador": self.usuario_enviador,
         }
 
 
 class DocumentoArquivo(db.Model):
     """Armazena conteúdo binário de documentos migrados/guardados no banco."""
-    __tablename__ = 'documentos_arquivos'
+
+    __tablename__ = "documentos_arquivos"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(255), nullable=False, index=True)
@@ -427,15 +500,19 @@ class DocumentoArquivo(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'filename': self.filename,
-            'mime_type': self.mime_type,
-            'size': self.size,
-            'uploaded_at': self.uploaded_at.strftime('%d/%m/%Y %H:%M:%S') if self.uploaded_at else None,
+            "id": self.id,
+            "filename": self.filename,
+            "mime_type": self.mime_type,
+            "size": self.size,
+            "uploaded_at": self.uploaded_at.strftime("%d/%m/%Y %H:%M:%S")
+            if self.uploaded_at
+            else None,
         }
 
     @classmethod
-    def salvar_do_arquivo(cls, caminho_arquivo, filename=None, tamanho=None, mime_type=None, commit=True):
+    def salvar_do_arquivo(
+        cls, caminho_arquivo, filename=None, tamanho=None, mime_type=None, commit=True
+    ):
         """Espelha no banco (upsert por ``filename``) o conteúdo de um arquivo em disco.
 
         É a fonte única de persistência de blob usada pelas rotas que gravam
@@ -455,10 +532,12 @@ class DocumentoArquivo(db.Model):
         """
         filename = filename or os.path.basename(caminho_arquivo)
         try:
-            with open(caminho_arquivo, 'rb') as arquivo:
+            with open(caminho_arquivo, "rb") as arquivo:
                 conteudo = arquivo.read()
             tamanho = len(conteudo) if tamanho is None else tamanho
-            mime = mime_type or mimetypes.guess_type(caminho_arquivo)[0] or 'application/octet-stream'
+            mime = (
+                mime_type or mimetypes.guess_type(caminho_arquivo)[0] or "application/octet-stream"
+            )
             cls.query.filter_by(filename=filename).delete()
             blob = cls(filename=filename, content=conteudo, mime_type=mime, size=tamanho)
             db.session.add(blob)
@@ -472,18 +551,21 @@ class DocumentoArquivo(db.Model):
 
 class ItemRecebido(db.Model):
     """Modelo para itens recebidos por usuários"""
-    __tablename__ = 'itens_recebidos'
+
+    __tablename__ = "itens_recebidos"
 
     id_item = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     descricao_item = db.Column(db.String(255), nullable=False)
     tipo_recebimento = db.Column(db.String(50), nullable=False)  # 'entrada' ou 'posteriormente'
     data_criacao = db.Column(db.DateTime, default=now_gmt3)
     data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
     usuario_responsavel = db.Column(db.String(150), nullable=False)  # Quem registrou
-    
+
     # Relacionamento com usuário
-    usuario = db.relationship('User', backref=db.backref('itens_recebidos', lazy=True, cascade='all, delete-orphan'))
+    usuario = db.relationship(
+        "User", backref=db.backref("itens_recebidos", lazy=True, cascade="all, delete-orphan")
+    )
 
     def __init__(self, id_usuario, descricao_item, tipo_recebimento, usuario_responsavel):
         self.id_usuario = id_usuario
@@ -493,64 +575,84 @@ class ItemRecebido(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id_item,
-            'id_usuario': self.id_usuario,
-            'descricao_item': self.descricao_item,
-            'tipo_recebimento': self.tipo_recebimento,
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'usuario_responsavel': self.usuario_responsavel
+            "id": self.id_item,
+            "id_usuario": self.id_usuario,
+            "descricao_item": self.descricao_item,
+            "tipo_recebimento": self.tipo_recebimento,
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "usuario_responsavel": self.usuario_responsavel,
         }
 
 
 class TermoEntrega(db.Model):
     """Modelo para Termo de Entrega e Responsabilidade de Equipamentos"""
-    __tablename__ = 'termos_entrega'
+
+    __tablename__ = "termos_entrega"
 
     id_termo = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_usuario = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+    id_usuario = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
     # Informações da empresa (CLT)
-    empresa = db.Column(db.String(255), nullable=False, default='')
-    cnpj = db.Column(db.String(18), nullable=False, default='')
-    endereco = db.Column(db.String(500), nullable=False, default='')
-    
+    empresa = db.Column(db.String(255), nullable=False, default="")
+    cnpj = db.Column(db.String(18), nullable=False, default="")
+    endereco = db.Column(db.String(500), nullable=False, default="")
+
     # Informações do colaborador (CLT)
-    nome_colaborador = db.Column(db.String(255), nullable=False, default='')
-    cargo_funcao = db.Column(db.String(255), nullable=False, default='')
-    cpf_cnpj = db.Column(db.String(18), nullable=False, default='')
-    departamento = db.Column(db.String(255), nullable=False, default='')
-    local_trabalho = db.Column(db.String(255), nullable=False, default='')
+    nome_colaborador = db.Column(db.String(255), nullable=False, default="")
+    cargo_funcao = db.Column(db.String(255), nullable=False, default="")
+    cpf_cnpj = db.Column(db.String(18), nullable=False, default="")
+    departamento = db.Column(db.String(255), nullable=False, default="")
+    local_trabalho = db.Column(db.String(255), nullable=False, default="")
     data_admissao = db.Column(db.Date, nullable=True)
-    
+
     # Informações PJ (Contratante)
-    pj_contratante = db.Column(db.String(255), nullable=True, default='')
-    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default='')
-    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default='')
-    
+    pj_contratante = db.Column(db.String(255), nullable=True, default="")
+    pj_contratante_cnpj = db.Column(db.String(18), nullable=True, default="")
+    pj_contratante_endereco = db.Column(db.String(500), nullable=True, default="")
+
     # Informações PJ (Contratada)
-    pj_contratada = db.Column(db.String(255), nullable=True, default='')
-    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default='')
-    
+    pj_contratada = db.Column(db.String(255), nullable=True, default="")
+    pj_contratada_cnpj = db.Column(db.String(18), nullable=True, default="")
+
     # Data do Contrato PJ
     pj_data_contrato = db.Column(db.Date, nullable=True)
-    
+
     # Equipamentos entregues (JSON para flexibilidade)
-    equipamentos = db.Column(db.Text, nullable=True, default='[]')  # JSON string
-    
+    equipamentos = db.Column(db.Text, nullable=True, default="[]")  # JSON string
+
     # Status e auditoria
     data_criacao = db.Column(db.DateTime, default=now_gmt3, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=now_gmt3, onupdate=now_gmt3)
     assinado = db.Column(db.Boolean, default=False)
     data_assinatura = db.Column(db.DateTime, nullable=True)
     observacoes = db.Column(db.Text, nullable=True)
-    
-    # Relacionamento com usuário
-    usuario = db.relationship('User', backref=db.backref('termos_entrega', lazy=True, cascade='all, delete-orphan'))
 
-    def __init__(self, id_usuario, empresa='', cnpj='', endereco='', nome_colaborador='', 
-                 cargo_funcao='', cpf_cnpj='', departamento='', local_trabalho='', data_admissao=None,
-                 pj_contratante='', pj_contratante_cnpj='', pj_contratante_endereco='',
-                 pj_contratada='', pj_contratada_cnpj='', pj_data_contrato=None):
+    # Relacionamento com usuário
+    usuario = db.relationship(
+        "User", backref=db.backref("termos_entrega", lazy=True, cascade="all, delete-orphan")
+    )
+
+    def __init__(
+        self,
+        id_usuario,
+        empresa="",
+        cnpj="",
+        endereco="",
+        nome_colaborador="",
+        cargo_funcao="",
+        cpf_cnpj="",
+        departamento="",
+        local_trabalho="",
+        data_admissao=None,
+        pj_contratante="",
+        pj_contratante_cnpj="",
+        pj_contratante_endereco="",
+        pj_contratada="",
+        pj_contratada_cnpj="",
+        pj_data_contrato=None,
+    ):
         self.id_usuario = id_usuario
         self.empresa = empresa
         self.cnpj = cnpj
@@ -567,34 +669,45 @@ class TermoEntrega(db.Model):
         self.pj_contratada = pj_contratada
         self.pj_contratada_cnpj = pj_contratada_cnpj
         self.pj_data_contrato = pj_data_contrato
-        self.equipamentos = '[]'
+        self.equipamentos = "[]"
         self.assinado = False
 
     def to_dict(self):
         import json
+
         return {
-            'id': self.id_termo,
-            'id_usuario': self.id_usuario,
-            'usuario': self.usuario.username if self.usuario else 'Desconhecido',
-            'empresa': self.empresa,
-            'cnpj': self.cnpj,
-            'endereco': self.endereco,
-            'nome_colaborador': self.nome_colaborador,
-            'cargo_funcao': self.cargo_funcao,
-            'cpf_cnpj': self.cpf_cnpj,
-            'departamento': self.departamento,
-            'local_trabalho': self.local_trabalho,
-            'data_admissao': self.data_admissao.strftime("%d/%m/%Y") if self.data_admissao else None,
-            'pj_contratante': self.pj_contratante,
-            'pj_contratante_cnpj': self.pj_contratante_cnpj,
-            'pj_contratante_endereco': self.pj_contratante_endereco,
-            'pj_contratada': self.pj_contratada,
-            'pj_contratada_cnpj': self.pj_contratada_cnpj,
-            'pj_data_contrato': self.pj_data_contrato.strftime("%d/%m/%Y") if self.pj_data_contrato else None,
-            'equipamentos': json.loads(self.equipamentos) if self.equipamentos else [],
-            'data_criacao': self.data_criacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_criacao else None,
-            'data_atualizacao': self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if self.data_atualizacao else None,
-            'assinado': self.assinado,
-            'data_assinatura': self.data_assinatura.strftime("%d/%m/%Y %H:%M:%S") if self.data_assinatura else None,
-            'observacoes': self.observacoes
+            "id": self.id_termo,
+            "id_usuario": self.id_usuario,
+            "usuario": self.usuario.username if self.usuario else "Desconhecido",
+            "empresa": self.empresa,
+            "cnpj": self.cnpj,
+            "endereco": self.endereco,
+            "nome_colaborador": self.nome_colaborador,
+            "cargo_funcao": self.cargo_funcao,
+            "cpf_cnpj": self.cpf_cnpj,
+            "departamento": self.departamento,
+            "local_trabalho": self.local_trabalho,
+            "data_admissao": self.data_admissao.strftime("%d/%m/%Y")
+            if self.data_admissao
+            else None,
+            "pj_contratante": self.pj_contratante,
+            "pj_contratante_cnpj": self.pj_contratante_cnpj,
+            "pj_contratante_endereco": self.pj_contratante_endereco,
+            "pj_contratada": self.pj_contratada,
+            "pj_contratada_cnpj": self.pj_contratada_cnpj,
+            "pj_data_contrato": self.pj_data_contrato.strftime("%d/%m/%Y")
+            if self.pj_data_contrato
+            else None,
+            "equipamentos": json.loads(self.equipamentos) if self.equipamentos else [],
+            "data_criacao": self.data_criacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_criacao
+            else None,
+            "data_atualizacao": self.data_atualizacao.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_atualizacao
+            else None,
+            "assinado": self.assinado,
+            "data_assinatura": self.data_assinatura.strftime("%d/%m/%Y %H:%M:%S")
+            if self.data_assinatura
+            else None,
+            "observacoes": self.observacoes,
         }

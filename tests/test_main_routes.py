@@ -6,10 +6,7 @@ Cobrem dashboard/index, controle de acesso a `/admin`, e o fluxo de documentos
 
 from io import BytesIO
 
-import pytest
-
 from app.models import DocumentoUsuario
-
 
 # --- Index / admin ----------------------------------------------------------
 
@@ -55,7 +52,9 @@ def _upload(client, id_usuario, nome="Documento Main", filename="doc.pdf"):
         "id_usuario": str(id_usuario),
     }
     return client.post(
-        "/documentos/upload", data=data, content_type="multipart/form-data",
+        "/documentos/upload",
+        data=data,
+        content_type="multipart/form-data",
         follow_redirects=False,
     )
 
@@ -64,9 +63,7 @@ def test_upload_documento_admin(auth_client, db_session, criar_usuario):
     alvo = criar_usuario(username="main_doc_alvo")
     resp = _upload(auth_client, alvo.id)
     assert resp.status_code == 302
-    assert (
-        DocumentoUsuario.query.filter_by(id_usuario=alvo.id).count() >= 1
-    )
+    assert DocumentoUsuario.query.filter_by(id_usuario=alvo.id).count() >= 1
 
 
 def test_upload_documento_sem_arquivo(auth_client, db_session, criar_usuario):
@@ -92,9 +89,7 @@ def test_excluir_documento(auth_client, db_session, criar_usuario):
     alvo = criar_usuario(username="main_excluir")
     _upload(auth_client, alvo.id, nome="Para Excluir")
     doc = DocumentoUsuario.query.filter_by(id_usuario=alvo.id).first()
-    resp = auth_client.post(
-        f"/documentos/{doc.id_documento}/excluir", follow_redirects=False
-    )
+    resp = auth_client.post(f"/documentos/{doc.id_documento}/excluir", follow_redirects=False)
     assert resp.status_code == 302
     assert DocumentoUsuario.query.get(doc.id_documento) is None
 
