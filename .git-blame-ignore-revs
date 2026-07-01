@@ -1,0 +1,12 @@
+# Commits ignorados pelo `git blame` — reformatações em massa que não têm
+# valor de autoria (a mudança é mecânica, não uma decisão de código).
+#
+# Ative localmente uma única vez:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# O GitHub já usa este arquivo automaticamente na interface de blame.
+# Ao adicionar um novo commit "noise-only", registre o hash completo aqui.
+# Ver docs/adr/0002 e docs/qualidade/ROADMAP.md.
+
+# chore(qualidade): aplica baseline do Ruff (format + auto-fix)
+275d47688efe0bf1156c1c8e4d6128c3ba26c2cf

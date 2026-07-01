@@ -1,0 +1,16 @@
+# Configuração de qualidade de código — Ruff (lint + formatação).
+# Decisão e racional: docs/adr/0002-ruff-para-lint-format-e-type-checking.md
+# Plano de execução: docs/qualidade/ROADMAP.md
+#
+# Começa frouxo de propósito: um conjunto mínimo de regras sobre um codebase sem
+# tipos. A versão do Ruff é fixada em requirements-dev.txt (Ruff é binário estático:
+# um release novo traz regras novas e quebraria o CI sozinho).
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["migrations", ".venv", "antenv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]  # erros, pyflakes, imports, pyupgrade, bugbear
+ignore = ["E501"]                    # comprimento de linha fica com o formatter

@@ -15,14 +15,14 @@ time. Em macOS/Linux a única diferença prática é a ativação da venv
 
 | Ferramenta | Versão | Para quê |
 |------------|--------|----------|
-| **Python** | 3.13 (fixado em [`mise.toml`](../mise.toml)) | Rodar a aplicação |
+| **Python** | 3.14 (fixado em [`mise.toml`](../mise.toml)) | Rodar a aplicação |
 | **Docker Desktop** | recente | Subir o MySQL local (o projeto é 100% MySQL, sem fallback SQLite) |
 | **Git** | qualquer | Clonar o repositório |
 
 Instalação rápida no Windows via `winget`:
 
 ```powershell
-winget install -e --id Python.Python.3.13
+winget install -e --id Python.Python.3.14
 winget install -e --id Docker.DockerDesktop
 ```
 
@@ -54,9 +54,9 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-> Se o seu `python` padrão não for o 3.13, aponte explicitamente para o
+> Se o seu `python` padrão não for o 3.14, aponte explicitamente para o
 > interpretador correto ao criar a venv (ex.:
-> `& "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" -m venv .venv`).
+> `& "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe" -m venv .venv`).
 
 ### 3. Configure o `.env`
 

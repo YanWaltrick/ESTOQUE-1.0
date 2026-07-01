@@ -1,0 +1,7 @@
+{
+  // Extensões recomendadas ao abrir o projeto no VS Code.
+  "recommendations": [
+    "charliermarsh.ruff",
+    "editorconfig.editorconfig"
+  ]
+}

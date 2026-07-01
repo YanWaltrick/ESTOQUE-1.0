@@ -39,7 +39,6 @@ os.environ.setdefault("SECRET_KEY", "chave-de-teste")
 from app import create_app  # noqa: E402
 from app.database import db as _db  # noqa: E402
 
-
 # Subpastas de upload tocadas pelos testes (foto de perfil, documentos, fotos de
 # equipamento e PDFs de termo). Os caminhos são relativos à raiz do projeto, que
 # é o diretório-pai de `tests/`.

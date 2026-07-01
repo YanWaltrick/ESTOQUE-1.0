@@ -6,7 +6,6 @@ banco de teste (via `db_session`).
 
 import pytest
 
-from app.models import Produto
 from app.services.estoque_service import EstoqueService
 
 
@@ -16,11 +15,22 @@ def servico(db_session):
     return EstoqueService()
 
 
-def _add(servico, id_produto="E1", nome="Mouse", categoria="Periféricos",
-         preco=50.0, quantidade=10, minimo=2, localizacao="A1"):
-    assert servico.adicionar_produto(
-        id_produto, nome, categoria, preco, quantidade, minimo, localizacao
-    ) is True
+def _add(
+    servico,
+    id_produto="E1",
+    nome="Mouse",
+    categoria="Periféricos",
+    preco=50.0,
+    quantidade=10,
+    minimo=2,
+    localizacao="A1",
+):
+    assert (
+        servico.adicionar_produto(
+            id_produto, nome, categoria, preco, quantidade, minimo, localizacao
+        )
+        is True
+    )
 
 
 # --- adicionar_produto ------------------------------------------------------
@@ -127,9 +137,10 @@ def test_saida_estoque_inexistente(servico):
 
 def test_atualizar_produto_sucesso(servico):
     _add(servico, id_produto="AT1")
-    assert servico.atualizar_produto(
-        "AT1", nome="Novo Nome", preco="99.9", quantidade="7", minimo="3"
-    ) is True
+    assert (
+        servico.atualizar_produto("AT1", nome="Novo Nome", preco="99.9", quantidade="7", minimo="3")
+        is True
+    )
     p = servico.buscar_produto("AT1")
     assert p.nome == "Novo Nome"
     assert p.preco == 99.9

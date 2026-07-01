@@ -23,12 +23,18 @@ pip install -r requirements.txt
 flask --app manage db migrate -m "descrição"   # Gera nova migração
 flask --app manage db upgrade                  # Aplica migrações
 flask --app manage db downgrade                # Reverte última migração
+
+# Qualidade de código (Ruff) — OBRIGATÓRIO em PR (gate de CI bloqueante)
+pip install -r requirements-dev.txt   # inclui o ruff fixado
+ruff format .                         # formata o código
+ruff check . --fix                    # lint + auto-fix seguro
+ruff format --check . && ruff check . # exatamente o que o CI roda (não altera arquivos)
 ```
 
 ## Configuração de ambiente
 
-**Python 3.13** (fixado em `mise.toml` via [mise](https://mise.jdx.dev/)). Com mise
-instalado, `mise install` provê o interpretador; sem mise, use Python 3.13 manualmente.
+**Python 3.14** (fixado em `mise.toml` via [mise](https://mise.jdx.dev/)). Com mise
+instalado, `mise install` provê o interpretador; sem mise, use Python 3.14 manualmente.
 O ambiente virtual (`.venv/`) e as dependências (`pip install -r requirements.txt`)
 seguem normalmente.
 
@@ -132,6 +138,10 @@ Arquivos ficam em `static/uploads/` com subdiretórios: `avatars/`, `chamadas/`,
 ### Deploy
 
 CI/CD via GitHub Actions (`.github/workflows/main_somasgt.yml`) faz push automático para **Azure App Service** (app name: `SOMASGT`) a cada push na branch `main`.
+
+### Qualidade de código (lint)
+
+Lint e formatação via **Ruff** (uma ferramenta, config em `pyproject.toml`). É **obrigatório**: o workflow `.github/workflows/ci.yml` roda `ruff format --check .` + `ruff check .` em PR para `develop` e `main` e **bloqueia o merge** em caso de violação (quando marcado como *required status check* na proteção de branch). Rode `ruff format . && ruff check . --fix` antes de abrir o PR. Decisão e plano em [ADR 0002](docs/adr/0002-ruff-para-lint-format-e-type-checking.md) e [docs/qualidade/ROADMAP.md](docs/qualidade/ROADMAP.md). O type checking foi **adiado** (ver ADR).
 
 ### Scripts utilitários
 

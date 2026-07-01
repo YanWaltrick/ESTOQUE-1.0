@@ -10,7 +10,6 @@ from app.auth.security import PasswordValidator
 from app.models import Chamada, User
 from tests.conftest import SENHA_TESTE
 
-
 # --- Login ------------------------------------------------------------------
 
 
@@ -43,9 +42,7 @@ def test_login_conta_desativada(client, db_session, criar_usuario):
     user = criar_usuario(username="desativado")
     user.ativo = False
     db_session.commit()
-    resp = client.post(
-        "/login", data={"username": "desativado", "password": SENHA_TESTE}
-    )
+    resp = client.post("/login", data={"username": "desativado", "password": SENHA_TESTE})
     assert resp.status_code == 200
 
 
@@ -144,7 +141,9 @@ def test_perfil_foto_get(perfil_verificado_client):
 def test_perfil_foto_upload_valido(perfil_verificado_client, usuario_comum):
     data = {"foto_perfil": (BytesIO(b"\x89PNG\r\n\x1a\nconteudo"), "foto.png")}
     resp = perfil_verificado_client.post(
-        "/perfil/foto", data=data, content_type="multipart/form-data",
+        "/perfil/foto",
+        data=data,
+        content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302
@@ -158,7 +157,9 @@ def test_perfil_foto_upload_valido(perfil_verificado_client, usuario_comum):
 def test_perfil_foto_extensao_invalida(perfil_verificado_client, usuario_comum):
     data = {"foto_perfil": (BytesIO(b"conteudo"), "arquivo.exe")}
     resp = perfil_verificado_client.post(
-        "/perfil/foto", data=data, content_type="multipart/form-data",
+        "/perfil/foto",
+        data=data,
+        content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302  # redireciona com flash de erro
@@ -169,7 +170,9 @@ def test_perfil_foto_extensao_invalida(perfil_verificado_client, usuario_comum):
 
 def test_perfil_foto_sem_arquivo(perfil_verificado_client, usuario_comum):
     resp = perfil_verificado_client.post(
-        "/perfil/foto", data={}, content_type="multipart/form-data",
+        "/perfil/foto",
+        data={},
+        content_type="multipart/form-data",
         follow_redirects=False,
     )
     assert resp.status_code == 302

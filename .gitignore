@@ -20,7 +20,11 @@ mise.local.toml
 
 # IDEs
 .idea/
-.vscode/
+# Ignora configs pessoais do VS Code, mas versiona as compartilhadas do time
+# (alinham o editor ao gate de lint do CI — ver docs/qualidade/ROADMAP.md).
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Logs
 logs/*.log

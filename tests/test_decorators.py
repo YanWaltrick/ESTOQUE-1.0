@@ -16,7 +16,6 @@ from app.auth.decorators import (
     get_user_permissions,
 )
 
-
 # --- Funções puras ----------------------------------------------------------
 
 

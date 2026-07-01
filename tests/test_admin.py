@@ -18,6 +18,7 @@ def _pasta_documentos_teste():
     raiz = os.path.dirname(os.path.dirname(__file__))
     return os.path.join(raiz, "static", "uploads", "documentos")
 
+
 # O fixture `admin_user` vem do `conftest.py` (compartilhado com test_api.py).
 
 
@@ -137,9 +138,7 @@ def test_resetar_senha(auth_client, criar_usuario):
 
 def test_resetar_senha_invalida(auth_client, criar_usuario):
     alvo = criar_usuario(username="reset_invalido")
-    resp = auth_client.post(
-        f"/admin/users/{alvo.id}/reset-password", data={"nova_senha": "123"}
-    )
+    resp = auth_client.post(f"/admin/users/{alvo.id}/reset-password", data={"nova_senha": "123"})
     assert resp.status_code == 400
 
 
@@ -283,18 +282,14 @@ def test_exportar_termo_pdf(auth_client, db_session, criar_usuario):
         data={"descricao": "Notebook", "marca": "Dell"},
         content_type="multipart/form-data",
     )
-    resp = auth_client.post(
-        f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={}
-    )
+    resp = auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
     assert resp.status_code == 200
     assert resp.get_json()["success"] is True
 
 
 def test_exportar_termo_sem_termo(auth_client, criar_usuario):
     alvo = criar_usuario(username="export_sem_termo")
-    resp = auth_client.post(
-        f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={}
-    )
+    resp = auth_client.post(f"/admin/usuarios/{alvo.id}/termo-entrega/exportar", json={})
     assert resp.status_code == 404
 
 
@@ -503,7 +498,9 @@ def test_leitura_ignora_arquivo_vazio_e_cai_para_o_banco(auth_client, db_session
 
 
 @pytest.mark.parametrize("acao", ["visualizar", "download"])
-def test_erro_na_leitura_retorna_json_sem_vazar(auth_client, db_session, criar_usuario, monkeypatch, acao):
+def test_erro_na_leitura_retorna_json_sem_vazar(
+    auth_client, db_session, criar_usuario, monkeypatch, acao
+):
     """Erro inesperado na leitura vira JSON genérico (não HTML) e não vaza str(e)."""
     import app.routes.admin as admin_module
 

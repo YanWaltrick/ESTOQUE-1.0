@@ -9,7 +9,6 @@ import pytest
 
 from app.auth.security import PasswordValidator, validate_email, validate_username
 
-
 # --- PasswordValidator.validate ---------------------------------------------
 
 

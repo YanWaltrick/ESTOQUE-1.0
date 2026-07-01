@@ -65,8 +65,14 @@ def test_atualizar_produto(auth_client):
     _criar_produto(auth_client, "PROD_UPD")
     resp = auth_client.put(
         "/api/produtos/PROD_UPD",
-        json={"nome": "Atualizado", "categoria": "Cat", "preco": 20.0,
-              "quantidade": 8, "minimo": 1, "localizacao": "B2"},
+        json={
+            "nome": "Atualizado",
+            "categoria": "Cat",
+            "preco": 20.0,
+            "quantidade": 8,
+            "minimo": 1,
+            "localizacao": "B2",
+        },
     )
     assert resp.status_code == 200
     assert resp.get_json()["produto"]["nome"] == "Atualizado"
@@ -293,18 +299,14 @@ def test_marcar_chamada_como_lida(auth_client):
 
 def test_atualizar_status_chamada(auth_client):
     id_chamada = _criar_chamada(auth_client).get_json()["id_chamada"]
-    resp = auth_client.put(
-        f"/api/chamadas/{id_chamada}/status", json={"status": "analise"}
-    )
+    resp = auth_client.put(f"/api/chamadas/{id_chamada}/status", json={"status": "analise"})
     assert resp.status_code == 200
     assert resp.get_json()["novo_status"] == "analise"
 
 
 def test_atualizar_status_chamada_invalido(auth_client):
     id_chamada = _criar_chamada(auth_client).get_json()["id_chamada"]
-    resp = auth_client.put(
-        f"/api/chamadas/{id_chamada}/status", json={"status": "inexistente"}
-    )
+    resp = auth_client.put(f"/api/chamadas/{id_chamada}/status", json={"status": "inexistente"})
     assert resp.status_code == 400
 
 
@@ -317,9 +319,7 @@ def test_criar_usuario_api_username_invalido(auth_client):
 
 
 def test_criar_usuario_api_senha_invalida(auth_client):
-    resp = auth_client.post(
-        "/api/users", json={"username": "senha_fraca_user", "password": "123"}
-    )
+    resp = auth_client.post("/api/users", json={"username": "senha_fraca_user", "password": "123"})
     assert resp.status_code == 400
 
 
@@ -434,7 +434,5 @@ def test_criar_produto_duplicado(auth_client):
 
 def test_atualizar_usuario_sem_corpo(auth_client, criar_usuario):
     alvo = criar_usuario(username="sem_corpo")
-    resp = auth_client.put(
-        f"/api/users/{alvo.id}", data="", content_type="application/json"
-    )
+    resp = auth_client.put(f"/api/users/{alvo.id}", data="", content_type="application/json")
     assert resp.status_code == 400

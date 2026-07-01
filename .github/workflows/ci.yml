@@ -1,0 +1,55 @@
+# Gate de qualidade de código em PR. Ver docs/adr/0002 e docs/qualidade/ROADMAP.md.
+#
+# O job de lint é rápido e NÃO precisa de banco (ao contrário do pytest). Roda em
+# pull_request para `develop` e `main` — o ponto onde o gate realmente enforça, já que
+# o deploy é push direto na `main` e o trabalho acontece na `develop`.
+#
+# Para o gate proteger de fato, marque "Lint (Ruff)" como *required status check* na
+# proteção de branch da `main` (e da `develop`, se protegida). Sem isso, o job roda mas
+# não bloqueia o merge.
+#
+# O job de testes (pytest) do Roadmap de Testes #1 entra AQUI como um job separado
+# (precisa de service container MySQL) — os dois convivem no mesmo workflow.
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+# Cancela execuções antigas do mesmo PR quando um novo push chega.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      # Instala a MESMA versão do Ruff fixada em requirements-dev.txt (fonte única da
+      # verdade), sem puxar o stack pesado da app — o lint não precisa dele. Fixar a
+      # versão evita o "verde local / vermelho no CI" quando sai um release novo do Ruff.
+      - name: Instalar Ruff (versão fixada)
+        run: pip install "$(grep -E '^ruff==' requirements-dev.txt)"
+
+      - name: Ruff — formatação
+        run: ruff format --check .
+
+      - name: Ruff — lint
+        run: ruff check .

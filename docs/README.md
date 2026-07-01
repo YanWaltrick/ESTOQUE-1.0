@@ -29,6 +29,7 @@ A pasta [adr/](adr/) reúne os Registros de Decisão de Arquitetura — decisõe
 | Arquivo | Descrição |
 |---------|-----------|
 | [adr/0001-manter-flask-como-stack.md](adr/0001-manter-flask-como-stack.md) | Decisão de manter Flask como stack de aplicação (veredito do Conselho de LLMs); o risco real é operacional, não de framework. |
+| [adr/0002-ruff-para-lint-format-e-type-checking.md](adr/0002-ruff-para-lint-format-e-type-checking.md) | Adotar Ruff para lint + formatação; type checking adiado (veredito do Conselho de LLMs). Plano em [qualidade/ROADMAP.md](qualidade/ROADMAP.md). |
 
 ## Infraestrutura
 
@@ -48,6 +49,15 @@ A pasta [testes/](testes/) reúne a estratégia de testes automatizados (pytest)
 | [testes/README.md](testes/README.md) | Visão geral da suíte, como rodar e o padrão de testes. |
 | [testes/ROADMAP.md](testes/ROADMAP.md) | Pendências e próximos passos priorizados (documento vivo). |
 | [testes/REVISAO_CODIGO.md](testes/REVISAO_CODIGO.md) | Log das revisões de código da área de testes. |
+
+## Qualidade de Código
+
+A pasta [qualidade/](qualidade/) reúne o tooling de qualidade (lint, formatação, type checking):
+
+| Arquivo | Descrição |
+|---------|-----------|
+| [qualidade/ROADMAP.md](qualidade/ROADMAP.md) | Plano de execução do lint/format (Ruff) e do gate de CI; type checking adiado (documento vivo). Decisão na [ADR 0002](adr/0002-ruff-para-lint-format-e-type-checking.md). |
+| [qualidade/CONFIGURACAO_GIT.md](qualidade/CONFIGURACAO_GIT.md) | Configurações do gate de Ruff que **não** vivem no repositório (required status check no GitHub, `git config blame.ignoreRevsFile`, `pre-commit install`) — a pendência que falta para o gate enforçar de fato. |
 
 ## Segurança
 

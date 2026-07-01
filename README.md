@@ -43,7 +43,7 @@ a branch `main`.
 - Termos de entrega e responsabilidade são associados aos usuários.
 
 ## Requisitos
-- **Python 3.13** (fixado em [`mise.toml`](mise.toml))
+- **Python 3.14** (fixado em [`mise.toml`](mise.toml))
 - **Docker** — para subir o MySQL local. O projeto é **100% MySQL**, sem fallback SQLite.
 - Git (opcional)
 
