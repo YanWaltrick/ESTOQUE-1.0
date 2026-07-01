@@ -3,13 +3,15 @@
 > Documento vivo. Segue a [Norma de Documentação Viva](../NORMA_DOCUMENTACAO.md).
 > Atualize o status e os checklists **na mesma tarefa** em que o trabalho for feito.
 >
-> **Última atualização:** 2026-06-30 — itens #1, #2 e #3 **implementados**: baseline do
-> Ruff (`0.15.20`) aplicada e registrada no `.git-blame-ignore-revs`, triagem dos 54
-> avisos concluída, gate de CI de lint (`ci.yml`) em PR e `pre-commit`/`.editorconfig`/
-> `.vscode`. Resta uma ação manual: marcar o job como *required status check* na proteção
-> de branch. Type checking (#4) segue adiado. Antes (2026-06-30): criação do roadmap a
-> partir do veredito do Conselho de LLMs; paridade de Python (3.14) resolvida
-> ([P5 ✅](../infraestrutura/PRONTIDAO_PRODUCAO.md)).
+> **Última atualização:** 2026-07-01 — a pendência de configuração não-versionável do Ruff
+> (required status check no GitHub + `git config` local) ganhou runbook dedicado em
+> [CONFIGURACAO_GIT.md](CONFIGURACAO_GIT.md), referenciado no item #2. Antes (2026-06-30):
+> itens #1, #2 e #3 **implementados** — baseline do Ruff (`0.15.20`) aplicada e registrada no
+> `.git-blame-ignore-revs`, triagem dos 54 avisos concluída, gate de CI de lint (`ci.yml`) em
+> PR e `pre-commit`/`.editorconfig`/`.vscode`. Resta uma ação manual: marcar o job como
+> *required status check* na proteção de branch. Type checking (#4) segue adiado. Antes:
+> criação do roadmap a partir do veredito do Conselho de LLMs; paridade de Python (3.14)
+> resolvida ([P5 ✅](../infraestrutura/PRONTIDAO_PRODUCAO.md)).
 
 **Origem da decisão:** [ADR 0002 — Ruff para lint + formatação; type checking adiado](../adr/0002-ruff-para-lint-format-e-type-checking.md)
 (veredito do Conselho de LLMs, 2026-06-30). O "porquê" de cada escolha está na ADR; aqui
@@ -119,7 +121,8 @@ separado e rápido**, que roda mesmo se o de testes falhar.
 - [x] O job **falha o PR** em violação (sem `continue-on-error`); Python 3.14; cache de pip.
 - [ ] **Marcar o job `Lint (Ruff)` como *required status check*** na proteção de branch da
       `main` (e `develop`, se protegida). **Ação manual no GitHub** (Settings → Branches),
-      não versionável — sem isso o job roda mas não bloqueia o merge.
+      não versionável — sem isso o job roda mas não bloqueia o merge. **Passo a passo em
+      [CONFIGURACAO_GIT.md](CONFIGURACAO_GIT.md#1-lint-ruff-como-required-status-check--a-pendência-bloqueante).**
 - [x] Convive com o futuro gate de `pytest` ([testes/ROADMAP #1](../testes/ROADMAP.md)) — o
       `ci.yml` recebe o job de testes como um job separado (que aí sim precisa do MySQL).
 - [x] Documentado no [índice de docs](../README.md) e no `CLAUDE.md` (lint obrigatório).

@@ -57,6 +57,7 @@ A pasta [qualidade/](qualidade/) reúne o tooling de qualidade (lint, formataç�
 | Arquivo | Descrição |
 |---------|-----------|
 | [qualidade/ROADMAP.md](qualidade/ROADMAP.md) | Plano de execução do lint/format (Ruff) e do gate de CI; type checking adiado (documento vivo). Decisão na [ADR 0002](adr/0002-ruff-para-lint-format-e-type-checking.md). |
+| [qualidade/CONFIGURACAO_GIT.md](qualidade/CONFIGURACAO_GIT.md) | Configurações do gate de Ruff que **não** vivem no repositório (required status check no GitHub, `git config blame.ignoreRevsFile`, `pre-commit install`) — a pendência que falta para o gate enforçar de fato. |
 
 ## Segurança
 
