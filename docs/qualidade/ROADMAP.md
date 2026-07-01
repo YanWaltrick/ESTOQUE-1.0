@@ -181,8 +181,10 @@ módulos, contratos que valha proteger), ou se bugs de tipo passarem a recorrer.
   `develop`/`main`, sem banco, Python 3.14, versão do Ruff lida do `requirements-dev.txt`)
   — falta só marcar como *required status check* no GitHub. **#3:** `.pre-commit-config.yaml`
   (`ruff-check` + `ruff-format`, `rev` fixada), `.editorconfig`, `.vscode/settings.json` +
-  `extensions.json`, `pre-commit>=3.7`. Validação possível: `ruff check .` verde e imports
-  OK; a suíte `pytest` não foi executada (MySQL/Docker indisponível no ambiente).
+  `extensions.json`, `pre-commit>=3.7`. **Validação:** `ruff check .` + `ruff format --check .`
+  verdes e a **suíte `pytest` completa passou — 274 testes verdes** contra o MySQL do
+  container (`docker compose up -d`), confirmando que a baseline e a triagem não
+  regrediram comportamento.
 - 🟢 **2026-06-30** — Decisão registrada na
   [ADR 0002](../adr/0002-ruff-para-lint-format-e-type-checking.md) (veredito do Conselho
   de LLMs) e roadmap criado. Pré-requisito de paridade de Python resolvido: `mise.toml`
